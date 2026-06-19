@@ -161,12 +161,32 @@
                 <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
             </div>
             
-            <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
-                <div class="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center mb-6 text-6xl shadow-inner">🏆</div>
-                <h1 class="text-4xl font-black text-blue-900 mb-2 uppercase font-['Montserrat']">Mon Score</h1>
-                <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-8"></div>
-                <div class="flex gap-4">
-                    <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition hover:scale-105 flex items-center gap-2"><span>↺</span> JE REJOUE</button>
+           <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+                <div class="flex items-end gap-2 mb-6">
+                    <div class="bg-yellow-200 text-blue-900 font-bold px-6 py-4 rounded-3xl rounded-bl-none text-xl shadow-md border-2 border-yellow-300 transform -rotate-3" id="score-message">
+                        Essaie encore !
+                    </div>
+                    <div id="score-mascot" class="text-6xl animate-bounce">👦🏼</div>
+                </div>
+                
+                <h1 class="text-2xl md:text-3xl font-black text-orange-400 mb-4 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
+                
+                <div class="flex items-center gap-4 w-full max-w-md mb-8">
+                    <div class="w-full h-8 bg-white border border-orange-400 rounded-full overflow-hidden shadow-inner p-1">
+                        <div id="score-bar" class="h-full bg-orange-100 rounded-full transition-all duration-1000 ease-out w-0"></div>
+                    </div>
+                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
+                </div>
+                
+                <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-6 hidden"></div>
+                
+                <div class="flex flex-wrap justify-center gap-6">
+                    <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-blue-600 transition">
+                        <span class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-2xl shadow-md">↺</span> Je rejoue
+                    </button>
+                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-pink-600 transition">
+                        <span class="w-12 h-12 rounded-full bg-pink-600 text-white flex items-center justify-center text-xl shadow-md">👁</span> Je regarde les réponses
+                    </button>
                 </div>
             </div>
 
@@ -334,23 +354,48 @@
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden');
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            let errs = 0; let reportHtml = '';
+            let errs = 0; let reportHtml = ''; let scorePerc = 100;
             
             if (type !== 'crossword') {
                 errs = errorTracker.reduce((a, b) => a + b, 0);
+                
+                if (type === 'domino') {
+                    scorePerc = Math.max(0, 100 - (errs * 15)); // Toglie 15% ogni errore a catena
+                } else {
+                    let correctItems = errorTracker.filter(e => e === 0).length;
+                    scorePerc = Math.round((correctItems / items.length) * 100);
+                }
+
                 if (errs > 0) {
-                    reportHtml = '<div class="w-full max-w-md mt-6"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+                    reportHtml = '<ul class="text-left bg-slate-50 p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar w-full">';
                     if(type === 'domino') {
-                        reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errs} erreur(s)</span></li>`;
+                        reportHtml += `<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errs} erreur(s)</span></li>`;
                     } else {
                         items.forEach((item, index) => {
                             if (errorTracker[index] > 0) {
-                                reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">${item}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errorTracker[index]} erreur(s)</span></li>`;
+                                reportHtml += `<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">${item}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errorTracker[index]} erreur(s)</span></li>`;
                             }
                         });
                     }
-                    reportHtml += '</ul></div>';
+                    reportHtml += '</ul>';
                 }
+            }
+
+            setTimeout(() => {
+                document.getElementById('score-bar').style.width = scorePerc + '%';
+                document.getElementById('score-text').innerText = scorePerc + '%';
+            }, 100);
+
+            const mascot = document.getElementById('score-mascot');
+            const msg = document.getElementById('score-message');
+            if (scorePerc >= 80) {
+                mascot.innerText = '🤩'; msg.innerText = 'Bravo !';
+            } else if (scorePerc >= 50) {
+                mascot.innerText = '😊'; msg.innerText = 'Bien joué !';
+            } else {
+                mascot.innerText = '👦🏼'; msg.innerText = 'Essaie encore !';
+            }
+            document.getElementById('end-score').innerHTML = reportHtml;
             }
             let msg = errs === 0 ? "<span class='text-green-600'>Sans-faute ! Excellent !</span>" : `<span class='text-red-500'>Tu as fait ${errs} erreur(s).</span>`;
             document.getElementById('end-score').innerHTML = `<p class="text-2xl mb-2 font-black font-['Montserrat']">${msg}</p>${reportHtml}`;
@@ -554,12 +599,34 @@
             <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
             <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
         </div>
-        <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
-            <div class="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center mb-6 text-6xl shadow-inner">🏆</div>
-            <h1 class="text-4xl font-black text-blue-900 mb-2 uppercase font-['Montserrat']">Mon Score</h1>
-            <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-8"></div>
-            <div class="flex gap-4"><button onclick="startGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition hover:scale-105 flex items-center gap-2"><span>↺</span> JE REJOUE</button></div>
-        </div>
+       <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+                <div class="flex items-end gap-2 mb-6">
+                    <div class="bg-yellow-200 text-blue-900 font-bold px-6 py-4 rounded-3xl rounded-bl-none text-xl shadow-md border-2 border-yellow-300 transform -rotate-3" id="score-message">
+                        Essaie encore !
+                    </div>
+                    <div id="score-mascot" class="text-6xl animate-bounce">👦🏼</div>
+                </div>
+                
+                <h1 class="text-2xl md:text-3xl font-black text-orange-400 mb-4 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
+                
+                <div class="flex items-center gap-4 w-full max-w-md mb-8">
+                    <div class="w-full h-8 bg-white border border-orange-400 rounded-full overflow-hidden shadow-inner p-1">
+                        <div id="score-bar" class="h-full bg-orange-100 rounded-full transition-all duration-1000 ease-out w-0"></div>
+                    </div>
+                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
+                </div>
+                
+                <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-6 hidden"></div>
+                
+                <div class="flex flex-wrap justify-center gap-6">
+                    <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-blue-600 transition">
+                        <span class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-2xl shadow-md">↺</span> Je rejoue
+                    </button>
+                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-pink-600 transition">
+                        <span class="w-12 h-12 rounded-full bg-pink-600 text-white flex items-center justify-center text-xl shadow-md">👁</span> Je regarde les réponses
+                    </button>
+                </div>
+            </div>
         <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
             <div class="flex flex-col items-start z-10 w-full md:w-1/4">
                 <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
@@ -594,20 +661,47 @@
             if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
             else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
         };
-        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
-        function showEndScreen() {
-            document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = 0; let reportHtml = '';
+       function showEndScreen() {
+            document.getElementById('end-screen').classList.remove('hidden');
+            const type = GAME_CONFIG.levels[curLvl].type;
+            let errs = 0; let reportHtml = ''; let scorePerc = 100;
+            
             if (type !== 'crossword') {
                 errs = errorTracker.reduce((a, b) => a + b, 0);
+                if (type === 'domino') {
+                    scorePerc = Math.max(0, 100 - (errs * 15));
+                } else {
+                    let correctItems = errorTracker.filter(e => e === 0).length;
+                    scorePerc = Math.round((correctItems / GAME_CONFIG.items.length) * 100);
+                }
+
                 if (errs > 0) {
-                    reportHtml = '<div class="w-full max-w-md mt-6"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-                    if(type === 'domino') { reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errs + ' erreur(s)</span></li>'; }
-                    else { GAME_CONFIG.items.forEach((item, index) => { if (errorTracker[index] > 0) { reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">' + item + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errorTracker[index] + ' erreur(s)</span></li>'; } }); }
-                    reportHtml += '</ul></div>';
+                    reportHtml = '<ul class="text-left bg-slate-50 p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar w-full">';
+                    if(type === 'domino') {
+                        reportHtml += '<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errs + ' erreur(s)</span></li>';
+                    } else {
+                        GAME_CONFIG.items.forEach((item, index) => {
+                            if (errorTracker[index] > 0) {
+                                reportHtml += '<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">' + item + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errorTracker[index] + ' erreur(s)</span></li>';
+                            }
+                        });
+                    }
+                    reportHtml += '</ul>';
                 }
             }
-            let msg = errs === 0 ? "<span class='text-green-600'>Sans-faute ! Excellent !</span>" : "<span class='text-red-500'>Tu as fait " + errs + " erreur(s).</span>";
-            document.getElementById('end-score').innerHTML = '<p class="text-2xl mb-2 font-black font-[\\'Montserrat\\']">' + msg + '</p>' + reportHtml;
+
+            setTimeout(() => {
+                document.getElementById('score-bar').style.width = scorePerc + '%';
+                document.getElementById('score-text').innerText = scorePerc + '%';
+            }, 100);
+
+            const mascot = document.getElementById('score-mascot');
+            const msg = document.getElementById('score-message');
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerText = 'Bravo !'; } 
+            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerText = 'Bien joué !'; } 
+            else { mascot.innerText = '👦🏼'; msg.innerText = 'Essaie encore !'; }
+            
+            document.getElementById('end-score').innerHTML = reportHtml;
         }
 
         function loadStep(idx) {
