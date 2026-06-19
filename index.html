@@ -16,10 +16,12 @@
         
         .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; }
         
-        .unit-badge { background-color: var(--hfle-pink); color: white; border-radius: 8px; padding: 4px 14px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .unit-badge-text { font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
-        .unit-badge-num { font-size: 26px; font-weight: 900; font-family: 'Montserrat', sans-serif; }
-        .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 4px 16px; border-radius: 0 16px 16px 0; margin-top: -8px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -10px; z-index: -1; position: relative; font-size: 11px; }
+        /* Updated Badge & Ribbon */
+        .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); }
+        .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; }
+        .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; }
+        
+        .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); }
 
         .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; }
         .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); }
@@ -62,6 +64,7 @@
 </head>
 <body class="p-2 md:p-4">
 
+    <!-- MODALS -->
     <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50"><h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3><button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button></div>
@@ -83,15 +86,27 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
+        <!-- CONFIGURATION PANEL -->
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
             <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
             <div class="space-y-6">
-                <div class="grid grid-cols-2 gap-2">
-                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6"></div>
-                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements"></div>
+                <!-- Dati Testata -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6" oninput="initGame()"></div>
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="font-bold uppercase mb-1 text-[10px] text-gray-500 flex items-center gap-1">
+                            <input type="checkbox" id="in-show-lecon" checked onchange="initGame()"> Mostra Leçon
+                        </p>
+                        <input id="in-lecon" type="text" class="w-full p-2 border rounded" placeholder="1" value="1" oninput="initGame()">
+                    </div>
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements" oninput="initGame()"></div>
                 </div>
 
+                <!-- LIVELLO FACILE -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Lis et déplace les dominos.">
@@ -104,6 +119,7 @@
                     </div>
                 </div>
 
+                <!-- LIVELLO DIFFICILE -->
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Regarde les dominos et mets les lettres dans le bon ordre.">
@@ -122,6 +138,7 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
+                <!-- SUONI GLOBALI -->
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p class="font-bold text-gray-800 uppercase mb-2">Suoni Feedback</p>
                     <div class="flex gap-2">
@@ -135,11 +152,12 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📥 SCARICA PACCHETTO ZIP</button>
         </div>
 
+        <!-- PREVIEW AREA (RESPONSIVE SHELL UI) -->
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
-                <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest opacity-80 uppercase">Unité <span id="start-unite"></span></h2>
-                <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 uppercase text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
+                <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
+                <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
                 <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
             </div>
             
@@ -152,18 +170,27 @@
                 </div>
             </div>
 
-            <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100">
-                <div class="flex items-start gap-4 mb-4 md:mb-0">
-                    <div class="flex flex-col">
-                        <div class="unit-badge">
-                            <span class="unit-badge-text">Unité</span>
-                            <span id="res-unite" class="unit-badge-num"></span>
-                        </div>
-                        <div class="lecon-ribbon">LEÇON 1</div>
+            <!-- RESPONSIVE HEADER -->
+            <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
+                
+                <!-- Box Unité e Leçon -->
+                <div class="flex flex-col items-start z-10 w-full md:w-1/4">
+                    <div class="unit-badge" id="res-badge">
+                        <span class="unit-badge-text">Unité</span>
+                        <span id="res-unite" class="unit-badge-num"></span>
                     </div>
-                    <h1 id="res-titre" class="h-titre text-xl md:text-3xl uppercase mt-2 text-center md:text-left leading-tight"></h1>
+                    <div id="res-lecon-wrapper" class="lecon-ribbon">
+                        LEÇON <span id="res-lecon">1</span>
+                    </div>
                 </div>
-                <div class="flex bg-blue-100 rounded-full p-1 shadow-inner">
+                
+                <!-- Titolo Centrato -->
+                <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
+                    <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
+                </div>
+                
+                <!-- Bottoni Modalità -->
+                <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
                     <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
                     <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
                 </div>
@@ -267,14 +294,33 @@
         /* --- GAME LOGIC --- */
         function initGame() {
             items = document.getElementById('items-list').value.split(';').map(i=>i.trim()).filter(i=>i);
-            document.getElementById('res-unite').innerText = document.getElementById('in-unite').value || "1";
-            document.getElementById('res-titre').innerText = document.getElementById('in-titre').value || "ACTIVITÉ";
+            
+            // Applica il colore selezionato al badge dell'Unité
+            let color = document.getElementById('in-color').value || '#E84C7B';
+            document.getElementById('res-badge').style.setProperty('--theme-color', color);
+            
+            // Logica mostra/nascondi Leçon
+            let showLecon = document.getElementById('in-show-lecon').checked;
+            let leconWrapper = document.getElementById('res-lecon-wrapper');
+            if(showLecon) {
+                leconWrapper.classList.remove('hidden');
+                document.getElementById('res-lecon').innerText = document.getElementById('in-lecon').value || '1';
+            } else {
+                leconWrapper.classList.add('hidden');
+            }
+
+            document.getElementById('res-unite').innerText = document.getElementById('in-unite').value || "6";
+            document.getElementById('start-unite').innerText = document.getElementById('in-unite').value || "6";
+            
+            // Il titolo ora rispetta le maiuscole originali (non facciamo .toUpperCase())
+            document.getElementById('res-titre').innerText = document.getElementById('in-titre').value || "Activité";
+            document.getElementById('start-titre').innerText = document.getElementById('in-titre').value || "Activité";
+            
             toggleToolBtns('f'); toggleToolBtns('d');
         }
 
         function showStartScreen() {
             document.getElementById('start-screen').classList.remove('hidden'); document.getElementById('end-screen').classList.add('hidden');
-            document.getElementById('start-unite').innerText = document.getElementById('in-unite').value || "1"; document.getElementById('start-titre').innerText = document.getElementById('in-titre').value || "ACTIVITÉ";
         }
 
         function startGame() {
@@ -394,17 +440,6 @@
             }
         }
 
-        function checkCrossword() {
-            let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
-            inputs.forEach(inp => {
-                if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; inp.classList.remove('correct'); } else { inp.classList.add('correct'); }
-                if(inp.value.trim() !== '') filledCount++;
-            });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
-                confetti(); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); setTimeout(() => showEndScreen(), 1500);
-            }
-        }
-
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); const target = document.getElementById('target');
             if(!target || !pool) return;
@@ -496,19 +531,27 @@
             let expImg = {}; for(let k in dbImg) { if(!dbImg[k]) continue; let ext = dbImg[k].match(/data:image\/(.*);base64/)[1]; let name = `${k.replace(/[^a-z0-9]/gi,'_')}.${ext}`; assetsFolder.file(name, dataURLtoBlob(dbImg[k])); expImg[k] = `assets/${name}`; }
             let expAud = {}; for(let k in dbAud) { if(!dbAud[k]) continue; let ext = dbAud[k].includes('mpeg') ? 'mp3' : 'wav'; let name = `${k.replace(/[^a-z0-9]/gi,'_')}.${ext}`; assetsFolder.file(name, dataURLtoBlob(dbAud[k])); expAud[k] = `assets/${name}`; }
 
-            const gameConfig = { unite: document.getElementById('in-unite').value, titre: document.getElementById('in-titre').value, items: items, mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, levels: { facile: { type: typeF, consigne: document.getElementById('con-f').value }, difficile: { type: typeD, consigne: document.getElementById('con-d').value } } };
+            const gameConfig = { 
+                unite: document.getElementById('in-unite').value, 
+                uniteColor: document.getElementById('in-color').value || '#E84C7B',
+                showLecon: document.getElementById('in-show-lecon').checked,
+                lecon: document.getElementById('in-lecon').value,
+                titre: document.getElementById('in-titre').value, 
+                items: items, mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
+                levels: { facile: { type: typeF, consigne: document.getElementById('con-f').value }, difficile: { type: typeD, consigne: document.getElementById('con-d').value } } 
+            };
             jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
 
             let playerHTML = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>bSmart | ' + gameConfig.titre + '</title>\n<script src="https://cdn.tailwindcss.com"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></s' + 'cript>\n<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">\n<script src="js/config.js"></s' + 'cript>\n';
             playerHTML += `<style>
-        :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--hfle-pink); color: white; border-radius: 8px; padding: 4px 14px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); } .unit-badge-text { font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; } .unit-badge-num { font-size: 26px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 4px 16px; border-radius: 0 16px 16px 0; margin-top: -8px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -10px; z-index: -1; position: relative; font-size: 11px; } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; } .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; } .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;} .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); } .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); } .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; } .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; } .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; } .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;} .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); } .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>\n</head>\n`;
 
             playerHTML += `<body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
     <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
         <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
-            <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest opacity-80 uppercase">Unité <span id="start-unite"></span></h2>
-            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 uppercase text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
+            <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
+            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
             <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
         </div>
         <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
@@ -517,12 +560,15 @@
             <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-8"></div>
             <div class="flex gap-4"><button onclick="startGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition hover:scale-105 flex items-center gap-2"><span>↺</span> JE REJOUE</button></div>
         </div>
-        <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100">
-            <div class="flex items-start gap-4 mb-4 md:mb-0">
-                <div class="flex flex-col"><div class="unit-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div><div class="lecon-ribbon">LEÇON 1</div></div>
-                <h1 id="res-titre" class="h-titre text-xl md:text-3xl uppercase mt-2 text-center md:text-left leading-tight"></h1>
+        <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
+            <div class="flex flex-col items-start z-10 w-full md:w-1/4">
+                <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
+                <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
             </div>
-            <div class="flex bg-blue-100 rounded-full p-1 shadow-inner">
+            <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
+            </div>
+            <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
                 <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
                 <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
             </div>
@@ -540,7 +586,14 @@
 
             playerHTML += `<script>
         let curStep = 0, curLvl = 'facile', status = []; let errorTracker = [];
-        window.onload = () => { document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; };
+        window.onload = () => { 
+            document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; 
+            document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; 
+            document.getElementById('res-badge').style.setProperty('--theme-color', GAME_CONFIG.uniteColor);
+            document.getElementById('start-screen').style.backgroundColor = GAME_CONFIG.uniteColor;
+            if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
+            else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
+        };
         function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = 0; let reportHtml = '';
