@@ -651,10 +651,15 @@
         }
 
         function validate(correct) {
+            const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             if(correct) { 
                 confetti(); status[curStep]='completed'; if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
                 setTimeout(() => { if (curStep < items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); 
-            } else { status[curStep]='error'; if(document.getElementById(`type-${curLvl}`).value !== 'domino' && document.getElementById(`type-${curLvl}`).value !== 'autocollantes') errorTracker[curStep]++; if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play(); }
+            } else { 
+                status[curStep]='error'; 
+                if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
+                if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play(); 
+            }
             renderNav();
         }
 
@@ -947,8 +952,16 @@
         }
 
         function validate(correct) {
-            if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (curStep < GAME_CONFIG.items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); } 
-            else { status[curStep]='error'; if(GAME_CONFIG.levels[curLvl].type !== 'domino' && GAME_CONFIG.levels[curLvl].type !== 'autocollantes') errorTracker[curStep]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); } renderNav();
+            const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+            if(correct) { 
+                confetti(); status[curStep]='completed'; if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
+                setTimeout(() => { if (curStep < items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); 
+            } else { 
+                status[curStep]='error'; 
+                if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
+                if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play(); 
+            }
+            renderNav();
         }
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
