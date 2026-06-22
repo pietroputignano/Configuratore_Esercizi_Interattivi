@@ -669,7 +669,14 @@
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             if(correct) { 
                 confetti(); status[curStep]='completed'; if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
-                setTimeout(() => { if (curStep < items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); 
+                setTimeout(() => { 
+                    // Se è un gioco a schermata unica, va dritto alla fine. Altrimenti passa alla parola successiva.
+                    if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= items.length - 1) {
+                        showEndScreen();
+                    } else {
+                        loadStep(curStep + 1);
+                    }
+                }, 1500); 
             } else { 
                 status[curStep]='error'; 
                 if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
@@ -970,7 +977,7 @@
 
         function validate(correct) {
             const type = GAME_CONFIG.levels[curLvl].type;
-            if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (curStep < GAME_CONFIG.items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); } 
+            if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= GAME_CONFIG.items.length - 1) { showEndScreen(); } else { loadStep(curStep + 1); } }, 1500); } 
             else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); } renderNav();
         }
 
