@@ -6,7 +6,6 @@
     <title>bSmart | Jeux interactifs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
@@ -76,7 +75,6 @@
 </head>
 <body class="p-2 md:p-4">
 
-    <!-- MODALS -->
     <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50"><h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3><button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button></div>
@@ -98,12 +96,10 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
-        <!-- CONFIGURATION PANEL -->
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
-            <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Jeux interactifs</h2>
+            <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
             <div class="space-y-6">
-                <!-- Dati Testata -->
                 <div class="grid grid-cols-2 gap-4">
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6" oninput="initGame()"></div>
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
@@ -118,7 +114,6 @@
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements" oninput="initGame()"></div>
                 </div>
 
-                <!-- LIVELLO FACILE -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Lis et déplace les dominos.">
@@ -131,7 +126,6 @@
                     </div>
                 </div>
 
-                <!-- LIVELLO DIFFICILE -->
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Regarde les dominos et mets les lettres dans le bon ordre.">
@@ -150,13 +144,17 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
-                <!-- SUONI GLOBALI -->
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p class="font-bold text-gray-800 uppercase mb-2">Suoni Feedback</p>
-                    <div class="flex gap-2">
-                        <button onclick="pickAud('global_ok')" class="flex-1 bg-white border p-1 rounded shadow-sm hover:bg-green-50 text-[10px]">🔊 Suono Esatto</button>
-                        <button onclick="pickAud('global_ko')" class="flex-1 bg-white border p-1 rounded shadow-sm hover:bg-red-50 text-[10px]">🔊 Suono Errore</button>
+                    <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="pickAud('drag')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drag (Presa)</button>
+                        <button onclick="pickAud('drop')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drop (Rilascio)</button>
+                        <button onclick="pickAud('global_ok')" class="bg-white border p-1 rounded hover:bg-green-50 text-[9px]">🔊 Esatto</button>
+                        <button onclick="pickAud('global_ko')" class="bg-white border p-1 rounded hover:bg-red-50 text-[9px]">🔊 Errore</button>
+                        <button onclick="pickAud('report_high')" class="bg-white border p-1 rounded hover:bg-blue-50 text-[9px]">🔊 Report Vittoria</button>
+                        <button onclick="pickAud('report_low')" class="bg-white border p-1 rounded hover:bg-orange-50 text-[9px]">🔊 Report Sconfitta</button>
                     </div>
+                    <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
                 </div>
             </div>
             
@@ -164,7 +162,6 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📥 SCARICA PACCHETTO ZIP</button>
         </div>
 
-        <!-- PREVIEW AREA (RESPONSIVE SHELL UI) -->
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
@@ -207,10 +204,8 @@
                 <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
             </div>
 
-            <!-- RESPONSIVE HEADER -->
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
                 
-                <!-- Box Unité e Leçon -->
                 <div class="flex flex-col items-start z-10 w-full md:w-1/4">
                     <div class="unit-badge" id="res-badge">
                         <span class="unit-badge-text">Unité</span>
@@ -221,15 +216,18 @@
                     </div>
                 </div>
                 
-                <!-- Titolo Centrato -->
                 <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
                     <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
                 </div>
                 
-                <!-- Bottoni Modalità -->
-                <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
+                <div class="flex items-center gap-3 z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
+                    <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                        <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                        <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                    </div>
+                    <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                        <span id="mute-icon">🔊</span>
+                    </button>
                 </div>
             </div>
 
@@ -246,7 +244,6 @@
         </div>
     </div>
 
-    <!-- Hidden Controllers -->
     <input type="file" id="imgInp" class="hidden" accept="image/*" onchange="handleImg(event)">
     <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
 
@@ -264,6 +261,65 @@
         let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
         let errorTracker = [];
         let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
+
+        let isMuted = false;
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊';
+            document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted);
+        }
+
+        // Funzione per generare o riprodurre suoni
+        function playSound(type) {
+            if (isMuted) return;
+            
+            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
+            if (audioSrc) {
+                let a = new Audio(audioSrc);
+                a.play().catch(e => console.warn("Audio ignorato (interazione necessaria)"));
+                return;
+            }
+            
+            // Generatore suoni base (fallback offline senza file)
+            if (!window.audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if(!AudioContext) return;
+                window.audioCtx = new AudioContext();
+            }
+            if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
+            
+            const osc = window.audioCtx.createOscillator();
+            const gainNode = window.audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(window.audioCtx.destination);
+            const now = window.audioCtx.currentTime;
+            
+            if (type === 'drag') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'drop') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(250, now + 0.1);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'global_ok') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.setValueAtTime(800, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'global_ko') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'report_high') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(500, now + 0.15); osc.frequency.setValueAtTime(600, now + 0.3);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'report_low') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } else { return; }
+        }
 
         window.onload = () => {
             document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`<option value="${t.id}">${t.n}</option>`).join(''); });
@@ -373,9 +429,8 @@
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             
             let errs = errorTracker.reduce((a, b) => a + b, 0);
-            let scorePerc = Math.max(0, 100 - (errs * 10)); // -10% per ogni errore commesso
+            let scorePerc = Math.max(0, 100 - (errs * 10));
 
-            // Generazione dinamica delle soluzioni in base al tipo di gioco
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
             if (type === 'crossword') {
                 answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>';
@@ -406,9 +461,9 @@
 
             const mascot = document.getElementById('score-mascot');
             const msg = document.getElementById('score-bubble');
-            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } 
-            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } 
-            else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; playSound('report_high'); } 
+            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; playSound('report_high'); } 
+            else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; playSound('report_low'); }
             
             document.getElementById('end-score').innerHTML = answersHtml;
         }
@@ -436,6 +491,7 @@
                 document.getElementById('check-btn').classList.add('hidden');
                 validate(true);
             } else {
+                playSound('global_ko');
                 target.classList.add('shake-error', 'border-red-500');
                 setTimeout(() => target.classList.remove('shake-error', 'border-red-500'), 500);
                 validate(false);
@@ -560,7 +616,7 @@
                 if(inp.value.trim() !== '') filledCount++;
             });
             if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
-                confetti(); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); setTimeout(() => showEndScreen(), 1500);
+                playSound('global_ok'); setTimeout(() => showEndScreen(), 1500);
             }
         }
 
@@ -569,12 +625,12 @@
             
             if (mode === 'autocollantes') {
                 if(!pool) return;
-                new Sortable(pool, { group: 'game', sort: false, animation: 150 });
+                new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 items.forEach(it => {
                     const tgt = document.getElementById('target-' + it);
                     if (tgt) {
                         new Sortable(tgt, {
-                            group: 'game', animation: 150,
+                            group: 'game', animation: 150, onStart: () => playSound('drag'),
                             onAdd: (e) => {
                                 const dropped = e.item.getAttribute('data-word');
                                 const expectedWord = e.target.getAttribute('data-expected');
@@ -588,16 +644,15 @@
                                     e.target.style.backgroundColor = "transparent";
                                     e.target.classList.remove('cursor-pointer');
                                     e.target.onclick = null;
-                                    if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
+                                    playSound('global_ok');
 
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
                                     if (remainingPool.length === 0) {
-                                        confetti();
                                         setTimeout(() => showEndScreen(), 1500);
                                     }
                                 } else {
                                     errorTracker[0]++; 
-                                    if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play();
+                                    playSound('global_ko');
                                     e.item.classList.add('shake-error');
                                     setTimeout(() => {
                                         e.item.classList.remove('shake-error');
@@ -615,14 +670,14 @@
             if(!target) return;
             
             if (mode === 'anagramme' || mode === 'sentence_ordering') {
-                new Sortable(target, { animation: 150, ghostClass: 'opacity-50' });
+                new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 return;
             }
 
             if(!pool) return;
-            new Sortable(pool, { group: 'game', sort: false, animation: 150 });
+            new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
             new Sortable(target, { 
-                group: 'game', animation: 150,
+                group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
                     
@@ -640,10 +695,10 @@
                             
                             const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
                             if (remainingPool.length === 0) { e.target.remove(); validate(true); } 
-                            else { e.target.setAttribute('data-expected', items[nextIndex]); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); }
+                            else { e.target.setAttribute('data-expected', items[nextIndex]); playSound('global_ok'); }
                         } else { 
                             errorTracker[0]++; 
-                            if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play();
+                            playSound('global_ko');
                             e.item.classList.add('shake-error');
                             setTimeout(() => {
                                 e.item.classList.remove('shake-error');
@@ -665,7 +720,7 @@
         function validate(correct) {
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             if(correct) { 
-                confetti(); status[curStep]='completed'; if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
+                status[curStep]='completed'; playSound('global_ok');
                 setTimeout(() => { 
                     if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= items.length - 1) {
                         showEndScreen();
@@ -676,7 +731,7 @@
             } else { 
                 status[curStep]='error'; 
                 if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
-                if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play(); 
+                playSound('global_ko');
             }
             renderNav();
         }
@@ -689,8 +744,8 @@
 
         function switchLvl(l) { 
             curLvl = l; 
-            document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide';
-            document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide';
+            document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
+            document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
             initGame(); startGame(); 
         }
 
@@ -764,9 +819,14 @@
                 <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
             </div>
             <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0"><h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1></div>
-            <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
-                <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
-                <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
+            <div class="flex items-center gap-3 z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
             </div>
         </div>
         <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
@@ -782,6 +842,23 @@
 
             playerHTML += `<script>
         let curStep = 0, curLvl = 'facile', status = []; let errorTracker = [];
+        let isMuted = false;
+        function toggleMute() { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted); }
+        function playSound(type) {
+            if (isMuted) return;
+            const audioSrc = GAME_CONFIG.audio[type];
+            if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
+            if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); }
+            if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
+            const osc = window.audioCtx.createOscillator(); const gainNode = window.audioCtx.createGain(); osc.connect(gainNode); gainNode.connect(window.audioCtx.destination); const now = window.audioCtx.currentTime;
+            if (type === 'drag') { osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.1); gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); } 
+            else if (type === 'drop') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(250, now + 0.1); gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); } 
+            else if (type === 'global_ok') { osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.setValueAtTime(800, now + 0.1); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
+            else if (type === 'global_ko') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
+            else if (type === 'report_high') { osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(500, now + 0.15); osc.frequency.setValueAtTime(600, now + 0.3); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(now); osc.stop(now + 0.6); } 
+            else if (type === 'report_low') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(now); osc.stop(now + 0.6); }
+        }
+
         window.onload = () => { 
             document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; 
             document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; 
@@ -804,7 +881,7 @@
             answersHtml += '</ul></div>';
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
             const mascot = document.getElementById('score-mascot'); const msg = document.getElementById('score-bubble');
-            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; playSound('report_high'); } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; playSound('report_high'); } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; playSound('report_low'); }
             document.getElementById('end-score').innerHTML = answersHtml;
         }
 
@@ -829,6 +906,7 @@
                 document.getElementById('check-btn').classList.add('hidden');
                 validate(true);
             } else {
+                playSound('global_ko');
                 target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500);
                 validate(false);
             }
@@ -897,7 +975,7 @@
         function checkCrossword() {
             let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
             inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; inp.classList.remove('correct'); } else { inp.classList.add('correct'); } if(inp.value.trim() !== '') filledCount++; });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { confetti(); if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => showEndScreen(), 1500); }
+            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(() => showEndScreen(), 1500); }
         }
 
         function setupSortable(mode, targetWord) {
@@ -905,12 +983,12 @@
             
             if (mode === 'autocollantes') {
                 if(!pool) return;
-                new Sortable(pool, { group: 'game', sort: false, animation: 150 });
+                new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 GAME_CONFIG.items.forEach(it => {
                     const tgt = document.getElementById('target-' + it);
                     if (tgt) {
                         new Sortable(tgt, {
-                            group: 'game', animation: 150,
+                            group: 'game', animation: 150, onStart: () => playSound('drag'),
                             onAdd: (e) => {
                                 const dropped = e.item.getAttribute('data-word');
                                 const expectedWord = e.target.getAttribute('data-expected');
@@ -920,12 +998,12 @@
                                     e.item.removeAttribute('draggable');
                                     e.target.innerHTML = ''; e.target.appendChild(e.item);
                                     e.target.style.border = "none"; e.target.style.backgroundColor = "transparent";
-                                    if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play();
+                                    playSound('global_ok');
                                     
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                                    if (remainingPool.length === 0) { confetti(); setTimeout(() => showEndScreen(), 1500); }
+                                    if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); }
                                 } else { 
-                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); 
+                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
                                     e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
                                 }
                             }
@@ -938,14 +1016,14 @@
             const target = document.getElementById('target'); if(!target) return;
             
             if (mode === 'anagramme' || mode === 'sentence_ordering') {
-                new Sortable(target, { animation: 150, ghostClass: 'opacity-50' });
+                new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 return;
             }
 
             if(!pool) return;
-            new Sortable(pool, { group: 'game', sort: false, animation: 150 });
+            new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
             new Sortable(target, { 
-                group: 'game', animation: 150,
+                group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
                     if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true); } 
@@ -956,9 +1034,9 @@
                             const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
                             let currentIndex = GAME_CONFIG.items.indexOf(dropped); let nextIndex = (currentIndex + 1) % GAME_CONFIG.items.length;
                             const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                            if (remainingPool.length === 0) { e.target.remove(); validate(true); } else { e.target.setAttribute('data-expected', GAME_CONFIG.items[nextIndex]); if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); }
+                            if (remainingPool.length === 0) { e.target.remove(); validate(true); } else { e.target.setAttribute('data-expected', GAME_CONFIG.items[nextIndex]); playSound('global_ok'); }
                         } else { 
-                            e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); 
+                            e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
                             e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
                         }
                     } 
@@ -969,12 +1047,12 @@
 
         function validate(correct) {
             const type = GAME_CONFIG.levels[curLvl].type;
-            if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= GAME_CONFIG.items.length - 1) { showEndScreen(); } else { loadStep(curStep + 1); } }, 1500); } 
-            else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); } renderNav();
+            if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= GAME_CONFIG.items.length - 1) { showEndScreen(); } else { loadStep(curStep + 1); } }, 1500); } 
+            else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; playSound('global_ko'); } renderNav();
         }
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
-        function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide'; startGame(); }
+        function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
         function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
