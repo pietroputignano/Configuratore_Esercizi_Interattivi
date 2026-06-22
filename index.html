@@ -776,7 +776,8 @@
     <\/script>
 </body>
 </html>`;
-zip.file("index.html", playerHTML);
+
+            zip.file("index.html", playerHTML);
             zip.generateAsync({type:"blob"}).then(c => saveAs(c, `bSmart_${gameConfig.titre.replace(/\s+/g, '_')}.zip`));
         }
     </script>
