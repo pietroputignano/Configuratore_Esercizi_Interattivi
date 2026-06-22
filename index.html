@@ -1,3 +1,10 @@
+Hai un'ottima intuizione pedagogica! In effetti, far trovare le lettere già sparpagliate nella riga di destinazione (e lasciare che lo studente le riordini prima di "confermare" premendo un pulsante) è molto più intuitivo e in linea con il design originale di Hachette.
+
+Ho applicato questa logica del **Riordino interno + Pulsante "Vérifier"** sia per l'**Anagramma (Lettere)** sia per la **Mise en ordre (Frasi)**.
+
+Per evitare qualsiasi rischio di errore con le parentesi, **ti passo l'intero file aggiornato** (ho anche corretto un piccolissimo bug per cui nell'esportazione zip l'immagine dell'anagramma rimaneva cliccabile). Sostituisci tutto quanto e testa l'anagramma:
+
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -60,8 +67,12 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        /* NUOVA ANIMAZIONE ERRORE */
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
         .shake-error { 
             animation: shake 0.4s ease-in-out !important; 
             border-color: var(--hfle-error) !important; 
@@ -197,7 +208,6 @@
             </div>
 
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
-                
                 <div class="flex flex-col items-start z-10 w-full md:w-1/4">
                     <div class="unit-badge" id="res-badge">
                         <span class="unit-badge-text">Unité</span>
@@ -207,11 +217,9 @@
                         LEÇON <span id="res-lecon">1</span>
                     </div>
                 </div>
-                
                 <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
                     <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
                 </div>
-                
                 <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
                     <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
                     <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
@@ -333,7 +341,6 @@
             document.getElementById('res-unite').innerText = document.getElementById('in-unite').value || "6";
             document.getElementById('start-unite').innerText = document.getElementById('in-unite').value || "6";
             
-            // Il titolo ora rispetta le maiuscole originali
             document.getElementById('res-titre').innerText = document.getElementById('in-titre').value || "Activité";
             document.getElementById('start-titre').innerText = document.getElementById('in-titre').value || "Activité";
             
@@ -399,6 +406,35 @@
             }
             
             document.getElementById('end-score').innerHTML = reportHtml;
+        }
+
+        function checkOrder(mode) {
+            const target = document.getElementById('target');
+            const targetWord = items[curStep];
+            let isCorrect = false;
+
+            if (mode === 'anagramme') {
+                const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
+                isCorrect = (current === targetWord);
+            } else if (mode === 'sentence_ordering') {
+                const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
+                const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
+                isCorrect = (currentStr === expectedStr);
+            }
+
+            if (isCorrect) {
+                Array.from(target.children).forEach(el => {
+                    if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-['Montserrat']";
+                    else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-['Montserrat']";
+                });
+                target.style.border = "none"; target.style.background = "transparent";
+                document.getElementById('check-btn').classList.add('hidden');
+                validate(true);
+            } else {
+                target.classList.add('shake-error', 'border-red-500');
+                setTimeout(() => target.classList.remove('shake-error', 'border-red-500'), 500);
+                validate(false);
+            }
         }
 
         function loadStep(idx) {
@@ -478,19 +514,28 @@
             else if(type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
-                stage.innerHTML = `<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div><div id="target" class="flex gap-2 min-h-[50px] min-w-[300px] border-b-4 border-gray-300 items-end pb-2 justify-center"></div></div>`;
-                pool.innerHTML = shuffled.map(l => `<div class="letter-tile text-xl shadow-md" data-letter="${l}">${l.toLowerCase()}</div>`).join('');
+                stage.innerHTML = `<div class="flex flex-col items-center gap-8">
+                    <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
+                    <div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
+                        + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l}">${l.toLowerCase()}</div>`).join('') + 
+                    `</div>
+                    <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button>
+                </div>`;
+                pool.innerHTML = '';
                 setupSortable('anagramme', word);
             }
             else if(type === 'sentence_ordering') {
                 const chunks = word.split('/').map(c => c.trim());
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
+                const shuffled = [...chunks].sort(()=>Math.random()-0.5);
                 stage.innerHTML = `<div class="flex flex-col items-center gap-8 w-full">
                     <div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
-                    <div id="target" class="flex flex-wrap gap-2 min-h-[60px] min-w-[300px] w-full max-w-3xl border-b-4 border-gray-300 items-end pb-2 justify-center"></div>
+                    <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
+                        + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg" data-chunk="${c}">${c}</div>`).join('') + 
+                    `</div>
+                    <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button>
                 </div>`;
-                const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg" data-chunk="${c}">${c}</div>`).join('');
+                pool.innerHTML = '';
                 setupSortable('sentence_ordering', word);
             }
             else if(type === 'rebus') {
@@ -516,9 +561,9 @@
 
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); 
-            if(!pool) return;
 
             if (mode === 'autocollantes') {
+                if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150 });
                 items.forEach(it => {
                     const tgt = document.getElementById('target-' + it);
@@ -540,7 +585,6 @@
                                     e.target.onclick = null;
                                     if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
 
-                                    // Controlla la vittoria
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
                                     if (remainingPool.length === 0) {
                                         confetti();
@@ -565,35 +609,22 @@
             const target = document.getElementById('target');
             if(!target) return;
             
+            if (mode === 'anagramme' || mode === 'sentence_ordering') {
+                new Sortable(target, { animation: 150, ghostClass: 'opacity-50' });
+                return;
+            }
+
+            if(!pool) return;
             new Sortable(pool, { group: 'game', sort: false, animation: 150 });
             new Sortable(target, { 
                 group: 'game', animation: 150,
                 onAdd: (e) => {
-                    const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
+                    const dropped = e.item.getAttribute('data-word');
                     
                     if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) {
                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
                         const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                         e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true);
-                    } 
-                    else if(mode === 'anagramme') {
-                        const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
-                        if(current === targetWord) validate(true); else if (current.length === targetWord.length) validate(false);
-                    }
-                    else if(mode === 'sentence_ordering') {
-                        const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
-                        const currentStr = Array.from(e.target.children).map(el=>el.getAttribute('data-chunk')).join('');
-                        const expectedCount = targetWord.split('/').length;
-                        
-                        if(currentStr === expectedStr) {
-                            Array.from(e.target.children).forEach(el => {
-                                el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-['Montserrat']";
-                            });
-                            e.target.style.border = "none";
-                            validate(true);
-                        } else if (e.target.children.length === expectedCount) {
-                            validate(false);
-                        }
                     } 
                     else if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
@@ -602,7 +633,6 @@
                             const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
                             let currentIndex = items.indexOf(dropped); let nextIndex = (currentIndex + 1) % items.length;
                             
-                            // Check valid elements in pool (ignoring ghost)
                             const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
                             if (remainingPool.length === 0) { e.target.remove(); validate(true); } 
                             else { e.target.setAttribute('data-expected', items[nextIndex]); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); }
@@ -679,11 +709,7 @@
             playerHTML += `<style>
         :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); } .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; } .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; } .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; } .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;} .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); } .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
-        .shake-error { 
-            animation: shake 0.4s ease-in-out !important; 
-            border-color: var(--hfle-error) !important; 
-            box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; 
-        }
+        .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
         .shake-error > div { background-color: #fee2e2 !important; }
     </style>\n</head>\n`;
 
@@ -768,6 +794,32 @@
             document.getElementById('end-score').innerHTML = reportHtml;
         }
 
+        function checkOrder(mode) {
+            const target = document.getElementById('target');
+            const targetWord = GAME_CONFIG.items[curStep];
+            let isCorrect = false;
+            if (mode === 'anagramme') {
+                const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
+                isCorrect = (current === targetWord);
+            } else if (mode === 'sentence_ordering') {
+                const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
+                const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
+                isCorrect = (currentStr === expectedStr);
+            }
+            if (isCorrect) {
+                Array.from(target.children).forEach(el => {
+                    if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-[\\'Montserrat\\']";
+                    else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-[\\'Montserrat\\']";
+                });
+                target.style.border = "none"; target.style.background = "transparent";
+                document.getElementById('check-btn').classList.add('hidden');
+                validate(true);
+            } else {
+                target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500);
+                validate(false);
+            }
+        }
+
         function loadStep(idx) {
             curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; pool.innerHTML = '';
             if(lvlConfig.type === 'crossword') {
@@ -806,16 +858,16 @@
             else if(lvlConfig.type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
                 const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[50px] min-w-[300px] border-b-4 border-gray-300 items-end pb-2 justify-center"></div></div>';
-                pool.innerHTML = shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('');
+                stage.innerHTML = '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
+                pool.innerHTML = '';
                 setupSortable('anagramme', word);
             }
             else if(lvlConfig.type === 'sentence_ordering') {
                 const chunks = word.split('/').map(c => c.trim());
                 const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] min-w-[300px] w-full max-w-3xl border-b-4 border-gray-300 items-end pb-2 justify-center"></div></div>';
                 const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg" data-chunk="' + c + '">' + c + '</div>').join('');
+                stage.innerHTML = '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
+                pool.innerHTML = '';
                 setupSortable('sentence_ordering', word);
             }
             else if(lvlConfig.type === 'rebus') {
@@ -835,9 +887,10 @@
         }
 
         function setupSortable(mode, targetWord) {
-            const pool = document.getElementById('pool'); if(!pool) return;
+            const pool = document.getElementById('pool'); 
             
             if (mode === 'autocollantes') {
+                if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150 });
                 GAME_CONFIG.items.forEach(it => {
                     const tgt = document.getElementById('target-' + it);
@@ -869,22 +922,19 @@
             }
 
             const target = document.getElementById('target'); if(!target) return;
+            
+            if (mode === 'anagramme' || mode === 'sentence_ordering') {
+                new Sortable(target, { animation: 150, ghostClass: 'opacity-50' });
+                return;
+            }
+
+            if(!pool) return;
             new Sortable(pool, { group: 'game', sort: false, animation: 150 });
             new Sortable(target, { 
                 group: 'game', animation: 150,
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
                     if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true); } 
-                    else if(mode === 'anagramme') { const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join(''); if(current === targetWord) validate(true); else if (current.length === targetWord.length) validate(false); } 
-                    else if(mode === 'sentence_ordering') {
-                        const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
-                        const currentStr = Array.from(e.target.children).map(el=>el.getAttribute('data-chunk')).join('');
-                        const expectedCount = targetWord.split('/').length;
-                        if(currentStr === expectedStr) {
-                            Array.from(e.target.children).forEach(el => { el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-[\\'Montserrat\\']"; });
-                            e.target.style.border = "none"; validate(true);
-                        } else if (e.target.children.length === expectedCount) { validate(false); }
-                    }
                     else if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
                         if(dropped === expectedWord) {
@@ -921,3 +971,5 @@
     </script>
 </body>
 </html>
+
+```
