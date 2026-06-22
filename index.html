@@ -64,7 +64,6 @@
 </head>
 <body class="p-2 md:p-4">
 
-    <!-- MODALS -->
     <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50"><h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3><button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button></div>
@@ -86,12 +85,10 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
-        <!-- CONFIGURATION PANEL -->
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
             <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
             <div class="space-y-6">
-                <!-- Dati Testata -->
                 <div class="grid grid-cols-2 gap-4">
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6" oninput="initGame()"></div>
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
@@ -106,7 +103,6 @@
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements" oninput="initGame()"></div>
                 </div>
 
-                <!-- LIVELLO FACILE -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Lis et déplace les dominos.">
@@ -119,7 +115,6 @@
                     </div>
                 </div>
 
-                <!-- LIVELLO DIFFICILE -->
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Regarde les dominos et mets les lettres dans le bon ordre.">
@@ -138,7 +133,6 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
-                <!-- SUONI GLOBALI -->
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p class="font-bold text-gray-800 uppercase mb-2">Suoni Feedback</p>
                     <div class="flex gap-2">
@@ -152,7 +146,6 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📥 SCARICA PACCHETTO ZIP</button>
         </div>
 
-        <!-- PREVIEW AREA (RESPONSIVE SHELL UI) -->
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
@@ -161,39 +154,42 @@
                 <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
             </div>
             
-           <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
-                <div class="flex items-end gap-2 mb-6">
-                    <div class="bg-yellow-200 text-blue-900 font-bold px-6 py-4 rounded-3xl rounded-bl-none text-xl shadow-md border-2 border-yellow-300 transform -rotate-3" id="score-message">
-                        Essaie encore !
+            <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+                <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+                    <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64">
+                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">
+                            Essaie<br>encore !
+                        </div>
+                        <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                     </div>
-                    <div id="score-mascot" class="text-6xl animate-bounce">👦🏼</div>
-                </div>
-                
-                <h1 class="text-2xl md:text-3xl font-black text-orange-400 mb-4 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
-                
-                <div class="flex items-center gap-4 w-full max-w-md mb-8">
-                    <div class="w-full h-8 bg-white border border-orange-400 rounded-full overflow-hidden shadow-inner p-1">
-                        <div id="score-bar" class="h-full bg-orange-100 rounded-full transition-all duration-1000 ease-out w-0"></div>
+
+                    <div class="flex flex-col items-center md:items-start w-full max-w-sm">
+                        <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
+                        <div class="flex items-center gap-4 w-full mb-8">
+                            <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1">
+                                <div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div>
+                            </div>
+                            <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-6">
+                            <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group">
+                                <span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> 
+                                Je rejoue
+                            </button>
+                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group">
+                                <span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">👁</span> 
+                                Les réponses
+                            </button>
+                        </div>
                     </div>
-                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
                 </div>
                 
-                <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-6 hidden"></div>
-                
-                <div class="flex flex-wrap justify-center gap-6">
-                    <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-blue-600 transition">
-                        <span class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-2xl shadow-md">↺</span> Je rejoue
-                    </button>
-                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-pink-600 transition">
-                        <span class="w-12 h-12 rounded-full bg-pink-600 text-white flex items-center justify-center text-xl shadow-md">👁</span> Je regarde les réponses
-                    </button>
-                </div>
+                <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
             </div>
 
-            <!-- RESPONSIVE HEADER -->
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
                 
-                <!-- Box Unité e Leçon -->
                 <div class="flex flex-col items-start z-10 w-full md:w-1/4">
                     <div class="unit-badge" id="res-badge">
                         <span class="unit-badge-text">Unité</span>
@@ -204,12 +200,10 @@
                     </div>
                 </div>
                 
-                <!-- Titolo Centrato -->
                 <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
                     <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
                 </div>
                 
-                <!-- Bottoni Modalità -->
                 <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
                     <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
                     <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
@@ -332,7 +326,7 @@
             document.getElementById('res-unite').innerText = document.getElementById('in-unite').value || "6";
             document.getElementById('start-unite').innerText = document.getElementById('in-unite').value || "6";
             
-            // Il titolo ora rispetta le maiuscole originali (non facciamo .toUpperCase())
+            // Il titolo ora rispetta le maiuscole originali
             document.getElementById('res-titre').innerText = document.getElementById('in-titre').value || "Activité";
             document.getElementById('start-titre').innerText = document.getElementById('in-titre').value || "Activité";
             
@@ -358,26 +352,25 @@
             
             if (type !== 'crossword') {
                 errs = errorTracker.reduce((a, b) => a + b, 0);
-                
                 if (type === 'domino') {
-                    scorePerc = Math.max(0, 100 - (errs * 15)); // Toglie 15% ogni errore a catena
+                    scorePerc = Math.max(0, 100 - (errs * 15));
                 } else {
                     let correctItems = errorTracker.filter(e => e === 0).length;
                     scorePerc = Math.round((correctItems / items.length) * 100);
                 }
 
                 if (errs > 0) {
-                    reportHtml = '<ul class="text-left bg-slate-50 p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar w-full">';
+                    reportHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
                     if(type === 'domino') {
-                        reportHtml += `<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errs} erreur(s)</span></li>`;
+                        reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errs} erreur(s)</span></li>`;
                     } else {
                         items.forEach((item, index) => {
                             if (errorTracker[index] > 0) {
-                                reportHtml += `<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">${item}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errorTracker[index]} erreur(s)</span></li>`;
+                                reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">${item}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errorTracker[index]} erreur(s)</span></li>`;
                             }
                         });
                     }
-                    reportHtml += '</ul>';
+                    reportHtml += '</ul></div>';
                 }
             }
 
@@ -387,18 +380,16 @@
             }, 100);
 
             const mascot = document.getElementById('score-mascot');
-            const msg = document.getElementById('score-message');
+            const msg = document.getElementById('score-message') || document.getElementById('score-bubble');
             if (scorePerc >= 80) {
-                mascot.innerText = '🤩'; msg.innerText = 'Bravo !';
+                mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !';
             } else if (scorePerc >= 50) {
-                mascot.innerText = '😊'; msg.innerText = 'Bien joué !';
+                mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !';
             } else {
-                mascot.innerText = '👦🏼'; msg.innerText = 'Essaie encore !';
+                mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !';
             }
+            
             document.getElementById('end-score').innerHTML = reportHtml;
-            }
-            let msg = errs === 0 ? "<span class='text-green-600'>Sans-faute ! Excellent !</span>" : `<span class='text-red-500'>Tu as fait ${errs} erreur(s).</span>`;
-            document.getElementById('end-score').innerHTML = `<p class="text-2xl mb-2 font-black font-['Montserrat']">${msg}</p>${reportHtml}`;
         }
 
         function loadStep(idx) {
@@ -482,6 +473,17 @@
                 const shuffledItems = [...items].sort(() => Math.random() - 0.5);
                 pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="${it}">${it}</div>`).join('');
                 setupSortable('rebus', word);
+            }
+        }
+
+        function checkCrossword() {
+            let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
+            inputs.forEach(inp => {
+                if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; inp.classList.remove('correct'); } else { inp.classList.add('correct'); }
+                if(inp.value.trim() !== '') filledCount++;
+            });
+            if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
+                confetti(); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); setTimeout(() => showEndScreen(), 1500);
             }
         }
 
@@ -599,42 +601,34 @@
             <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
             <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
         </div>
-       <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
-                <div class="flex items-end gap-2 mb-6">
-                    <div class="bg-yellow-200 text-blue-900 font-bold px-6 py-4 rounded-3xl rounded-bl-none text-xl shadow-md border-2 border-yellow-300 transform -rotate-3" id="score-message">
-                        Essaie encore !
-                    </div>
-                    <div id="score-mascot" class="text-6xl animate-bounce">👦🏼</div>
+        
+        <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+                <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64">
+                    <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">Essaie<br>encore !</div>
+                    <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                 </div>
-                
-                <h1 class="text-2xl md:text-3xl font-black text-orange-400 mb-4 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
-                
-                <div class="flex items-center gap-4 w-full max-w-md mb-8">
-                    <div class="w-full h-8 bg-white border border-orange-400 rounded-full overflow-hidden shadow-inner p-1">
-                        <div id="score-bar" class="h-full bg-orange-100 rounded-full transition-all duration-1000 ease-out w-0"></div>
+                <div class="flex flex-col items-center md:items-start w-full max-w-sm">
+                    <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
+                    <div class="flex items-center gap-4 w-full mb-8">
+                        <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
+                        <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
                     </div>
-                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
-                </div>
-                
-                <div id="end-score" class="w-full max-w-md flex flex-col items-center mb-6 hidden"></div>
-                
-                <div class="flex flex-wrap justify-center gap-6">
-                    <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-blue-600 transition">
-                        <span class="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-2xl shadow-md">↺</span> Je rejoue
-                    </button>
-                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-pink-600 transition">
-                        <span class="w-12 h-12 rounded-full bg-pink-600 text-white flex items-center justify-center text-xl shadow-md">👁</span> Je regarde les réponses
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-6">
+                        <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
+                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">👁</span> Les réponses</button>
+                    </div>
                 </div>
             </div>
+            <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
+        </div>
+
         <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
             <div class="flex flex-col items-start z-10 w-full md:w-1/4">
                 <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
                 <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
             </div>
-            <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
-                <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
-            </div>
+            <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0"><h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1></div>
             <div class="flex bg-blue-100 rounded-full p-1 shadow-inner z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
                 <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-blue-600 text-white shadow-md transition uppercase tracking-wide">FACILE</button>
                 <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-blue-800 hover:bg-blue-200 transition uppercase tracking-wide">DIFFICILE</button>
@@ -661,46 +655,23 @@
             if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
             else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
         };
-       function showEndScreen() {
-            document.getElementById('end-screen').classList.remove('hidden');
-            const type = GAME_CONFIG.levels[curLvl].type;
-            let errs = 0; let reportHtml = ''; let scorePerc = 100;
-            
+        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
+        function showEndScreen() {
+            document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = 0; let reportHtml = ''; let scorePerc = 100;
             if (type !== 'crossword') {
                 errs = errorTracker.reduce((a, b) => a + b, 0);
-                if (type === 'domino') {
-                    scorePerc = Math.max(0, 100 - (errs * 15));
-                } else {
-                    let correctItems = errorTracker.filter(e => e === 0).length;
-                    scorePerc = Math.round((correctItems / GAME_CONFIG.items.length) * 100);
-                }
-
+                if (type === 'domino') { scorePerc = Math.max(0, 100 - (errs * 15)); } 
+                else { let correctItems = errorTracker.filter(e => e === 0).length; scorePerc = Math.round((correctItems / GAME_CONFIG.items.length) * 100); }
                 if (errs > 0) {
-                    reportHtml = '<ul class="text-left bg-slate-50 p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar w-full">';
-                    if(type === 'domino') {
-                        reportHtml += '<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errs + ' erreur(s)</span></li>';
-                    } else {
-                        GAME_CONFIG.items.forEach((item, index) => {
-                            if (errorTracker[index] > 0) {
-                                reportHtml += '<li class="text-red-500 border-b border-gray-100 py-2 flex justify-between items-center"><span class="font-bold">' + item + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errorTracker[index] + ' erreur(s)</span></li>';
-                            }
-                        });
-                    }
-                    reportHtml += '</ul>';
+                    reportHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+                    if(type === 'domino') { reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">Séquence Domino</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errs + ' erreur(s)</span></li>'; }
+                    else { GAME_CONFIG.items.forEach((item, index) => { if (errorTracker[index] > 0) { reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">' + item + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errorTracker[index] + ' erreur(s)</span></li>'; } }); }
+                    reportHtml += '</ul></div>';
                 }
             }
-
-            setTimeout(() => {
-                document.getElementById('score-bar').style.width = scorePerc + '%';
-                document.getElementById('score-text').innerText = scorePerc + '%';
-            }, 100);
-
-            const mascot = document.getElementById('score-mascot');
-            const msg = document.getElementById('score-message');
-            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerText = 'Bravo !'; } 
-            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerText = 'Bien joué !'; } 
-            else { mascot.innerText = '👦🏼'; msg.innerText = 'Essaie encore !'; }
-            
+            setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
+            const mascot = document.getElementById('score-mascot'); const msg = document.getElementById('score-bubble');
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
             document.getElementById('end-score').innerHTML = reportHtml;
         }
 
@@ -805,8 +776,7 @@
     <\/script>
 </body>
 </html>`;
-
-            zip.file("index.html", playerHTML);
+zip.file("index.html", playerHTML);
             zip.generateAsync({type:"blob"}).then(c => saveAs(c, `bSmart_${gameConfig.titre.replace(/\s+/g, '_')}.zip`));
         }
     </script>
