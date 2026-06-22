@@ -59,6 +59,18 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake-error { 
+            animation: shake 0.4s ease-in-out; 
+            border-color: var(--hfle-error) !important; 
+            background-color: #fee2e2 !important; 
+        }
     </style>
 </head>
 <body class="p-2 md:p-4">
@@ -647,6 +659,18 @@
             let playerHTML = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>bSmart | ' + gameConfig.titre + '</title>\n<script src="https://cdn.tailwindcss.com"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></s' + 'cript>\n<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">\n<script src="js/config.js"></s' + 'cript>\n';
             playerHTML += `<style>
         :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); } .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; } .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; } .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; } .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;} .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); } .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    
+    @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake-error { 
+            animation: shake 0.4s ease-in-out; 
+            border-color: var(--hfle-error) !important; 
+            background-color: #fee2e2 !important; 
+        }
     </style>\n</head>\n`;
 
             playerHTML += `<body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
@@ -847,14 +871,24 @@
                         if(dropped === expectedWord) {
                             e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
                             const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
-                            let currentIndex = GAME_CONFIG.items.indexOf(dropped); let nextIndex = (currentIndex + 1) % GAME_CONFIG.items.length;
-                            if (pool.children.length === 0) { e.target.remove(); validate(true); } else { e.target.setAttribute('data-expected', GAME_CONFIG.items[nextIndex]); if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); }
-                        } else { e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); }
-                    } 
-                    else if(mode === 'rebus') { const targetAns = e.target.getAttribute('data-ans'); if(dropped.toLowerCase() === targetAns.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-[\\'Montserrat\\']"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } else { e.item.remove(); validate(false); } } else { e.item.remove(); validate(false); }
-                }
-            });
-        }
+                            let currentIndex = items.indexOf(dropped); let nextIndex = (currentIndex + 1) % items.length;
+                            if (pool.children.length === 0) { e.target.remove(); validate(true); } 
+                            else { e.target.setAttribute('data-expected', items[nextIndex]); if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play(); }
+                        } else { 
+                            // --- NUOVA GESTIONE ERRORE DOMINO ---
+                            errorTracker[0]++; 
+                            if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play();
+                            
+                            // Applica la classe di errore (scuotimento e rosso)
+                            e.item.classList.add('shake-error');
+                            
+                            // Aspetta mezzo secondo per far vedere l'animazione, poi rimettila nel pool
+                            setTimeout(() => {
+                                e.item.classList.remove('shake-error');
+                                pool.appendChild(e.item);
+                            }, 500);
+                        }
+                    }
 
         function validate(correct) {
             if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (curStep < GAME_CONFIG.items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); } 
