@@ -356,32 +356,47 @@
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden');
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            let errs = 0; let reportHtml = ''; let scorePerc = 100;
             
-            if (type !== 'crossword') {
-                errs = errorTracker.reduce((a, b) => a + b, 0);
-                if (type === 'domino' || type === 'autocollantes') {
-                    scorePerc = Math.max(0, 100 - (errs * 15)); 
-                } else {
-                    let correctItems = errorTracker.filter(e => e === 0).length;
-                    scorePerc = Math.round((correctItems / items.length) * 100);
-                }
+            let errs = errorTracker.reduce((a, b) => a + b, 0);
+            let scorePerc = Math.max(0, 100 - (errs * 10)); // -10% per ogni errore commesso
 
-                if (errs > 0) {
-                    reportHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-                    if(type === 'domino' || type === 'autocollantes') {
-                        let label = type === 'domino' ? 'Séquence Domino' : 'Autocollantes';
-                        reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">${label}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errs} erreur(s)</span></li>`;
-                    } else {
-                        items.forEach((item, index) => {
-                            if (errorTracker[index] > 0) {
-                                reportHtml += `<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">${item}</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">${errorTracker[index]} erreur(s)</span></li>`;
-                            }
-                        });
-                    }
-                    reportHtml += '</ul></div>';
-                }
+            // Generazione dinamica delle soluzioni in base al tipo di gioco
+            let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+            if (type === 'crossword') {
+                answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>';
+            } else if (type === 'domino') {
+                answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
+            } else if (type === 'sentence_ordering') {
+                items.forEach(it => {
+                    let correctSentence = it.split('/').map(w => w.trim()).join(' ');
+                    answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
+                });
+            } else if (type === 'rebus') {
+                items.forEach(it => {
+                    let sentence = rebusData[it] || `{${it}}`;
+                    let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>');
+                    answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`;
+                });
+            } else {
+                items.forEach(it => {
+                    answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`;
+                });
             }
+            answersHtml += '</ul></div>';
+
+            setTimeout(() => {
+                document.getElementById('score-bar').style.width = scorePerc + '%';
+                document.getElementById('score-text').innerText = scorePerc + '%';
+            }, 100);
+
+            const mascot = document.getElementById('score-mascot');
+            const msg = document.getElementById('score-bubble');
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } 
+            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } 
+            else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
+            
+            document.getElementById('end-score').innerHTML = answersHtml;
+        }
 
             setTimeout(() => {
                 document.getElementById('score-bar').style.width = scorePerc + '%';
@@ -774,18 +789,20 @@
         };
         function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
         function showEndScreen() {
-            document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = 0; let reportHtml = ''; let scorePerc = 100;
-            if (type !== 'crossword') {
-                errs = errorTracker.reduce((a, b) => a + b, 0);
-                if (type === 'domino' || type === 'autocollantes') { scorePerc = Math.max(0, 100 - (errs * 15)); } 
-                else { let correctItems = errorTracker.filter(e => e === 0).length; scorePerc = Math.round((correctItems / GAME_CONFIG.items.length) * 100); }
-                if (errs > 0) {
-                    reportHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Détail des erreurs</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-                    if(type === 'domino' || type === 'autocollantes') { let label = type === 'domino' ? 'Séquence Domino' : 'Autocollantes'; reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">' + label + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errs + ' erreur(s)</span></li>'; }
-                    else { GAME_CONFIG.items.forEach((item, index) => { if (errorTracker[index] > 0) { reportHtml += '<li class="text-red-500 border-b border-gray-50 py-3 flex justify-between items-center"><span class="font-bold">' + item + '</span> <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-black">' + errorTracker[index] + ' erreur(s)</span></li>'; } }); }
-                    reportHtml += '</ul></div>';
-                }
-            }
+            document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
+            let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
+            let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+            if (type === 'crossword') { answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>'; } 
+            else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } 
+            else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } 
+            else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</li>'; }); } 
+            else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); }
+            answersHtml += '</ul></div>';
+            setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
+            const mascot = document.getElementById('score-mascot'); const msg = document.getElementById('score-bubble');
+            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
+            document.getElementById('end-score').innerHTML = answersHtml;
+        }
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
             const mascot = document.getElementById('score-mascot'); const msg = document.getElementById('score-bubble');
             if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; }
@@ -952,16 +969,9 @@
         }
 
         function validate(correct) {
-            const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            if(correct) { 
-                confetti(); status[curStep]='completed'; if(dbAud['global_ok']) new Audio(dbAud['global_ok']).play();
-                setTimeout(() => { if (curStep < items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); 
-            } else { 
-                status[curStep]='error'; 
-                if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
-                if(dbAud['global_ko']) new Audio(dbAud['global_ko']).play(); 
-            }
-            renderNav();
+            const type = GAME_CONFIG.levels[curLvl].type;
+            if(correct) { confetti(); status[curStep]='completed'; if(GAME_CONFIG.audio['global_ok']) new Audio(GAME_CONFIG.audio['global_ok']).play(); setTimeout(() => { if (curStep < GAME_CONFIG.items.length - 1) loadStep(curStep + 1); else showEndScreen(); }, 1500); } 
+            else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; if(GAME_CONFIG.audio['global_ko']) new Audio(GAME_CONFIG.audio['global_ko']).play(); } renderNav();
         }
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
