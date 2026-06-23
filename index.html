@@ -144,14 +144,6 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
-                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report (Opzionali)</p>
-                    <div class="flex gap-2">
-                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-1 rounded hover:bg-indigo-100 text-[9px]">📷 Vittoria (>50%)</button>
-                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-1 rounded hover:bg-indigo-100 text-[9px]">📷 Sconfitta (&lt;50%)</button>
-                    </div>
-                </div>
-
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -163,6 +155,14 @@
                         <button onclick="pickAud('report_low')" class="bg-white border p-1 rounded hover:bg-orange-50 text-[9px]">🔊 Report Sconfitta</button>
                     </div>
                     <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
+                </div>
+
+                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
+                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
+                    <div class="flex gap-2">
+                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Vittoria (>50%)</button>
+                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Sconfitta (&lt;50%)</button>
+                    </div>
                 </div>
             </div>
             
@@ -180,7 +180,7 @@
             
             <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
                 <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-                    <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64">
+                    <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
                         <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">
                             Essaie<br>encore !
                         </div>
@@ -277,7 +277,7 @@
             document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted);
         }
 
-        // Funzione per generare o riprodurre suoni (Sintetizzatore Morbido per Bambini)
+        // Funzione per generare o riprodurre suoni (Sintetizzatore per Bambini)
         function playSound(type) {
             if (isMuted) return;
             const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
@@ -290,17 +290,19 @@
             const playTone = (freq, wave, time, dur, vol) => {
                 const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
                 osc.type = wave; osc.frequency.setValueAtTime(freq, time);
-                gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(vol, time + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
                 osc.connect(gain); gain.connect(window.audioCtx.destination);
                 osc.start(time); osc.stop(time + dur);
             };
 
-            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.2); }
-            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.2); }
-            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.1, 0.4, 0.2); }
-            else if (type === 'global_ko') { playTone(250, 'triangle', now, 0.4, 0.2); }
-            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.15, 0.2, 0.2); playTone(783.99, 'sine', now + 0.3, 0.6, 0.2); }
-            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.2); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.2); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.2); }
+            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } 
+            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } 
+            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } 
+            else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } 
+            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } 
+            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); }
         }
 
         window.onload = () => {
@@ -441,10 +443,9 @@
                 document.getElementById('score-text').innerText = scorePerc + '%';
             }, 100);
 
-            // --- NUOVA LOGICA IMMAGINI SCORE ---
             const imgHigh = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_high'] : dbImg['score_high'];
             const imgLow = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_low'] : dbImg['score_low'];
-            const visualContainer = document.getElementById('score-mascot') ? document.getElementById('score-mascot').parentElement : null;
+            const visualContainer = document.getElementById('visual-container');
             
             if (visualContainer) {
                 if (scorePerc >= 50 && imgHigh) {
@@ -457,6 +458,7 @@
                     visualContainer.innerHTML = `<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">${mascotText}</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">${mascotFace}</div>`;
                 }
             }
+            
             if (scorePerc >= 50) playSound('report_high'); else playSound('report_low');
             document.getElementById('end-score').innerHTML = answersHtml;
         }
@@ -751,7 +753,7 @@
             if(dbAud[key]) new Audio(dbAud[key]).play(); 
             else { 
                 const m = new SpeechSynthesisUtterance(document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value); 
-                m.lang='fr-FR'; m.rate=0.85; 
+                m.lang='fr-FR'; m.rate=0.5; 
                 window.speechSynthesis.speak(m); 
             } 
         }
@@ -789,18 +791,18 @@
     <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
         <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
             <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
-            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
+            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-[\\'Montserrat\\'] leading-tight"></h1>
             <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
         </div>
         
         <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
                 <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
-                    <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">Essaie<br>encore !</div>
+                    <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-[\\'Montserrat\\'] leading-tight">Essaie<br>encore !</div>
                     <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                 </div>
                 <div class="flex flex-col items-center md:items-start w-full max-w-sm">
-                    <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-['Montserrat'] tracking-wide">Mon score est...</h1>
+                    <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-[\\'Montserrat\\'] tracking-wide">Mon score est...</h1>
                     <div class="flex items-center gap-4 w-full mb-8">
                         <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
                         <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
@@ -833,7 +835,7 @@
         <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
             <div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full">
                 <button onclick="playConsigne()" class="text-blue-600 text-3xl hover:scale-110 transition drop-shadow-md">▶</button>
-                <p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-['Montserrat']"></p>
+                <p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-[\\'Montserrat\\']"></p>
             </div>
             <div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div>
             <div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div>
@@ -855,16 +857,16 @@
             const playTone = (freq, wave, time, dur, vol) => {
                 const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
                 osc.type = wave; osc.frequency.setValueAtTime(freq, time);
-                gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
                 osc.connect(gain); gain.connect(window.audioCtx.destination);
                 osc.start(time); osc.stop(time + dur);
             };
-            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.2); } 
-            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.2); } 
-            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.1, 0.4, 0.2); } 
-            else if (type === 'global_ko') { playTone(250, 'triangle', now, 0.4, 0.2); } 
-            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.15, 0.2, 0.2); playTone(783.99, 'sine', now + 0.3, 0.6, 0.2); } 
-            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.2); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.2); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.2); }
+            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } 
+            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } 
+            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } 
+            else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } 
+            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } 
+            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); }
         }
 
         window.onload = () => { 
@@ -1072,7 +1074,7 @@
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.85; window.speechSynthesis.speak(m); } }
+        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
 </html>`;
