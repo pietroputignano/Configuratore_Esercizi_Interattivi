@@ -768,7 +768,7 @@
         function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
         function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
         function handleImg(e) { const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ document.getElementById('mapper-preview').src=ev.target.result; document.getElementById('mapper-preview').classList.remove('hidden'); document.getElementById('mapper-hint').classList.add('hidden'); } loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); }
-        function handleAud(e) { const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); }
+        function handleAud(e) { const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; loadStep(curStep); alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); }
         function playConsigne() { 
             const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
             if(dbAud[key]) new Audio(dbAud[key]).play(); 
