@@ -144,6 +144,14 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
+                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report (Opzionali)</p>
+                    <div class="flex gap-2">
+                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-1 rounded hover:bg-indigo-100 text-[9px]">📷 Vittoria (>50%)</button>
+                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-1 rounded hover:bg-indigo-100 text-[9px]">📷 Sconfitta (&lt;50%)</button>
+                    </div>
+                </div>
+
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -269,56 +277,30 @@
             document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted);
         }
 
-        // Funzione per generare o riprodurre suoni
+        // Funzione per generare o riprodurre suoni (Sintetizzatore Morbido per Bambini)
         function playSound(type) {
             if (isMuted) return;
-            
             const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
-            if (audioSrc) {
-                let a = new Audio(audioSrc);
-                a.play().catch(e => console.warn("Audio ignorato (interazione necessaria)"));
-                return;
-            }
+            if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
             
-            // Generatore suoni base (fallback offline senza file)
-            if (!window.audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if(!AudioContext) return;
-                window.audioCtx = new AudioContext();
-            }
+            if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); }
             if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-            
-            const osc = window.audioCtx.createOscillator();
-            const gainNode = window.audioCtx.createGain();
-            osc.connect(gainNode);
-            gainNode.connect(window.audioCtx.destination);
             const now = window.audioCtx.currentTime;
             
-            if (type === 'drag') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'drop') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(250, now + 0.1);
-                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'global_ok') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.setValueAtTime(800, now + 0.1);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            } else if (type === 'global_ko') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            } else if (type === 'report_high') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(500, now + 0.15); osc.frequency.setValueAtTime(600, now + 0.3);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
-                osc.start(now); osc.stop(now + 0.6);
-            } else if (type === 'report_low') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
-                osc.start(now); osc.stop(now + 0.6);
-            } else { return; }
+            const playTone = (freq, wave, time, dur, vol) => {
+                const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
+                osc.type = wave; osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                osc.connect(gain); gain.connect(window.audioCtx.destination);
+                osc.start(time); osc.stop(time + dur);
+            };
+
+            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.2); }
+            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.2); }
+            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.1, 0.4, 0.2); }
+            else if (type === 'global_ko') { playTone(250, 'triangle', now, 0.4, 0.2); }
+            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.15, 0.2, 0.2); playTone(783.99, 'sine', now + 0.3, 0.6, 0.2); }
+            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.2); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.2); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.2); }
         }
 
         window.onload = () => {
@@ -459,12 +441,23 @@
                 document.getElementById('score-text').innerText = scorePerc + '%';
             }, 100);
 
-            const mascot = document.getElementById('score-mascot');
-            const msg = document.getElementById('score-bubble');
-            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; playSound('report_high'); } 
-            else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; playSound('report_high'); } 
-            else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; playSound('report_low'); }
+            // --- NUOVA LOGICA IMMAGINI SCORE ---
+            const imgHigh = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_high'] : dbImg['score_high'];
+            const imgLow = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_low'] : dbImg['score_low'];
+            const visualContainer = document.getElementById('score-mascot') ? document.getElementById('score-mascot').parentElement : null;
             
+            if (visualContainer) {
+                if (scorePerc >= 50 && imgHigh) {
+                    visualContainer.innerHTML = `<img src="${imgHigh}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
+                } else if (scorePerc < 50 && imgLow) {
+                    visualContainer.innerHTML = `<img src="${imgLow}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
+                } else {
+                    let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼');
+                    let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !');
+                    visualContainer.innerHTML = `<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">${mascotText}</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">${mascotFace}</div>`;
+                }
+            }
+            if (scorePerc >= 50) playSound('report_high'); else playSound('report_low');
             document.getElementById('end-score').innerHTML = answersHtml;
         }
 
@@ -753,7 +746,15 @@
         function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
         function handleImg(e) { const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ document.getElementById('mapper-preview').src=ev.target.result; document.getElementById('mapper-preview').classList.remove('hidden'); document.getElementById('mapper-hint').classList.add('hidden'); } loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); }
         function handleAud(e) { const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); }
-        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(dbAud[key]) new Audio(dbAud[key]).play(); else { const m=new SpeechSynthesisUtterance(document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value); m.lang='fr-FR'; window.speechSynthesis.speak(m); } }
+        function playConsigne() { 
+            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
+            if(dbAud[key]) new Audio(dbAud[key]).play(); 
+            else { 
+                const m = new SpeechSynthesisUtterance(document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value); 
+                m.lang='fr-FR'; m.rate=0.85; 
+                window.speechSynthesis.speak(m); 
+            } 
+        }
 
         /* --- EXPORT JSZIP --- */
         async function exportToZIP() {
@@ -776,7 +777,7 @@
             };
             jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
 
-            let playerHTML = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>bSmart | ' + gameConfig.titre + '</title>\n<script src="https://cdn.tailwindcss.com"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></s' + 'cript>\n<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">\n<script src="js/config.js"></s' + 'cript>\n';
+            let playerHTML = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>bSmart | ' + gameConfig.titre + '</title>\n<script src="https://cdn.tailwindcss.com"></s' + 'cript>\n<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></s' + 'cript>\n<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">\n<script src="js/config.js"></s' + 'cript>\n';
             playerHTML += `<style>
         :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); } .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; } .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; } .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; } .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;} .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); } .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
@@ -794,7 +795,7 @@
         
         <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-                <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64">
+                <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
                     <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">Essaie<br>encore !</div>
                     <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                 </div>
@@ -850,13 +851,20 @@
             if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
             if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); }
             if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-            const osc = window.audioCtx.createOscillator(); const gainNode = window.audioCtx.createGain(); osc.connect(gainNode); gainNode.connect(window.audioCtx.destination); const now = window.audioCtx.currentTime;
-            if (type === 'drag') { osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.1); gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); } 
-            else if (type === 'drop') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(250, now + 0.1); gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); } 
-            else if (type === 'global_ok') { osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now); osc.frequency.setValueAtTime(800, now + 0.1); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
-            else if (type === 'global_ko') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); } 
-            else if (type === 'report_high') { osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(500, now + 0.15); osc.frequency.setValueAtTime(600, now + 0.3); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(now); osc.stop(now + 0.6); } 
-            else if (type === 'report_low') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5); gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6); osc.start(now); osc.stop(now + 0.6); }
+            const now = window.audioCtx.currentTime;
+            const playTone = (freq, wave, time, dur, vol) => {
+                const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
+                osc.type = wave; osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                osc.connect(gain); gain.connect(window.audioCtx.destination);
+                osc.start(time); osc.stop(time + dur);
+            };
+            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.2); } 
+            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.2); } 
+            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.1, 0.4, 0.2); } 
+            else if (type === 'global_ko') { playTone(250, 'triangle', now, 0.4, 0.2); } 
+            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.2); playTone(659.25, 'sine', now + 0.15, 0.2, 0.2); playTone(783.99, 'sine', now + 0.3, 0.6, 0.2); } 
+            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.2); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.2); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.2); }
         }
 
         window.onload = () => { 
@@ -880,8 +888,19 @@
             else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); }
             answersHtml += '</ul></div>';
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
-            const mascot = document.getElementById('score-mascot'); const msg = document.getElementById('score-bubble');
-            if (scorePerc >= 80) { mascot.innerText = '🤩'; msg.innerHTML = 'Bravo !'; playSound('report_high'); } else if (scorePerc >= 50) { mascot.innerText = '😊'; msg.innerHTML = 'Bien<br>joué !'; playSound('report_high'); } else { mascot.innerText = '👦🏼'; msg.innerHTML = 'Essaie<br>encore !'; playSound('report_low'); }
+            
+            const visualContainer = document.getElementById('visual-container');
+            const imgHigh = GAME_CONFIG.images['score_high']; const imgLow = GAME_CONFIG.images['score_low'];
+            if (visualContainer) {
+                if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = '<img src="' + imgHigh + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } 
+                else if (scorePerc < 50 && imgLow) { visualContainer.innerHTML = '<img src="' + imgLow + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } 
+                else {
+                    let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼');
+                    let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !');
+                    visualContainer.innerHTML = '<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-[\\'Montserrat\\'] leading-tight">' + mascotText + '</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">' + mascotFace + '</div>';
+                }
+            }
+            if (scorePerc >= 50) playSound('report_high'); else playSound('report_low');
             document.getElementById('end-score').innerHTML = answersHtml;
         }
 
@@ -1053,7 +1072,7 @@
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; window.speechSynthesis.speak(m); } }
+        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.85; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
 </html>`;
