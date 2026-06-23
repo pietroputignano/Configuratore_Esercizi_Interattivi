@@ -341,10 +341,12 @@
         function openMapper() { document.getElementById('mapper-modal').classList.remove('hidden'); }
         function closeMapper() { document.getElementById('mapper-modal').classList.add('hidden'); startGame(); }
         function addZone() {
-            const z = document.createElement('div'); z.className = 'mapper-zone'; z.style.cssText = "width:20%; height:20%; left:40%; top:40%;";
+            const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center'; z.style.cssText = "width:30%; height:15%; left:35%; top:40%;";
             const word = items[mappedZones.length] || "item";
-            z.innerHTML = `<input class="w-16 text-[8px] font-bold text-center border-none bg-white/80" value="${word}" onchange="this.parentElement.dataset.word=this.value"><div class="resize-handle"></div>`;
-            z.dataset.word = word; document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
+            z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500" placeholder="Testo (es: Io)" onchange="this.parentElement.dataset.label=this.value">
+                           <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800" placeholder="Parola Attesa" value="${word}" onchange="this.parentElement.dataset.word=this.value">
+                           <div class="resize-handle"></div>`;
+            z.dataset.word = word; z.dataset.label = ""; document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
         }
         function makeDraggable(el) {
             let container = document.getElementById('mapper-container');
@@ -356,7 +358,7 @@
             };
             el.querySelector('.resize-handle').onmousedown = (e) => { e.stopPropagation(); document.onmousemove = (ev) => { el.style.width = (ev.clientX - el.getBoundingClientRect().left)/container.offsetWidth*100 + '%'; el.style.height = (ev.clientY - el.getBoundingClientRect().top)/container.offsetHeight*100 + '%'; }; document.onmouseup = () => { document.onmousemove = null; saveZones(); }; };
         }
-        function saveZones() { mappedZones = Array.from(document.querySelectorAll('.mapper-zone')).map(z => ({ word: z.dataset.word, left: z.style.left, top: z.style.top, width: z.style.width, height: z.style.height })); }
+        function saveZones() { mappedZones = Array.from(document.querySelectorAll('.mapper-zone')).map(z => ({ word: z.dataset.word, label: z.dataset.label || '', left: z.style.left, top: z.style.top, width: z.style.width, height: z.style.height })); }
         function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
         function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } document.getElementById('cw-builder-grid').innerHTML = html; }
         function findCWWords() {
@@ -557,18 +559,38 @@
                 setupSortable('autocollantes', null);
             }
             else if(type === 'dressing') {
-                const bg = dbImg['mapper_bg'] ? `<img src="${dbImg['mapper_bg']}" class="max-h-full">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
-                const zone = mappedZones.find(z => z.word.toLowerCase() === word.toLowerCase());
-                const targetHtml = zone ? `<div id="target" class="absolute border-2 border-dashed border-orange-400 bg-orange-100/30 rounded-lg flex items-center justify-center transition-all duration-300" style="left:${zone.left}; top:${zone.top}; width:${zone.width}; height:${zone.height}"></div>` : '';
-                stage.innerHTML = `<div class="relative w-full max-w-[600px] h-[400px] bg-white border border-gray-200 shadow-sm rounded-2xl flex items-center justify-center overflow-hidden">${bg}${targetHtml}</div>`;
+                const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+                const bgImage = getImg('mapper_bg');
+                const bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
                 
-                // Se c'è l'immagine mostra il box foto, altrimenti genera un bellissimo cartellino di testo arancione
-                pool.innerHTML = items.map(it => {
-                    if (dbImg[it]) {
-                        return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}" onclick="pickImg('${it}')"><img src="${dbImg[it]}" class="max-h-full object-contain pointer-events-none"></div>`;
-                    } else {
-                        return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[90px] shrink-0 font-['Source Sans Pro']" data-word="${it}" onclick="pickImg('${it}')">${it}</div>`;
+                let zonesHtml = '';
+                mappedZones.forEach(z => {
+                    const isCurrent = z.word.toLowerCase() === word.toLowerCase();
+                    const stepIndex = items.findIndex(i => i.toLowerCase() === z.word.toLowerCase());
+                    const isCompleted = stepIndex < curStep;
+
+                    let innerContent = '';
+                    if (isCompleted) {
+                        const droppedImg = getImg(z.word);
+                        if (droppedImg) { innerContent = `<img src="${droppedImg}" class="w-full h-full object-contain">`; } 
+                        else { innerContent = `<div class="w-full h-full bg-transparent flex items-center justify-center font-black text-blue-900 text-2xl font-['Montserrat']">${z.word}</div>`; }
                     }
+
+                    const boxStyle = isCurrent ? 'border-4 border-dashed border-orange-400 bg-orange-100/50 shadow-lg' : (isCompleted ? 'border-none bg-transparent' : 'border-2 border-dashed border-gray-400 bg-gray-100/30');
+                    const targetId = isCurrent ? 'id="target"' : '';
+
+                    zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">
+                        ${z.label ? `<span class="text-2xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
+                        <div ${targetId} class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}">${innerContent}</div>
+                    </div>`;
+                });
+
+                stage.innerHTML = `<div class="relative w-full max-w-[900px] h-[500px] bg-slate-800 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`;
+                
+                pool.innerHTML = items.map(it => {
+                    const stickerImg = getImg(it);
+                    if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
+                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-['Source Sans Pro']" data-word="${it}">${it}</div>`; }
                 }).join('');
                 setupSortable('dressing', word);
             }
@@ -703,10 +725,7 @@
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
                     
-                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) {
-                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
-                        const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
-                        e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true);
+                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl text-blue-900 font-['Montserrat']"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true)
                     } 
                     else if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
@@ -991,12 +1010,40 @@
                 pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null);
             }
-            else if(lvlConfig.type === 'dressing') {
-                const bgSrc = GAME_CONFIG.images['mapper_bg']; const bg = bgSrc ? '<img src="' + bgSrc + '" class="max-h-full">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
-                const zone = GAME_CONFIG.mappedZones.find(z => z.word.toLowerCase() === word.toLowerCase());
-                const targetHtml = zone ? '<div id="target" class="absolute border-2 border-dashed border-orange-400 bg-orange-100/30 rounded-lg flex items-center justify-center transition-all duration-300" style="left:' + zone.left + '; top:' + zone.top + '; width:' + zone.width + '; height:' + zone.height + '"></div>' : '';
-                stage.innerHTML = '<div class="relative w-full max-w-[600px] h-[400px] bg-white border border-gray-200 shadow-sm rounded-2xl flex items-center justify-center overflow-hidden">' + bg + targetHtml + '</div>';
-                pool.innerHTML = GAME_CONFIG.items.map(it => { const imgContent = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="max-h-full object-contain pointer-events-none">' : '<span class="text-[7px]">📷 ' + it + '</span>'; return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + imgContent + '</div>'; }).join('');
+            else if(type === 'dressing') {
+                const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+                const bgImage = getImg('mapper_bg');
+                const bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
+                
+                let zonesHtml = '';
+                mappedZones.forEach(z => {
+                    const isCurrent = z.word.toLowerCase() === word.toLowerCase();
+                    const stepIndex = items.findIndex(i => i.toLowerCase() === z.word.toLowerCase());
+                    const isCompleted = stepIndex < curStep;
+
+                    let innerContent = '';
+                    if (isCompleted) {
+                        const droppedImg = getImg(z.word);
+                        if (droppedImg) { innerContent = `<img src="${droppedImg}" class="w-full h-full object-contain">`; } 
+                        else { innerContent = `<div class="w-full h-full bg-transparent flex items-center justify-center font-black text-blue-900 text-2xl font-['Montserrat']">${z.word}</div>`; }
+                    }
+
+                    const boxStyle = isCurrent ? 'border-4 border-dashed border-orange-400 bg-orange-100/50 shadow-lg' : (isCompleted ? 'border-none bg-transparent' : 'border-2 border-dashed border-gray-400 bg-gray-100/30');
+                    const targetId = isCurrent ? 'id="target"' : '';
+
+                    zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">
+                        ${z.label ? `<span class="text-2xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
+                        <div ${targetId} class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}">${innerContent}</div>
+                    </div>`;
+                });
+
+                stage.innerHTML = `<div class="relative w-full max-w-[900px] h-[500px] bg-slate-800 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`;
+                
+                pool.innerHTML = items.map(it => {
+                    const stickerImg = getImg(it);
+                    if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
+                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-['Source Sans Pro']" data-word="${it}">${it}</div>`; }
+                }).join('');
                 setupSortable('dressing', word);
             }
             else if(lvlConfig.type === 'domino') {
@@ -1088,7 +1135,7 @@
                 group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
-                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true); } 
+                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl text-blue-900 font-['Montserrat']"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true); } 
                     else if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
                         if(dropped === expectedWord) {
