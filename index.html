@@ -143,9 +143,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <p class="font-bold uppercase mb-1 text-gray-600">Dati / Parole base (separati da ;)</p>
-                    <textarea id="items-list" class="w-full h-24 p-2 border rounded shadow-inner" placeholder="pizza; salame; mozzarella; latte" oninput="initGame()"></textarea>
+                <div class="space-y-3">
+                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
+                        <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs" placeholder="Frase 1; Frase 2; Frase 3" oninput="initGame()"></textarea>
+                    </div>
+                    <div class="p-3 bg-blue-900 border border-blue-800 rounded-lg">
+                        <p class="font-bold uppercase mb-1 text-white text-[10px]">Dati Livello DIFFICILE (separati da ;)</p>
+                        <textarea id="items-list-d" class="w-full h-16 p-2 border rounded text-xs bg-slate-100" placeholder="Verbo 1; Verbo 2; Verbo 3" oninput="initGame()"></textarea>
+                    </div>
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                     <div class="mt-2">
                         <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia l\'anteprima per caricare l\'audio dello step corrente!')" class="w-full bg-white border border-blue-300 p-2 rounded shadow-sm hover:bg-blue-50 text-[10px] font-bold text-blue-700 transition">🎵 Carica Audio per Step Corrente</button>
@@ -383,8 +389,9 @@
         }
 
         /* --- GAME LOGIC --- */
-        function initGame() {
-            items = document.getElementById('items-list').value.split(';').map(i=>i.trim()).filter(i=>i);
+       function initGame() {
+            const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
+            items = document.getElementById(listId).value.split(';').map(i=>i.trim()).filter(i=>i);
             
             let color = document.getElementById('in-color').value || '#E84C7B';
             document.getElementById('res-badge').style.setProperty('--theme-color', color);
@@ -789,14 +796,17 @@
             let expImg = {}; for(let k in dbImg) { if(!dbImg[k]) continue; let ext = dbImg[k].match(/data:image\/(.*);base64/)[1]; let name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`; assetsFolder.file(name, dataURLtoBlob(dbImg[k])); expImg[k] = `assets/${name}`; }
             let expAud = {}; for(let k in dbAud) { if(!dbAud[k]) continue; let ext = dbAud[k].includes('mpeg') ? 'mp3' : 'wav'; let name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`; assetsFolder.file(name, dataURLtoBlob(dbAud[k])); expAud[k] = `assets/${name}`; }
 
+            const itemsF = document.getElementById('items-list-f').value.split(';').map(i=>i.trim()).filter(i=>i);
+            const itemsD = document.getElementById('items-list-d').value.split(';').map(i=>i.trim()).filter(i=>i);
+            
             const gameConfig = { 
                 unite: document.getElementById('in-unite').value, 
                 uniteColor: document.getElementById('in-color').value || '#E84C7B',
                 showLecon: document.getElementById('in-show-lecon').checked,
                 lecon: document.getElementById('in-lecon').value,
                 titre: document.getElementById('in-titre').value, 
-                items: items, mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
-                levels: { facile: { type: typeF, consigne: document.getElementById('con-f').value }, difficile: { type: typeD, consigne: document.getElementById('con-d').value } } 
+                mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
+                levels: { facile: { type: typeF, consigne: document.getElementById('con-f').value, items: itemsF }, difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: itemsD } } 
             };
             jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
 
@@ -901,7 +911,7 @@
             if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
             else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
         };
-        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
+        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
         
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
