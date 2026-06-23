@@ -59,13 +59,23 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
-        .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
+        .shake-error { 
+            animation: shake 0.4s ease-in-out !important; 
+            border-color: var(--hfle-error) !important; 
+            box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; 
+        }
         .shake-error > div { background-color: #fee2e2 !important; }
     </style>
 </head>
 <body class="p-2 md:p-4">
 
+    <!-- MODALS -->
     <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50"><h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3><button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button></div>
@@ -87,10 +97,12 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
+        <!-- CONFIGURATION PANEL -->
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
             <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
             <div class="space-y-6">
+                <!-- Dati Testata -->
                 <div class="grid grid-cols-2 gap-4">
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6" oninput="initGame()"></div>
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
@@ -105,6 +117,7 @@
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements" oninput="initGame()"></div>
                 </div>
 
+                <!-- LIVELLO FACILE -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Lis et déplace les dominos.">
@@ -117,6 +130,7 @@
                     </div>
                 </div>
 
+                <!-- LIVELLO DIFFICILE -->
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Regarde les dominos et mets les lettres dans le bon ordre.">
@@ -133,8 +147,12 @@
                     <p class="font-bold uppercase mb-1 text-gray-600">Dati / Parole base (separati da ;)</p>
                     <textarea id="items-list" class="w-full h-24 p-2 border rounded shadow-inner" placeholder="pizza; salame; mozzarella; latte" oninput="initGame()"></textarea>
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
+                    <div class="mt-2">
+                        <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia l\'anteprima per caricare l\'audio dello step corrente!')" class="w-full bg-white border border-blue-300 p-2 rounded shadow-sm hover:bg-blue-50 text-[10px] font-bold text-blue-700 transition">🎵 Carica Audio per Step Corrente</button>
+                    </div>
                 </div>
 
+                <!-- IMMAGINI REPORT -->
                 <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
                     <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
                     <div class="flex gap-2">
@@ -143,6 +161,7 @@
                     </div>
                 </div>
 
+                <!-- SUONI GLOBALI -->
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
                     <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -161,6 +180,7 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📥 SCARICA PACCHETTO ZIP</button>
         </div>
 
+        <!-- PREVIEW AREA (RESPONSIVE SHELL UI) -->
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
@@ -172,7 +192,9 @@
             <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
                 <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
                     <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
-                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">Essaie<br>encore !</div>
+                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">
+                            Essaie<br>encore !
+                        </div>
                         <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                     </div>
 
@@ -201,6 +223,7 @@
                 <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
             </div>
 
+            <!-- RESPONSIVE HEADER FIX -->
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
                 <div class="flex flex-col items-center md:items-start z-10 shrink-0">
                     <div class="unit-badge" id="res-badge">
@@ -240,6 +263,7 @@
         </div>
     </div>
 
+    <!-- Hidden Controllers -->
     <input type="file" id="imgInp" class="hidden" accept="image/*" onchange="handleImg(event)">
     <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
 
@@ -509,6 +533,13 @@
             if(items.length === 0) return;
             const word = items[idx];
 
+            let stepAudioHtml = '';
+            const stepAudioKey = word + '_audio';
+            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+            if (audioSrc) {
+                stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
+            }
+
             if(type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
                 items.forEach(it => {
@@ -590,6 +621,8 @@
                 pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="${it}">${it}</div>`).join('');
                 setupSortable('rebus', word);
             }
+
+            if (stepAudioHtml !== '') { stage.innerHTML = stepAudioHtml + stage.innerHTML; }
         }
 
         function checkCrossword() {
@@ -935,6 +968,12 @@
                 cluesHtml += '</div></div>'; stage.innerHTML = '<div class="flex flex-col items-center w-full">' + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return;
             }
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
+            
+            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
+            if (GAME_CONFIG.audio[stepAudioKey]) { 
+                stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; 
+            }
+
             if(lvlConfig.type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
                 GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it + '">' + shadowImg + '</div>'; });
@@ -982,6 +1021,8 @@
                 pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="' + it + '">' + it + '</div>').join('');
                 setupSortable('rebus', word);
             }
+            
+            if (stepAudioHtml !== '') { stage.innerHTML = stepAudioHtml + stage.innerHTML; }
         }
 
         function checkCrossword() {
