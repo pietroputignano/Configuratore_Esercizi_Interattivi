@@ -59,17 +59,8 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            50% { transform: translateX(8px); }
-            75% { transform: translateX(-8px); }
-        }
-        .shake-error { 
-            animation: shake 0.4s ease-in-out !important; 
-            border-color: var(--hfle-error) !important; 
-            box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; 
-        }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
+        .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
         .shake-error > div { background-color: #fee2e2 !important; }
     </style>
 </head>
@@ -144,7 +135,15 @@
                     <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
                 </div>
 
-                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
+                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
+                    <div class="flex gap-2">
+                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Vittoria (>50%)</button>
+                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Sconfitta (&lt;50%)</button>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
                     <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="pickAud('drag')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drag (Presa)</button>
@@ -156,14 +155,6 @@
                     </div>
                     <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
                 </div>
-
-                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
-                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
-                    <div class="flex gap-2">
-                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Vittoria (>50%)</button>
-                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Sconfitta (&lt;50%)</button>
-                    </div>
-                </div>
             </div>
             
             <button onclick="initGame(); startGame();" class="w-full mt-6 bg-blue-700 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-blue-800 transition transform hover:-translate-y-1">🚀 AGGIORNA ANTEPRIMA</button>
@@ -174,16 +165,14 @@
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
                 <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
-                <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight"></h1>
+                <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-['Montserrat'] leading-tight break-words px-4"></h1>
                 <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
             </div>
             
-            <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+            <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
                 <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
                     <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
-                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">
-                            Essaie<br>encore !
-                        </div>
+                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-['Montserrat'] leading-tight">Essaie<br>encore !</div>
                         <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                     </div>
 
@@ -213,42 +202,21 @@
             </div>
 
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
-            <div class="flex flex-col items-center md:items-start z-10 shrink-0">
-                <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
-                <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
-            </div>
-            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-            </div>
-            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
-                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-                </div>
-                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
-                    <span id="mute-icon">🔊</span>
-                </button>
-            </div>
-        </div>
-            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-            </div>
-            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
-                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-                </div>
-                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
-                    <span id="mute-icon">🔊</span>
-                </button>
-            </div>
-        </div>
-                
-                <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
-                    <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
+                <div class="flex flex-col items-center md:items-start z-10 shrink-0">
+                    <div class="unit-badge" id="res-badge">
+                        <span class="unit-badge-text">Unité</span>
+                        <span id="res-unite" class="unit-badge-num"></span>
+                    </div>
+                    <div id="res-lecon-wrapper" class="lecon-ribbon">
+                        LEÇON <span id="res-lecon">1</span>
+                    </div>
                 </div>
                 
-                <div class="flex items-center gap-3 z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
+                <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                    <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+                </div>
+                
+                <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
                     <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
                         <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
                         <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
@@ -811,11 +779,11 @@
     <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
         <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
             <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
-            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-[\\'Montserrat\\'] leading-tight"></h1>
+            <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-[\\'Montserrat\\'] leading-tight break-words px-4"></h1>
             <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
         </div>
         
-        <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center">
+        <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
                 <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
                     <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-[\\'Montserrat\\'] leading-tight">Essaie<br>encore !</div>
@@ -854,44 +822,7 @@
                 </button>
             </div>
         </div>
-            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-            </div>
-            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
-                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-                </div>
-                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
-                    <span id="mute-icon">🔊</span>
-                </button>
-            </div>
-        </div>
-            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-            </div>
-            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
-                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-                </div>
-                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
-                    <span id="mute-icon">🔊</span>
-                </button>
-            </div>
-        </div>
-            </div>
-            <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0"><h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1></div>
-            <div class="flex items-center gap-3 z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
-                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-                </div>
-                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
-                    <span id="mute-icon">🔊</span>
-                </button>
-            </div>
-        </div>
+        
         <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
             <div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full">
                 <button onclick="playConsigne()" class="text-blue-600 text-3xl hover:scale-110 transition drop-shadow-md">▶</button>
