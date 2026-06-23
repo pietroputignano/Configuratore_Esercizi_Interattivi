@@ -561,7 +561,15 @@
                 const zone = mappedZones.find(z => z.word.toLowerCase() === word.toLowerCase());
                 const targetHtml = zone ? `<div id="target" class="absolute border-2 border-dashed border-orange-400 bg-orange-100/30 rounded-lg flex items-center justify-center transition-all duration-300" style="left:${zone.left}; top:${zone.top}; width:${zone.width}; height:${zone.height}"></div>` : '';
                 stage.innerHTML = `<div class="relative w-full max-w-[600px] h-[400px] bg-white border border-gray-200 shadow-sm rounded-2xl flex items-center justify-center overflow-hidden">${bg}${targetHtml}</div>`;
-                pool.innerHTML = items.map(it => `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it}" onclick="pickImg('${it}')">${dbImg[it]?`<img src="${dbImg[it]}" class="max-h-full object-contain pointer-events-none">`:`<span class="text-[7px]">📷 ${it}</span>`}</div>`).join('');
+                
+                // Se c'è l'immagine mostra il box foto, altrimenti genera un bellissimo cartellino di testo arancione
+                pool.innerHTML = items.map(it => {
+                    if (dbImg[it]) {
+                        return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}" onclick="pickImg('${it}')"><img src="${dbImg[it]}" class="max-h-full object-contain pointer-events-none"></div>`;
+                    } else {
+                        return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[90px] shrink-0 font-['Source Sans Pro']" data-word="${it}" onclick="pickImg('${it}')">${it}</div>`;
+                    }
+                }).join('');
                 setupSortable('dressing', word);
             }
             else if(type === 'domino') {
