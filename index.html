@@ -41,7 +41,7 @@
         .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; }
 
         .modal-bg { background: rgba(0,0,0,0.85); z-index: 100; }
-        .mapper-zone { position: absolute; border: 2px dashed var(--hfle-orange); background: rgba(239, 169, 44, 0.3); cursor: grab; }
+        .mapper-zone { position: absolute; border: 2px dashed var(--hfle-orange); background: rgba(239, 169, 44, 0.6); cursor: grab; }
         .resize-handle { position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px; background: var(--hfle-blue); border-radius: 50%; cursor: se-resize; }
 
         .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; }
@@ -75,6 +75,7 @@
 </head>
 <body class="p-2 md:p-4">
 
+    <!-- MODALS -->
     <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50"><h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3><button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button></div>
@@ -96,10 +97,12 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
+        <!-- CONFIGURATION PANEL -->
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
             <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
             <div class="space-y-6">
+                <!-- Dati Testata -->
                 <div class="grid grid-cols-2 gap-4">
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="6" oninput="initGame()"></div>
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
@@ -114,6 +117,7 @@
                     <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Le domino des vêtements" oninput="initGame()"></div>
                 </div>
 
+                <!-- LIVELLO FACILE -->
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Lis et déplace les dominos.">
@@ -124,8 +128,14 @@
                         <button id="btn-cw-f" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
                         <button id="btn-rebus-f" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                     </div>
+                    <div class="mt-3 pt-3 border-t border-blue-200">
+                        <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
+                        <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs" placeholder="Frase 1; Frase 2; Frase 3" oninput="initGame()"></textarea>
+                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici).</p>
+                    </div>
                 </div>
 
+                <!-- LIVELLO DIFFICILE -->
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" value="Regarde les dominos et mets les lettres dans le bon ordre.">
@@ -136,23 +146,19 @@
                         <button id="btn-cw-d" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
                         <button id="btn-rebus-d" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                     </div>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
-                        <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs" placeholder="Frase 1; Frase 2; Frase 3" oninput="initGame()"></textarea>
-                    </div>
-                    <div class="p-3 bg-blue-900 border border-blue-800 rounded-lg">
+                    <div class="mt-3 pt-3 border-t border-blue-800">
                         <p class="font-bold uppercase mb-1 text-white text-[10px]">Dati Livello DIFFICILE (separati da ;)</p>
                         <textarea id="items-list-d" class="w-full h-16 p-2 border rounded text-xs bg-slate-100" placeholder="Verbo 1; Verbo 2; Verbo 3" oninput="initGame()"></textarea>
                     </div>
-                    <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare le frasi nel modulo "Mise en ordre" (es: Il / habite / ici).</p>
-                    <div class="mt-2">
-                        <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia l\'anteprima per caricare l\'audio dello step corrente!')" class="w-full bg-white border border-blue-300 p-2 rounded shadow-sm hover:bg-blue-50 text-[10px] font-bold text-blue-700 transition">🎵 Carica Audio per Step Corrente</button>
-                    </div>
                 </div>
 
+                <!-- CARICA AUDIO PER STEP -->
+                <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center shadow-sm">
+                    <p class="text-[10px] text-yellow-800 font-bold mb-2">Se usi giochi sequenziali (es. Mise en ordre / Anagramma):</p>
+                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia l\'anteprima per caricare l\'audio dello step corrente!')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition">🎵 Carica Audio per la Frase Corrente</button>
+                </div>
+
+                <!-- IMMAGINI REPORT -->
                 <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
                     <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
                     <div class="flex gap-2">
@@ -161,6 +167,7 @@
                     </div>
                 </div>
 
+                <!-- SUONI GLOBALI -->
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
                     <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -179,6 +186,7 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📥 SCARICA PACCHETTO ZIP</button>
         </div>
 
+        <!-- PREVIEW AREA (RESPONSIVE SHELL UI) -->
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
@@ -221,8 +229,10 @@
                 <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
             </div>
 
+            <!-- RESPONSIVE HEADER FIX -->
             <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
                 
+                <!-- Box Unité e Leçon -->
                 <div class="flex flex-col items-center md:items-start z-10 shrink-0">
                     <div class="unit-badge" id="res-badge">
                         <span class="unit-badge-text">Unité</span>
@@ -233,10 +243,12 @@
                     </div>
                 </div>
                 
+                <!-- Titolo Centrato -->
                 <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
                     <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
                 </div>
                 
+                <!-- Bottoni Modalità e Suono -->
                 <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
                     <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
                         <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
@@ -261,6 +273,7 @@
         </div>
     </div>
 
+    <!-- Hidden Controllers -->
     <input type="file" id="imgInp" class="hidden" accept="image/*" onchange="handleImg(event)">
     <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
 
@@ -341,10 +354,10 @@
         function openMapper() { document.getElementById('mapper-modal').classList.remove('hidden'); }
         function closeMapper() { document.getElementById('mapper-modal').classList.add('hidden'); startGame(); }
         function addZone() {
-            const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center'; z.style.cssText = "width:30%; height:15%; left:35%; top:40%;";
+            const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center'; z.style.cssText = "width:30%; height:15%; left:35%; top:40%; background: rgba(239, 169, 44, 0.6);";
             const word = items[mappedZones.length] || "item";
-            z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500" placeholder="Testo (es: Io)" onchange="this.parentElement.dataset.label=this.value">
-                           <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800" placeholder="Parola Attesa" value="${word}" onchange="this.parentElement.dataset.word=this.value">
+            z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500" placeholder="Testo (es: Je)" onchange="this.parentElement.dataset.label=this.value" onmousedown="event.stopPropagation()">
+                           <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800" placeholder="Parola Attesa" value="${word}" onchange="this.parentElement.dataset.word=this.value" onmousedown="event.stopPropagation()">
                            <div class="resize-handle"></div>`;
             z.dataset.word = word; z.dataset.label = ""; document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
         }
@@ -415,7 +428,7 @@
             document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden');
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             status = new Array(items.length).fill('pending'); 
-            if(type === 'domino' || type === 'autocollantes') errorTracker = [0]; 
+            if(type === 'domino' || type === 'autocollantes' || type === 'dressing') errorTracker = [0]; 
             else errorTracker = new Array(items.length).fill(0);
             loadStep(0);
         }
@@ -565,34 +578,22 @@
                 
                 let zonesHtml = '';
                 mappedZones.forEach(z => {
-                    const isCurrent = z.word.toLowerCase() === word.toLowerCase();
-                    const stepIndex = items.findIndex(i => i.toLowerCase() === z.word.toLowerCase());
-                    const isCompleted = stepIndex < curStep;
-
-                    let innerContent = '';
-                    if (isCompleted) {
-                        const droppedImg = getImg(z.word);
-                        if (droppedImg) { innerContent = `<img src="${droppedImg}" class="w-full h-full object-contain">`; } 
-                        else { innerContent = `<div class="w-full h-full bg-transparent flex items-center justify-center font-black text-blue-900 text-2xl font-['Montserrat']">${z.word}</div>`; }
-                    }
-
-                    const boxStyle = isCurrent ? 'border-4 border-dashed border-orange-400 bg-orange-100/50 shadow-lg' : (isCompleted ? 'border-none bg-transparent' : 'border-2 border-dashed border-gray-400 bg-gray-100/30');
-                    const targetId = isCurrent ? 'id="target"' : '';
-
+                    const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
                     zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">
-                        ${z.label ? `<span class="text-2xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
-                        <div ${targetId} class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}">${innerContent}</div>
+                        ${z.label ? `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
+                        <div id="target-${z.word}" data-expected="${z.word}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>
                     </div>`;
                 });
 
                 stage.innerHTML = `<div class="relative w-full max-w-[900px] h-[500px] bg-slate-800 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`;
                 
-                pool.innerHTML = items.map(it => {
+                const shuffled = [...items].sort(()=>Math.random()-0.5);
+                pool.innerHTML = shuffled.map(it => {
                     const stickerImg = getImg(it);
                     if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
                     else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-['Source Sans Pro']" data-word="${it}">${it}</div>`; }
                 }).join('');
-                setupSortable('dressing', word);
+                setupSortable('dressing', null);
             }
             else if(type === 'domino') {
                 let nextExpected = items[1] || items[0];
@@ -667,27 +668,34 @@
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); 
             
-            if (mode === 'autocollantes') {
+            if (mode === 'autocollantes' || mode === 'dressing') {
                 if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                items.forEach(it => {
-                    const tgt = document.getElementById('target-' + it);
+                
+                const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
+                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
+                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
+
+                targetWords.forEach(w => {
+                    const tgt = document.getElementById('target-' + w);
                     if (tgt) {
                         new Sortable(tgt, {
                             group: 'game', animation: 150, onStart: () => playSound('drag'),
                             onAdd: (e) => {
                                 const dropped = e.item.getAttribute('data-word');
                                 const expectedWord = e.target.getAttribute('data-expected');
-                                if(dropped === expectedWord) {
-                                    e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
+                                if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
+                                    if (mode === 'dressing') {
+                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-['Montserrat']";
+                                    } else {
+                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
+                                    }
                                     const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                                     e.item.removeAttribute('draggable');
                                     e.target.innerHTML = '';
                                     e.target.appendChild(e.item);
                                     e.target.style.border = "none";
                                     e.target.style.backgroundColor = "transparent";
-                                    e.target.classList.remove('cursor-pointer');
-                                    e.target.onclick = null;
                                     playSound('global_ok');
 
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
@@ -725,9 +733,7 @@
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
                     
-                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl text-blue-900 font-['Montserrat']"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true)
-                    } 
-                    else if(mode === 'domino') {
+                    if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
                         if(dropped === expectedWord) {
                             e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
@@ -763,7 +769,7 @@
             if(correct) { 
                 status[curStep]='completed'; playSound('global_ok');
                 setTimeout(() => { 
-                    if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= items.length - 1) {
+                    if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || type === 'dressing' || curStep >= items.length - 1) {
                         showEndScreen();
                     } else {
                         loadStep(curStep + 1);
@@ -771,7 +777,7 @@
                 }, 1500); 
             } else { 
                 status[curStep]='error'; 
-                if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; 
+                if(type !== 'domino' && type !== 'autocollantes' && type !== 'dressing') errorTracker[curStep]++; 
                 playSound('global_ko');
             }
             renderNav();
@@ -779,7 +785,7 @@
 
         function renderNav() { 
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; }
+            if(type === 'crossword' || type === 'domino' || type === 'autocollantes' || type === 'dressing') { document.getElementById('nav-step').innerHTML = ''; return; }
             document.getElementById('nav-step').innerHTML = items.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i]}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
         }
 
@@ -929,7 +935,7 @@
             if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
             else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
         };
-        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
+        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes' || type === 'dressing') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
         
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
@@ -1010,41 +1016,30 @@
                 pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null);
             }
-            else if(type === 'dressing') {
+            else if(lvlConfig.type === 'dressing') {
                 const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
                 const bgImage = getImg('mapper_bg');
                 const bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
                 
                 let zonesHtml = '';
-                mappedZones.forEach(z => {
-                    const isCurrent = z.word.toLowerCase() === word.toLowerCase();
-                    const stepIndex = items.findIndex(i => i.toLowerCase() === z.word.toLowerCase());
-                    const isCompleted = stepIndex < curStep;
-
-                    let innerContent = '';
-                    if (isCompleted) {
-                        const droppedImg = getImg(z.word);
-                        if (droppedImg) { innerContent = `<img src="${droppedImg}" class="w-full h-full object-contain">`; } 
-                        else { innerContent = `<div class="w-full h-full bg-transparent flex items-center justify-center font-black text-blue-900 text-2xl font-['Montserrat']">${z.word}</div>`; }
-                    }
-
-                    const boxStyle = isCurrent ? 'border-4 border-dashed border-orange-400 bg-orange-100/50 shadow-lg' : (isCompleted ? 'border-none bg-transparent' : 'border-2 border-dashed border-gray-400 bg-gray-100/30');
-                    const targetId = isCurrent ? 'id="target"' : '';
-
+                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
+                zoneList.forEach(z => {
+                    const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
                     zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">
-                        ${z.label ? `<span class="text-2xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
-                        <div ${targetId} class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}">${innerContent}</div>
+                        ${z.label ? `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label}</span>` : ''}
+                        <div id="target-${z.word}" data-expected="${z.word}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>
                     </div>`;
                 });
 
                 stage.innerHTML = `<div class="relative w-full max-w-[900px] h-[500px] bg-slate-800 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`;
                 
-                pool.innerHTML = items.map(it => {
+                const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
+                pool.innerHTML = shuffled.map(it => {
                     const stickerImg = getImg(it);
                     if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
-                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-['Source Sans Pro']" data-word="${it}">${it}</div>`; }
+                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-[\\'Source Sans Pro\\']" data-word="${it}">${it}</div>`; }
                 }).join('');
-                setupSortable('dressing', word);
+                document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
             else if(lvlConfig.type === 'domino') {
                 let nextExpected = GAME_CONFIG.items[1] || GAME_CONFIG.items[0];
@@ -1090,19 +1085,28 @@
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); 
             
-            if (mode === 'autocollantes') {
+            if (mode === 'autocollantes' || mode === 'dressing') {
                 if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                GAME_CONFIG.items.forEach(it => {
-                    const tgt = document.getElementById('target-' + it);
+                
+                const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
+                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
+                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
+
+                targetWords.forEach(w => {
+                    const tgt = document.getElementById('target-' + w);
                     if (tgt) {
                         new Sortable(tgt, {
                             group: 'game', animation: 150, onStart: () => playSound('drag'),
                             onAdd: (e) => {
                                 const dropped = e.item.getAttribute('data-word');
                                 const expectedWord = e.target.getAttribute('data-expected');
-                                if(dropped === expectedWord) {
-                                    e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
+                                if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
+                                    if (mode === 'dressing') {
+                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-[\\'Montserrat\\']";
+                                    } else {
+                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
+                                    }
                                     const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                                     e.item.removeAttribute('draggable');
                                     e.target.innerHTML = ''; e.target.appendChild(e.item);
@@ -1135,8 +1139,7 @@
                 group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
-                    if(mode === 'dressing' && dropped.toLowerCase() === targetWord.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl text-blue-900 font-['Montserrat']"; const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; validate(true); } 
-                    else if(mode === 'domino') {
+                    if(mode === 'domino') {
                         const expectedWord = e.target.getAttribute('data-expected');
                         if(dropped === expectedWord) {
                             e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
@@ -1156,11 +1159,11 @@
 
         function validate(correct) {
             const type = GAME_CONFIG.levels[curLvl].type;
-            if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || curStep >= GAME_CONFIG.items.length - 1) { showEndScreen(); } else { loadStep(curStep + 1); } }, 1500); } 
-            else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes') errorTracker[curStep]++; playSound('global_ko'); } renderNav();
+            if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || type === 'dressing' || curStep >= GAME_CONFIG.items.length - 1) { showEndScreen(); } else { loadStep(curStep + 1); } }, 1500); } 
+            else { status[curStep]='error'; if(type !== 'domino' && type !== 'autocollantes' && type !== 'dressing') errorTracker[curStep]++; playSound('global_ko'); } renderNav();
         }
 
-        function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes') { return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
+        function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes' || type === 'dressing') { document.getElementById('nav-step').innerHTML = ''; return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
         function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
     <\/script>
