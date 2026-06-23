@@ -212,17 +212,37 @@
                 <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
             </div>
 
-            <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
-                
-                <div class="flex flex-col items-start z-10 w-full md:w-1/4">
-                    <div class="unit-badge" id="res-badge">
-                        <span class="unit-badge-text">Unité</span>
-                        <span id="res-unite" class="unit-badge-num"></span>
-                    </div>
-                    <div id="res-lecon-wrapper" class="lecon-ribbon">
-                        LEÇON <span id="res-lecon">1</span>
-                    </div>
+            <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
+            <div class="flex flex-col items-center md:items-start z-10 shrink-0">
+                <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
+                <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
+            </div>
+            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+            </div>
+            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
                 </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
+            </div>
+        </div>
+            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+            </div>
+            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
+            </div>
+        </div>
                 
                 <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0">
                     <h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1>
@@ -816,10 +836,50 @@
             <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
         </div>
 
-        <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative">
-            <div class="flex flex-col items-start z-10 w-full md:w-1/4">
+        <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
+            <div class="flex flex-col items-center md:items-start z-10 shrink-0">
                 <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
                 <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
+            </div>
+            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+            </div>
+            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
+            </div>
+        </div>
+            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+            </div>
+            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
+            </div>
+        </div>
+            <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+            </div>
+            <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                    <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                    <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                </div>
+                <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                    <span id="mute-icon">🔊</span>
+                </button>
+            </div>
+        </div>
             </div>
             <div class="flex-grow flex justify-center z-10 w-full md:w-2/4 my-4 md:my-0"><h1 id="res-titre" class="h-titre text-2xl md:text-4xl text-center leading-tight"></h1></div>
             <div class="flex items-center gap-3 z-10 w-full md:w-1/4 justify-center md:justify-end h-fit">
