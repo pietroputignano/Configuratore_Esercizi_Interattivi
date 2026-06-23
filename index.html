@@ -622,7 +622,7 @@
                 setupSortable('rebus', word);
             }
 
-            if (stepAudioHtml !== '') { stage.innerHTML = stepAudioHtml + stage.innerHTML; }
+            if (stepAudioHtml !== '') { stage.insertAdjacentHTML('afterbegin', stepAudioHtml); }
         }
 
         function checkCrossword() {
@@ -1022,7 +1022,7 @@
                 setupSortable('rebus', word);
             }
             
-            if (stepAudioHtml !== '') { stage.innerHTML = stepAudioHtml + stage.innerHTML; }
+            if (stepAudioHtml !== '') { stage.insertAdjacentHTML('afterbegin', stepAudioHtml); }
         }
 
         function checkCrossword() {
