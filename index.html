@@ -455,6 +455,47 @@
             document.getElementById('cw-modal').classList.add('hidden'); startGame();
         }
 
+        /* --- AUDIO LOGIC --- */
+        function playConsigne() { 
+            const isZip = (typeof GAME_CONFIG !== 'undefined');
+            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
+            const audioSrc = isZip ? GAME_CONFIG.audio[key] : dbAud[key];
+            if(audioSrc) {
+                new Audio(audioSrc).play(); 
+            } else { 
+                const textInput = isZip ? GAME_CONFIG.levels[curLvl].consigne : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value.trim() !== '' ? document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value : document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').placeholder);
+                const m = new SpeechSynthesisUtterance(textInput || "Écoute"); 
+                m.lang='fr-FR'; m.rate=0.75; 
+                window.speechSynthesis.speak(m); 
+            } 
+        }
+
+        function playStepAudio(wordStr) {
+            const stepAudioKey = wordStr + '_audio';
+            const isZip = (typeof GAME_CONFIG !== 'undefined');
+            const audioSrc = isZip ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+            
+            if (audioSrc) {
+                new Audio(audioSrc).play();
+            } else {
+                let textToSpeak = wordStr;
+                const type = isZip ? GAME_CONFIG.levels[curLvl].type : document.getElementById(curLvl === 'facile' ? 'type-f' : 'type-d').value;
+                
+                if (type === 'sentence_ordering') {
+                    textToSpeak = wordStr.replace(/\//g, ' ');
+                } else if (type === 'rebus') {
+                    const rData = isZip ? GAME_CONFIG.rebusData : rebusData;
+                    const sentence = rData[wordStr] || wordStr;
+                    textToSpeak = sentence.replace(/[{}]/g, '');
+                }
+                
+                const m = new SpeechSynthesisUtterance(textToSpeak);
+                m.lang = 'fr-FR';
+                m.rate = 0.75; 
+                window.speechSynthesis.speak(m);
+            }
+        }
+
         /* --- GAME LOGIC --- */
         function initGame() {
             const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
@@ -649,10 +690,9 @@
             const word = items[idx];
 
             let stepAudioHtml = '';
-            const stepAudioKey = word + '_audio';
-            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-            if (audioSrc && type !== 'dressing') {
-                stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
+            if (type === 'sentence_ordering' || type === 'anagramme' || type === 'rebus') {
+                const safeWord = word.replace(/'/g, "\\'");
+                stepAudioHtml = `<button onclick="playStepAudio('${safeWord}')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
             }
 
             if(type === 'autocollantes') {
@@ -760,7 +800,7 @@
                 setupSortable('sentence_ordering', word);
             }
             else if(type === 'rebus') {
-                const sentence = rebusData[word] || ('{' + word + '}');
+                const sentence = rebusData[word] || `{${word}}`;
                 const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
                 
                 const imgContent = dbImg[word] 
@@ -936,17 +976,7 @@
         function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
         function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
         function handleAud(e) { const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; loadStep(curStep); alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
-        function playConsigne() { 
-            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
-            if(dbAud[key]) new Audio(dbAud[key]).play(); 
-            else { 
-                const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
-                const m = new SpeechSynthesisUtterance(conInput.value.trim() !== '' ? conInput.value : conInput.placeholder); 
-                m.lang='fr-FR'; m.rate=0.5; 
-                window.speechSynthesis.speak(m); 
-            } 
-        }
-
+        
         /* --- EXPORT JSZIP --- */
         async function exportToZIP() {
             const typeF = document.getElementById('type-f').value; const typeD = document.getElementById('type-d').value;
@@ -1175,9 +1205,10 @@
             }
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
             
-            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
-            if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { 
-                stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; 
+            let stepAudioHtml = ''; 
+            if (lvlConfig.type === 'sentence_ordering' || lvlConfig.type === 'anagramme' || lvlConfig.type === 'rebus') {
+                const safeWord = word.replace(/'/g, "\\'");
+                stepAudioHtml = '<button onclick="playStepAudio(\\'' + safeWord + '\\')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>';
             }
 
             if(lvlConfig.type === 'autocollantes') {
@@ -1372,7 +1403,37 @@
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes' || type === 'dressing') { document.getElementById('nav-step').innerHTML = ''; return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
+        
+        function playStepAudio(wordStr) {
+            const stepAudioKey = wordStr + '_audio';
+            const isZip = true;
+            const audioSrc = GAME_CONFIG.audio[stepAudioKey];
+            if (audioSrc) {
+                new Audio(audioSrc).play();
+            } else {
+                let textToSpeak = wordStr;
+                const type = GAME_CONFIG.levels[curLvl].type;
+                if (type === 'sentence_ordering') {
+                    textToSpeak = wordStr.replace(/\\//g, ' ');
+                } else if (type === 'rebus') {
+                    const sentence = GAME_CONFIG.rebusData[wordStr] || wordStr;
+                    textToSpeak = sentence.replace(/[{}]/g, '');
+                }
+                const m = new SpeechSynthesisUtterance(textToSpeak);
+                m.lang = 'fr-FR';
+                m.rate = 0.75; 
+                window.speechSynthesis.speak(m);
+            }
+        }
+        
+        function playConsigne() { 
+            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
+            if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); 
+            else { 
+                const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); 
+                m.lang='fr-FR'; m.rate=0.75; window.speechSynthesis.speak(m); 
+            } 
+        }
     <\/script>
 </body>
 </html>`;
