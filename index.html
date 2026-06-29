@@ -12,45 +12,66 @@
     <style>
         :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; }
         body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
+        
         .font-mont { font-family: 'Montserrat', sans-serif; }
         .font-source { font-family: 'Source Sans Pro', sans-serif; }
         .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; }
+        
         .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); }
         .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; }
         .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; }
+        
         .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); }
+
         .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; }
         .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); }
+        
         .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; }
         .nav-square:hover { transform: translateY(-2px); }
         .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
         .nav-square.completed { background-color: var(--hfle-success); }
         .nav-square.error { background-color: var(--hfle-error); }
+
         .domino-chain { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: white; border: 2px dashed #cbd5e1; }
         .domino-tile { border: 3px solid var(--hfle-blue); border-radius: 12px; display: flex; background: white; height: 85px; width: 190px; cursor: grab; overflow: hidden; flex-shrink: 0; }
         .tile-img { width: 50%; background: #fff; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; }
         .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; }
         .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; text-align: center; padding: 4px; text-transform: uppercase;}
         .drop-target { width: 190px; height: 85px; border: 3px dashed var(--hfle-orange); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--hfle-orange); font-weight: bold; flex-shrink: 0; background: rgba(255,255,255,0.5); }
+        
         .letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; }
+
         .modal-bg { background: rgba(0,0,0,0.85); z-index: 100; }
         .mapper-zone { position: absolute; border: 2px dashed var(--hfle-orange); background: rgba(239, 169, 44, 0.6); cursor: grab; transition: box-shadow 0.2s, border-color 0.2s; }
         .resize-handle { position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px; background: var(--hfle-blue); border-radius: 50%; cursor: se-resize; z-index: 20; }
+
         .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; }
         .cw-cell-wrapper { position: relative; width: 35px; height: 35px; }
         .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; }
         .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; }
         .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; }
+        
         .cw-play-wrapper { position: relative; width: 40px; height: 40px; }
         .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; transition: 0.3s; }
         .cw-play-cell:focus { background: #e0f2fe; }
         .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; }
+        
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
-        .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
+        .shake-error { 
+            animation: shake 0.4s ease-in-out !important; 
+            border-color: var(--hfle-error) !important; 
+            box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; 
+        }
     </style>
 </head>
 <body class="p-2 md:p-4">
@@ -272,10 +293,10 @@
     <script>
         const types = [
             {id: 'sentence_ordering', n: 'Mise en ordre (Frasi)'},
-            {id: 'dressing', n: 'Dressing Game (Mapper)'},
+            {id: 'dressing', n: 'Dressing Game (Mapper / Lavagna)'},
             {id: 'domino', n: 'Domino Chain'},
-            {id: 'anagramme', n: 'Anagramme'},
-            {id: 'autocollantes', n: 'Autocollantes'},
+            {id: 'anagramme', n: 'Anagramme (Ordering)'},
+            {id: 'autocollantes', n: 'Autocollantes (Stickers)'},
             {id: 'rebus', n: 'Texte à trous (Rebus)'},
             {id: 'crossword', n: 'Mots Croisés (Cruciverba)'}
         ];
@@ -293,7 +314,7 @@
 
         function playSound(type) {
             if (isMuted) return;
-            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
+            const audioSrc = dbAud[type];
             if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
             if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; window.audioCtx = new AudioContext(); }
             if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
@@ -314,8 +335,8 @@
 
         window.onload = () => {
             document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`<option value="${t.id}">${t.n}</option>`).join(''); });
-            document.getElementById('type-f').value = 'sentence_ordering';
-            document.getElementById('type-d').value = 'dressing';
+            const btnF = document.getElementById('type-f'); if(btnF) btnF.value = 'sentence_ordering';
+            const btnD = document.getElementById('type-d'); if(btnD) btnD.value = 'dressing';
             toggleToolBtns('f'); toggleToolBtns('d');
             buildCWGrid(); initGame();
         };
@@ -442,7 +463,7 @@
             document.getElementById('cw-modal').classList.add('hidden'); startGame();
         }
 
-        /* --- LOGICA DI GIOCO --- */
+        /* --- LOGICA DI GIOCO LIVE --- */
         function initGame() {
             const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
             const listEl = document.getElementById(listId);
@@ -484,7 +505,7 @@
 
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden');
-            const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+            const type = document.getElementById('type-' + curLvl).value;
             
             let errs = errorTracker.reduce((a, b) => a + b, 0);
             let scorePerc = Math.max(0, 100 - (errs * 10));
@@ -505,10 +526,8 @@
 
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
 
-            const imgHigh = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_high'] : dbImg['score_high'];
-            const imgLow = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_low'] : dbImg['score_low'];
+            const imgHigh = dbImg['score_high']; const imgLow = dbImg['score_low'];
             const visualContainer = document.getElementById('visual-container');
-            
             if (visualContainer) {
                 if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = `<img src="${imgHigh}" class="w-full h-full object-contain drop-shadow-xl scale-125">`; } 
                 else if (scorePerc < 50 && imgLow) { visualContainer.innerHTML = `<img src="${imgLow}" class="w-full h-full object-contain drop-shadow-xl scale-125">`; } 
@@ -523,45 +542,35 @@
         }
 
         function checkCrossword(inputEl) {
-            if (inputEl && inputEl.value.trim() !== '') {
+            if (inputEl.value.trim() !== '') {
                 if (inputEl.value.toUpperCase() !== inputEl.dataset.ans) {
                     errorTracker[0]++; playSound('global_ko'); inputEl.classList.add('shake-error', 'text-red-500');
                     setTimeout(() => { inputEl.classList.remove('shake-error', 'text-red-500'); inputEl.value = ''; }, 500);
                 } else { inputEl.classList.add('correct'); playSound('drop'); }
             }
-            let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
-            inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; } if(inp.value.trim() !== '') filledCount++; });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(() => showEndScreen(), 1500); }
+            let allCorrect = true, filledCount = 0, inputs = document.querySelectorAll('.cw-play-cell');
+            inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) allCorrect = false; if(inp.value.trim() !== '') filledCount++; });
+            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(showEndScreen, 1500); }
         }
 
         function checkOrder(mode) {
             const target = document.getElementById('target'), targetWord = items[curStep]; let isCorrect = false;
-            if (mode === 'anagramme') {
-                const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
-                isCorrect = (current === targetWord);
-            } else if (mode === 'sentence_ordering') {
-                const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
-                const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
-                isCorrect = (currentStr === expectedStr);
-            }
+            if (mode === 'anagramme') isCorrect = (Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('') === targetWord);
+            else if (mode === 'sentence_ordering') isCorrect = (Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('') === targetWord.split('/').map(c=>c.trim()).join(''));
             if (isCorrect) {
-                Array.from(target.children).forEach(el => {
-                    if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont";
-                    else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont";
-                });
-                target.style.border = "none"; target.style.background = "transparent";
-                document.getElementById('check-btn').classList.add('hidden'); validate(true);
-            } else {
-                playSound('global_ko'); target.classList.add('shake-error', 'border-red-500');
-                setTimeout(() => target.classList.remove('shake-error', 'border-red-500'), 500); validate(false);
-            }
+                Array.from(target.children).forEach(el => { el.className = (mode === 'anagramme') ? "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont" : "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont"; });
+                target.style.border = "none"; target.style.background = "transparent"; document.getElementById('check-btn').classList.add('hidden'); validate(true);
+            } else { playSound('global_ko'); target.classList.add('shake-error', 'border-red-500'); setTimeout(() => target.classList.remove('shake-error', 'border-red-500'), 500); validate(false); }
         }
 
         function loadStep(idx) {
-            curStep = idx; renderNav();
+            curStep = idx; renderNav(); 
             const stage = document.getElementById('main-content'), pool = document.getElementById('pool'), type = document.getElementById('type-' + curLvl).value;
             const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
-            document.getElementById('res-consigne').innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder; pool.innerHTML = '';
+            document.getElementById('res-consigne').innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder; 
+            
+            stage.innerHTML = ''; // Pulizia del gioco precedente
+            pool.innerHTML = '';
             
             if(type === 'crossword') {
                 if(cwData.length === 0) return stage.innerHTML = "<p class='text-gray-400 italic'>Configura la griglia 🧩</p>";
@@ -569,15 +578,15 @@
                 let gridHtml = '<div class="grid gap-1 p-8 bg-white rounded-2xl shadow-xl border border-gray-200" style="grid-template-columns: repeat(12, 45px);">';
                 for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`; else gridHtml += `<div class="w-10 h-10"></div>`; } }
                 gridHtml += '</div>';
-                let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-left">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-2 rounded-lg"><b>${c.num}. ${c.dir === 'h' ? 'Horiz' : 'Vert'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
+                let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-left">` + cwClues.map(c=>`<div class="w-full md:w-[45%] bg-slate-50 p-2 rounded-lg"><b>${c.num}. ${c.dir === 'h' ? 'Horiz' : 'Vert'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
                 stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}</div>${cluesHtml}`;
-                document.getElementById('nav-step').innerHTML = ''; return;
+                return document.getElementById('nav-step').innerHTML = '';
             }
 
             if(items.length === 0) return; const word = items[idx];
-            const useAuto = document.getElementById('in-auto-audio').checked;
             
-            if (dbAud[word+'_audio'] || (useAuto && (type === 'sentence_ordering' || type === 'anagramme' || type === 'rebus'))) {
+            const useAuto = document.getElementById('in-auto-audio').checked;
+            if (dbAud[word+'_audio'] || (useAuto && ['sentence_ordering','anagramme','rebus'].includes(type))) {
                 const safeWord = word.replace(/'/g, "\\'");
                 stage.insertAdjacentHTML('beforeend', `<button onclick="playStepAudio('${safeWord}')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`);
             }
@@ -585,9 +594,9 @@
             if(type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
                 items.forEach(it => { const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`; boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it}_shadow')" data-expected="${it}">${shadowImg}</div>`; });
-                stage.insertAdjacentHTML('beforeend', boardHtml + '</div>');
+                boardHtml += '</div>'; stage.insertAdjacentHTML('beforeend', boardHtml);
                 const shuffled = [...items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`; return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it}" onclick="pickImg('${it}')">${stickerImg}</div>`; }).join('');
+                pool.innerHTML = shuffled.map(it => { const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`; return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}" onclick="pickImg('${it}')">${stickerImg}</div>`; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes');
             }
             else if(type === 'dressing') {
@@ -622,25 +631,21 @@
                 setupSortable('sentence_ordering');
             }
             else if(type === 'rebus') {
-                const sentence = rebusData[word] || `{${word}}`;
-                const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
+                const text = (rebusData[word] || `C'est {${word}}`).replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
                 stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full max-w-3xl gap-6"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer transition hover:scale-105" onclick="pickImg('${word}')">${imgContent}</div><div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`);
-                const shuffledItems = [...items].sort(() => Math.random() - 0.5);
-                pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="${it}">${it}</div>`).join('');
+                const poolItems = [...items].sort(()=>Math.random()-0.5); pool.innerHTML = poolItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-word="${it}">${it}</div>`).join('');
                 setupSortable('rebus');
             }
         }
 
         function playStepAudio(wordStr) {
-            const audioSrc = dbAud[wordStr + '_audio'];
+            const key = wordStr + '_audio', audioSrc = dbAud[key];
             if (audioSrc) new Audio(audioSrc).play();
             else {
                 const type = document.getElementById('type-'+curLvl).value;
-                let textToSpeak = wordStr;
-                if (type === 'sentence_ordering') textToSpeak = wordStr.replace(/\//g, ' ');
-                else if (type === 'rebus') { const sentence = rebusData[wordStr] || wordStr; textToSpeak = sentence.replace(/[{}]/g, ''); }
-                const m = new SpeechSynthesisUtterance(textToSpeak); m.lang = 'fr-FR'; m.rate = 0.6; window.speechSynthesis.speak(m);
+                let t = (type === 'sentence_ordering') ? wordStr.replace(/\//g,' ') : ((rebusData[wordStr] || wordStr)).replace(/[{}]/g,'');
+                const m = new SpeechSynthesisUtterance(t); m.lang = 'fr-FR'; m.rate = 0.6; window.speechSynthesis.speak(m);
             }
         }
 
@@ -664,7 +669,7 @@
                 });
             } else if(target) {
                 new Sortable(target, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => {
-                    const dropped = e.item.dataset.word;
+                    const dropped = e.item.dataset.word || e.item.dataset.letter || e.item.dataset.chunk;
                     if(mode === 'domino') {
                         if(dropped === e.target.dataset.expected) { e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item); document.getElementById('domino-board').scrollLeft = document.getElementById('domino-board').scrollWidth; let nextIndex = (items.indexOf(dropped) + 1) % items.length; if (Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost')).length === 0) { e.target.remove(); validate(true); } else { e.target.dataset.expected = items[nextIndex]; playSound('global_ok'); } } 
                         else { errorTracker[0]++; playSound('global_ko'); e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); pool.appendChild(e.item); }, 500); }
@@ -676,8 +681,16 @@
             }
         }
 
+        function validate(correct) { if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(document.getElementById('type-'+curLvl).value) || curStep >= items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(document.getElementById('type-'+curLvl).value)) errorTracker[curStep]++; playSound('global_ko'); } renderNav(); }
+        function renderNav() { const type = document.getElementById('type-'+curLvl).value; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = items.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i]||''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); }
+        function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; initGame(); startGame(); }
+        function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
+        function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
         function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+        function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; loadStep(curStep); alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(dbAud[key]) new Audio(dbAud[key]).play(); else { const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d'); const m = new SpeechSynthesisUtterance(conInput.value.trim() !== '' ? conInput.value : conInput.placeholder); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); } }
 
+        /* --- EXPORT JSZIP --- */
         async function exportToZIP() {
             const typeF = document.getElementById('type-f').value, typeD = document.getElementById('type-d').value;
             const inUnite = document.getElementById('in-unite'), inTitre = document.getElementById('in-titre'), inLecon = document.getElementById('in-lecon');
@@ -924,23 +937,47 @@
             if(lvlConfig.type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
                 GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it + '">' + shadowImg + '</div>'; });
-                stage.insertAdjacentHTML('beforeend', boardHtml + '</div>');
+                boardHtml += '</div>'; stage.innerHTML = boardHtml;
                 const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes');
             }
             else if(lvlConfig.type === 'dressing') {
-                const bgImage = GAME_CONFIG.images['mapper_bg'], bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
+                const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+                const bgImage = getImg('mapper_bg');
+                const bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
+                
                 let zonesHtml = '';
-                GAME_CONFIG.mappedZones.forEach(z => {
+                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
+                zoneList.forEach(z => {
                     const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
                     let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>';
-                    let labelHtml = z.label ? (z.label.includes('...') ? '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[0].trim() + '</span>' + targetDiv + '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[1].trim() + '</span>' : '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv) : targetDiv;
+                    let labelHtml = '';
+
+                    if (z.label) {
+                        if (z.label.includes('...')) {
+                            const parts = z.label.split('...');
+                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[0].trim() + '</span>' + 
+                                        targetDiv + 
+                                        '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[1].trim() + '</span>';
+                        } else {
+                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv;
+                        }
+                    } else {
+                        labelHtml = targetDiv;
+                    }
+
                     zonesHtml += '<div class="absolute flex items-center gap-3" style="left:' + z.left + '; top:' + z.top + '; width:' + z.width + '; height:' + z.height + '">' + labelHtml + '</div>';
                 });
+
                 stage.insertAdjacentHTML('beforeend', '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>');
+                
                 const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it]; return stickerImg ? '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>' : '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it + '">' + it + '</div>'; }).join('');
+                pool.innerHTML = shuffled.map(it => {
+                    const stickerImg = getImg(it);
+                    if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } 
+                    else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it + '">' + it + '</div>'; }
+                }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing');
             }
             else if(lvlConfig.type === 'domino') {
@@ -951,13 +988,13 @@
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('domino');
             }
             else if(lvlConfig.type === 'anagramme') {
-                const shuffled = word.split('').sort(()=>Math.random()-0.5), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
-                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 uppercase font-mont">Vérifier</button></div>');
+                const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
+                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\\'' + word + '\\\')">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 uppercase font-mont">Vérifier</button></div>');
                 setupSortable('anagramme');
             }
             else if(lvlConfig.type === 'sentence_ordering') {
                 const chunks = word.split('/').map(c => c.trim()), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto', shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 uppercase font-mont">Vérifier</button></div>');
+                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\\'' + word + '\\\')">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 uppercase font-mont">Vérifier</button></div>');
                 setupSortable('sentence_ordering');
             }
             else if(lvlConfig.type === 'rebus') {
@@ -1003,7 +1040,7 @@
         }
 
         function validate(correct) { if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(GAME_CONFIG.levels[curLvl].type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(GAME_CONFIG.levels[curLvl].type)) errorTracker[curStep]++; playSound('global_ko'); } renderNav(); }
-        function renderNav() { if(['crossword','domino','autocollantes','dressing'].includes(GAME_CONFIG.levels[curLvl].type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
+        function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i]||''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
         
         function playStepAudio(wordStr) {
