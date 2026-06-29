@@ -172,7 +172,11 @@
 
                 <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center shadow-sm">
                     <p class="text-[10px] text-yellow-800 font-bold mb-2">Se usi giochi con audio specifico per frase (es. Mise en ordre):</p>
-                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia anteprima e cambia step in basso per caricare audio')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition">🎵 Carica Audio per la Frase Corrente</button>
+                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia anteprima e cambia step in basso per caricare audio')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition mb-2">🎵 Carica Audio per la Frase Corrente</button>
+                    <label class="flex items-center justify-center gap-2 text-[10px] text-yellow-900 cursor-pointer font-bold">
+                        <input type="checkbox" id="in-auto-audio" checked onchange="loadStep(curStep)">
+                        Usa voce computer se non c'è file audio
+                    </label>
                 </div>
 
                 <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
@@ -690,7 +694,11 @@
             const word = items[idx];
 
             let stepAudioHtml = '';
-            if (type === 'sentence_ordering' || type === 'anagramme' || type === 'rebus') {
+            const stepAudioKey = word + '_audio';
+            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+            const useAutoAudio = document.getElementById('in-auto-audio').checked;
+            
+            if (audioSrc || (useAutoAudio && (type === 'sentence_ordering' || type === 'anagramme' || type === 'rebus'))) {
                 const safeWord = word.replace(/'/g, "\\'");
                 stepAudioHtml = `<button onclick="playStepAudio('${safeWord}')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
             }
@@ -1017,6 +1025,7 @@
                 showLecon: document.getElementById('in-show-lecon').checked,
                 lecon: leconText,
                 titre: titreText, 
+                autoAudio: document.getElementById('in-auto-audio').checked,
                 mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
                 levels: { facile: { type: typeF, consigne: conFText, items: itemsF }, difficile: { type: typeD, consigne: conDText, items: itemsD } } 
             };
@@ -1205,10 +1214,11 @@
             }
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
             
-            let stepAudioHtml = ''; 
-            if (lvlConfig.type === 'sentence_ordering' || lvlConfig.type === 'anagramme' || lvlConfig.type === 'rebus') {
-                const safeWord = word.replace(/'/g, "\\'");
-                stepAudioHtml = '<button onclick="playStepAudio(\\'' + safeWord + '\\')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>';
+            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
+            const audioSrc = GAME_CONFIG.audio[stepAudioKey];
+            if (audioSrc || (GAME_CONFIG.autoAudio && (lvlConfig.type === 'sentence_ordering' || lvlConfig.type === 'anagramme' || lvlConfig.type === 'rebus'))) {
+                const safeWord = word.replace(/'/g, "\\\\'");
+                stepAudioHtml = '<button onclick="playStepAudio(\\\'' + safeWord + '\\\')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>';
             }
 
             if(lvlConfig.type === 'autocollantes') {
