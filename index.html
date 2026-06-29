@@ -465,7 +465,7 @@
             } else { 
                 const textInput = isZip ? GAME_CONFIG.levels[curLvl].consigne : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value.trim() !== '' ? document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value : document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').placeholder);
                 const m = new SpeechSynthesisUtterance(textInput || "Écoute"); 
-                m.lang='fr-FR'; m.rate=0.75; 
+                m.lang='fr-FR'; m.rate=0.6; 
                 window.speechSynthesis.speak(m); 
             } 
         }
@@ -491,7 +491,7 @@
                 
                 const m = new SpeechSynthesisUtterance(textToSpeak);
                 m.lang = 'fr-FR';
-                m.rate = 0.75; 
+                m.rate = 0.6; 
                 window.speechSynthesis.speak(m);
             }
         }
@@ -1421,7 +1421,7 @@
                 }
                 const m = new SpeechSynthesisUtterance(textToSpeak);
                 m.lang = 'fr-FR';
-                m.rate = 0.75; 
+                m.rate = 0.6; 
                 window.speechSynthesis.speak(m);
             }
         }
@@ -1431,7 +1431,7 @@
             if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); 
             else { 
                 const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); 
-                m.lang='fr-FR'; m.rate=0.75; window.speechSynthesis.speak(m); 
+                m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); 
             } 
         }
     <\/script>
