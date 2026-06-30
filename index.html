@@ -225,7 +225,7 @@
                         
                         <div class="flex flex-col sm:flex-row gap-6">
                             <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
+                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">👁</span> Les réponses</button>
                         </div>
                     </div>
                 </div>
@@ -455,47 +455,6 @@
             document.getElementById('cw-modal').classList.add('hidden'); startGame();
         }
 
-        /* --- AUDIO LOGIC --- */
-        function playConsigne() { 
-            const isZip = (typeof GAME_CONFIG !== 'undefined');
-            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
-            const audioSrc = isZip ? GAME_CONFIG.audio[key] : dbAud[key];
-            if(audioSrc) {
-                new Audio(audioSrc).play(); 
-            } else { 
-                const textInput = isZip ? GAME_CONFIG.levels[curLvl].consigne : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value.trim() !== '' ? document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value : document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').placeholder);
-                const m = new SpeechSynthesisUtterance(textInput || "Écoute"); 
-                m.lang='fr-FR'; m.rate=0.75; 
-                window.speechSynthesis.speak(m); 
-            } 
-        }
-
-        function playStepAudio(wordStr) {
-            const stepAudioKey = wordStr + '_audio';
-            const isZip = (typeof GAME_CONFIG !== 'undefined');
-            const audioSrc = isZip ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-            
-            if (audioSrc) {
-                new Audio(audioSrc).play();
-            } else {
-                let textToSpeak = wordStr;
-                const type = isZip ? GAME_CONFIG.levels[curLvl].type : document.getElementById(curLvl === 'facile' ? 'type-f' : 'type-d').value;
-                
-                if (type === 'sentence_ordering') {
-                    textToSpeak = wordStr.replace(/\//g, ' ');
-                } else if (type === 'rebus') {
-                    const rData = isZip ? GAME_CONFIG.rebusData : rebusData;
-                    const sentence = rData[wordStr] || wordStr;
-                    textToSpeak = sentence.replace(/[{}]/g, '');
-                }
-                
-                const m = new SpeechSynthesisUtterance(textToSpeak);
-                m.lang = 'fr-FR';
-                m.rate = 0.75; 
-                window.speechSynthesis.speak(m);
-            }
-        }
-
         /* --- GAME LOGIC --- */
         function initGame() {
             const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
@@ -538,7 +497,7 @@
             document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden');
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
             status = new Array(items.length).fill('pending'); 
-            if(type === 'domino' || type === 'autocollantes' || type === 'dressing') errorTracker = [0]; 
+            if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
             else errorTracker = new Array(items.length).fill(0);
             loadStep(0);
         }
@@ -552,10 +511,7 @@
 
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
             if (type === 'crossword') {
-                cwClues.forEach(c => {
-                    let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical';
-                    answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`;
-                });
+                answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>';
             } else if (type === 'domino') {
                 answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
             } else if (type === 'sentence_ordering') {
@@ -690,9 +646,10 @@
             const word = items[idx];
 
             let stepAudioHtml = '';
-            if (type === 'sentence_ordering' || type === 'anagramme' || type === 'rebus') {
-                const safeWord = word.replace(/'/g, "\\'");
-                stepAudioHtml = `<button onclick="playStepAudio('${safeWord}')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
+            const stepAudioKey = word + '_audio';
+            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+            if (audioSrc && type !== 'dressing') {
+                stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
             }
 
             if(type === 'autocollantes') {
@@ -789,8 +746,7 @@
                 const chunks = word.split('/').map(c => c.trim());
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
                 const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                stage.innerHTML = `<div class="flex flex-col items-center gap-8 w-full">
-                    <div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
+                stage.innerHTML = `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
                     <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
                         + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg" data-chunk="${c}">${c}</div>`).join('') + 
                     `</div>
@@ -802,19 +758,7 @@
             else if(type === 'rebus') {
                 const sentence = rebusData[word] || `{${word}}`;
                 const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
-                
-                const imgContent = dbImg[word] 
-                    ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` 
-                    : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
-                
-                stage.innerHTML = `
-                    <div class="flex flex-col items-center w-full max-w-3xl gap-6">
-                        <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer transition hover:scale-105" onclick="pickImg('${word}')">
-                            ${imgContent}
-                        </div>
-                        <div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div>
-                    </div>`;
-                
+                stage.innerHTML = `<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center mt-10 font-mont">${text}</div>`;
                 const shuffledItems = [...items].sort(() => Math.random() - 0.5);
                 pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="${it}">${it}</div>`).join('');
                 setupSortable('rebus', word);
@@ -976,7 +920,17 @@
         function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
         function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
         function handleAud(e) { const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; loadStep(curStep); alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
-        
+        function playConsigne() { 
+            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
+            if(dbAud[key]) new Audio(dbAud[key]).play(); 
+            else { 
+                const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
+                const m = new SpeechSynthesisUtterance(conInput.value.trim() !== '' ? conInput.value : conInput.placeholder); 
+                m.lang='fr-FR'; m.rate=0.5; 
+                window.speechSynthesis.speak(m); 
+            } 
+        }
+
         /* --- EXPORT JSZIP --- */
         async function exportToZIP() {
             const typeF = document.getElementById('type-f').value; const typeD = document.getElementById('type-d').value;
@@ -1052,7 +1006,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row gap-6">
                         <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
+                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">👁</span> Les réponses</button>
                     </div>
                 </div>
             </div>
@@ -1129,10 +1083,10 @@
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
             let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-            if (type === 'crossword') { GAME_CONFIG.cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>' + c.num + '. ' + dirLabel + ' :</b> ' + c.word + '</li>'; }); } 
+            if (type === 'crossword') { answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>'; } 
             else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } 
             else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } 
-            else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</li>'; }); } 
+            else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } 
             else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); }
             answersHtml += '</ul></div>';
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
@@ -1158,12 +1112,25 @@
                     errorTracker[0]++;
                     playSound('global_ko');
                     inputEl.classList.add('shake-error', 'text-red-500');
-                    setTimeout(() => { inputEl.classList.remove('shake-error', 'text-red-500'); inputEl.value = ''; }, 500);
-                } else { inputEl.classList.add('correct'); playSound('drop'); }
+                    setTimeout(() => {
+                        inputEl.classList.remove('shake-error', 'text-red-500');
+                        inputEl.value = '';
+                    }, 500);
+                } else {
+                    inputEl.classList.add('correct');
+                    playSound('drop');
+                }
             }
+
             let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
-            inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; } if(inp.value.trim() !== '') filledCount++; });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(() => showEndScreen(), 1500); }
+            inputs.forEach(inp => {
+                if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; }
+                if(inp.value.trim() !== '') filledCount++;
+            });
+            if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
+                playSound('global_ok');
+                setTimeout(() => showEndScreen(), 1500);
+            }
         }
 
         function checkOrder(mode) {
@@ -1205,10 +1172,9 @@
             }
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
             
-            let stepAudioHtml = ''; 
-            if (lvlConfig.type === 'sentence_ordering' || lvlConfig.type === 'anagramme' || lvlConfig.type === 'rebus') {
-                const safeWord = word.replace(/'/g, "\\'");
-                stepAudioHtml = '<button onclick="playStepAudio(\\'' + safeWord + '\\')" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>';
+            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
+            if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { 
+                stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; 
             }
 
             if(lvlConfig.type === 'autocollantes') {
@@ -1283,14 +1249,7 @@
             else if(lvlConfig.type === 'rebus') {
                 const sentence = GAME_CONFIG.rebusData[word] || ('{' + word + '}');
                 const text = sentence.replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>');
-                
-                let imgHtml = '';
-                if (GAME_CONFIG.images[word]) {
-                    imgHtml = '<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6"><img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none"></div>';
-                }
-                
-                stage.innerHTML = '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>';
-                
+                stage.innerHTML = '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center mt-10 font-mont">' + text + '</div>';
                 const shuffledItems = [...GAME_CONFIG.items].sort(() => Math.random() - 0.5);
                 pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="' + it + '">' + it + '</div>').join('');
                 setupSortable('rebus', word);
@@ -1345,8 +1304,7 @@
                                     }
                                     const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                                     e.item.removeAttribute('draggable');
-                                    e.target.innerHTML = '';
-                                    e.target.appendChild(e.item);
+                                    e.target.innerHTML = ''; e.target.appendChild(e.item);
                                     e.target.style.border = "none";
                                     e.target.style.backgroundColor = "transparent";
                                     playSound('global_ok');
@@ -1403,37 +1361,7 @@
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(type === 'crossword' || type === 'domino' || type === 'autocollantes' || type === 'dressing') { document.getElementById('nav-step').innerHTML = ''; return; } document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-        
-        function playStepAudio(wordStr) {
-            const stepAudioKey = wordStr + '_audio';
-            const isZip = true;
-            const audioSrc = GAME_CONFIG.audio[stepAudioKey];
-            if (audioSrc) {
-                new Audio(audioSrc).play();
-            } else {
-                let textToSpeak = wordStr;
-                const type = GAME_CONFIG.levels[curLvl].type;
-                if (type === 'sentence_ordering') {
-                    textToSpeak = wordStr.replace(/\\//g, ' ');
-                } else if (type === 'rebus') {
-                    const sentence = GAME_CONFIG.rebusData[wordStr] || wordStr;
-                    textToSpeak = sentence.replace(/[{}]/g, '');
-                }
-                const m = new SpeechSynthesisUtterance(textToSpeak);
-                m.lang = 'fr-FR';
-                m.rate = 0.75; 
-                window.speechSynthesis.speak(m);
-            }
-        }
-        
-        function playConsigne() { 
-            const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
-            if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); 
-            else { 
-                const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); 
-                m.lang='fr-FR'; m.rate=0.75; window.speechSynthesis.speak(m); 
-            } 
-        }
+        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
 </html>`;
