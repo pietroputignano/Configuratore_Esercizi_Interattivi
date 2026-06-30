@@ -55,7 +55,7 @@
 </head>
 <body class="p-2 md:p-4">
 
-    <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
+    <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-blue-50">
                 <h3 class="font-bold text-blue-900 font-mont uppercase">Visual Mapper</h3>
@@ -75,13 +75,13 @@
             <div class="flex-grow overflow-auto p-10 bg-slate-300 flex justify-center items-center" onclick="clearSelection(event)">
                 <div id="mapper-container" class="relative bg-white shadow-xl w-[900px] max-w-full aspect-[9/5]">
                     <img id="mapper-preview" src="" class="absolute inset-0 w-full h-full object-cover pointer-events-none hidden">
-                    <p id="mapper-hint" class="absolute inset-0 flex items-center justify-center text-gray-400 font-bold uppercase italic pointer-events-none">Carica uno sfondo</p>
+                    <p id="mapper-hint" class="absolute inset-0 flex items-center justify-center text-gray-400 font-bold uppercase italic pointer-events-none">Carica uno sfondo per iniziare</p>
                 </div>
             </div>
         </div>
     </div>
     
-    <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
+    <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh]">
             <div class="p-4 border-b flex justify-between items-center bg-orange-50">
                 <h3 class="font-bold text-orange-900 font-mont uppercase">Costruttore Cruciverba</h3>
@@ -103,7 +103,7 @@
         </div>
     </div>
     
-    <div id="rebus-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
+    <div id="rebus-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
             <div class="p-4 border-b flex justify-between items-center bg-green-50">
                 <h3 class="font-bold text-green-900 font-mont uppercase">Costruttore Frasi</h3>
@@ -144,7 +144,7 @@
                 <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
                     <p class="font-black text-blue-800 text-lg uppercase font-mont">Facile</p>
                     <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Écoute et remets les mots dans l'ordre." oninput="initGame()">
-                    <select id="type-f" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('f');"></select>
+                    <select id="type-f" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('f'); initGame();"></select>
                     <div class="flex gap-2">
                         <button onclick="pickAud('aud-f')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-50">🎵 Audio Consigne</button>
                         <button id="btn-map-f" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
@@ -154,13 +154,14 @@
                     <div class="mt-3 pt-3 border-t border-blue-200">
                         <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
                         <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs placeholder-gray-400" placeholder="Il / habite / dans / une yourte ; Tu / habites / dans / une maison" oninput="initGame()"></textarea>
+                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi.</p>
                     </div>
                 </div>
 
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase font-mont">Difficile</p>
                     <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Conjugue les verbes." oninput="initGame()">
-                    <select id="type-d" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('d');"></select>
+                    <select id="type-d" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('d'); initGame();"></select>
                     <div class="flex gap-2">
                         <button onclick="pickAud('aud-d')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-100 text-gray-800">🎵 Audio Consigne</button>
                         <button id="btn-map-d" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
@@ -269,12 +270,15 @@
         let errorTracker = [], mappedZones = [], cwData = [], cwClues = [], rebusData = {}; 
         let cwVerbLabel = "", cwShowClues = true, isMuted = false;
 
-        function toggleMute() { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; }
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊';
+        }
 
         function playSound(type) {
             if (isMuted) return;
             const audioSrc = dbAud[type];
-            if (audioSrc) { new Audio(audioSrc).play().catch(e => console.warn(e)); return; }
+            if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
             if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; window.audioCtx = new AudioContext(); }
             if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
             const now = window.audioCtx.currentTime;
@@ -297,34 +301,56 @@
             document.getElementById('type-f').value = 'sentence_ordering';
             document.getElementById('type-d').value = 'dressing';
             toggleToolBtns('f'); toggleToolBtns('d');
-            buildCWGrid(); 
+            buildCWGrid();
             initGame();
-            startGame(); 
+            startGame();
         };
 
         function toggleToolBtns(l) {
-            const btn = document.getElementById('type-' + l); if(!btn || !btn.value) return; const type = btn.value;
-            document.getElementById('btn-map-' + l).classList.toggle('hidden', type !== 'dressing');
-            document.getElementById('btn-cw-' + l).classList.toggle('hidden', type !== 'crossword');
-            document.getElementById('btn-rebus-' + l).classList.toggle('hidden', type !== 'rebus'); 
+            const btn = document.getElementById('type-' + l);
+            if(!btn || !btn.value) return;
+            const type = btn.value;
+            const mBtn = document.getElementById('btn-map-' + l); if(mBtn) mBtn.classList.toggle('hidden', type !== 'dressing');
+            const cBtn = document.getElementById('btn-cw-' + l); if(cBtn) cBtn.classList.toggle('hidden', type !== 'crossword');
+            const rBtn = document.getElementById('btn-rebus-' + l); if(rBtn) rBtn.classList.toggle('hidden', type !== 'rebus'); 
         }
 
+        /* --- BUILDERS --- */
         function openRebusBuilder() {
             if(items.length === 0) return alert("Inserisci prima i dati nei campi!");
-            let html = ''; items.forEach(word => { const prevSentence = rebusData[word] || `C'est {${word}}`; html += `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><label class="font-bold text-green-800 uppercase block mb-1">Parola: ${word}</label><input type="text" class="rebus-input w-full border border-gray-300 p-2 rounded" data-word="${word.replace(/"/g, '&quot;')}" value="${prevSentence.replace(/"/g, '&quot;')}"></div>`; });
+            let html = '';
+            items.forEach(word => {
+                const prevSentence = rebusData[word] || `C'est {${word}}`;
+                html += `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><label class="font-bold text-green-800 uppercase block mb-1">Parola: ${word}</label><input type="text" class="rebus-input w-full border border-gray-300 p-2 rounded" data-word="${word.replace(/"/g, '&quot;')}" value="${prevSentence.replace(/"/g, '&quot;')}"></div>`;
+            });
             document.getElementById('rebus-sentences-container').innerHTML = html; document.getElementById('rebus-modal').classList.remove('hidden');
         }
         function closeRebusBuilder() { document.querySelectorAll('.rebus-input').forEach(inp => { rebusData[inp.dataset.word] = inp.value; }); document.getElementById('rebus-modal').classList.add('hidden'); startGame(); }
         
         function openMapper() { document.getElementById('mapper-modal').classList.remove('hidden'); }
-        function closeMapper() { document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone')); document.getElementById('mapper-modal').classList.add('hidden'); startGame(); }
+        function closeMapper() { 
+            document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone'));
+            document.getElementById('mapper-modal').classList.add('hidden'); 
+            startGame(); 
+        }
         
-        function clearSelection(e) { if (e.target.id === 'mapper-container' || e.target.id === 'mapper-preview' || e.target.id === 'mapper-hint') document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone')); }
+        function clearSelection(e) {
+            if (e.target.id === 'mapper-container' || e.target.id === 'mapper-preview' || e.target.id === 'mapper-hint') {
+                document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone'));
+            }
+        }
+        
         function alignZones(prop) {
             const selected = Array.from(document.querySelectorAll('.mapper-zone.selected-zone'));
             if(selected.length < 2) return alert("Seleziona almeno 2 blocchi!");
             const ref = selected[0]; 
-            selected.forEach((el, i) => { if(i === 0) return; if(prop === 'left') el.style.left = ref.style.left; if(prop === 'top') el.style.top = ref.style.top; if(prop === 'width') el.style.width = ref.style.width; if(prop === 'height') el.style.height = ref.style.height; });
+            selected.forEach((el, i) => {
+                if(i === 0) return;
+                if(prop === 'left') el.style.left = ref.style.left;
+                if(prop === 'top') el.style.top = ref.style.top;
+                if(prop === 'width') el.style.width = ref.style.width;
+                if(prop === 'height') el.style.height = ref.style.height;
+            });
             saveZones();
         }
 
@@ -342,24 +368,49 @@
             el.onmousedown = (e) => {
                 if(e.target.tagName === 'INPUT' || e.target.classList.contains('resize-handle')) return;
                 let sx = e.clientX, sy = e.clientY, moved = false;
-                document.onmousemove = (ev) => { moved = true; let dx = ev.clientX-sx, dy = ev.clientY-sy; sx=ev.clientX; sy=ev.clientY; 
-                    if (el.classList.contains('selected-zone')) { document.querySelectorAll('.selected-zone').forEach(sel => { sel.style.left = (sel.offsetLeft + dx)/container.offsetWidth*100 + '%'; sel.style.top = (sel.offsetTop + dy)/container.offsetHeight*100 + '%'; }); } else { el.style.left = (el.offsetLeft + dx)/container.offsetWidth*100 + '%'; el.style.top = (el.offsetTop + dy)/container.offsetHeight*100 + '%'; }
+                document.onmousemove = (ev) => { 
+                    moved = true; let dx = ev.clientX-sx, dy = ev.clientY-sy; sx=ev.clientX; sy=ev.clientY; 
+                    if (el.classList.contains('selected-zone')) {
+                        document.querySelectorAll('.selected-zone').forEach(sel => {
+                            sel.style.left = (sel.offsetLeft + dx)/container.offsetWidth*100 + '%'; 
+                            sel.style.top = (sel.offsetTop + dy)/container.offsetHeight*100 + '%'; 
+                        });
+                    } else {
+                        el.style.left = (el.offsetLeft + dx)/container.offsetWidth*100 + '%'; 
+                        el.style.top = (el.offsetTop + dy)/container.offsetHeight*100 + '%'; 
+                    }
                 };
-                document.onmouseup = () => { document.onmousemove = null; document.onmouseup = null; if (!moved) { el.classList.toggle('ring-4'); el.classList.toggle('ring-blue-500'); el.classList.toggle('selected-zone'); } saveZones(); };
+                document.onmouseup = () => { 
+                    document.onmousemove = null; document.onmouseup = null; 
+                    if (!moved) { el.classList.toggle('ring-4'); el.classList.toggle('ring-blue-500'); el.classList.toggle('selected-zone'); }
+                    saveZones(); 
+                };
             };
-            el.querySelector('.resize-handle').onmousedown = (e) => { e.stopPropagation(); document.onmousemove = (ev) => { el.style.width = (ev.clientX - el.getBoundingClientRect().left)/container.offsetWidth*100 + '%'; el.style.height = (ev.clientY - el.getBoundingClientRect().top)/container.offsetHeight*100 + '%'; }; document.onmouseup = () => { document.onmousemove = null; document.onmouseup = null; saveZones(); }; };
+            el.querySelector('.resize-handle').onmousedown = (e) => { 
+                e.stopPropagation(); 
+                document.onmousemove = (ev) => { 
+                    el.style.width = (ev.clientX - el.getBoundingClientRect().left)/container.offsetWidth*100 + '%'; 
+                    el.style.height = (ev.clientY - el.getBoundingClientRect().top)/container.offsetHeight*100 + '%'; 
+                }; 
+                document.onmouseup = () => { document.onmousemove = null; document.onmouseup = null; saveZones(); }; 
+            };
         }
         
-        function saveZones() { mappedZones = Array.from(document.querySelectorAll('.mapper-zone')).map(z => { const inputs = z.getElementsByTagName('input'); return { label: inputs[0] ? inputs[0].value : '', word: inputs[1] ? inputs[1].value : '', left: z.style.left, top: z.style.top, width: z.style.width, height: z.style.height }; }); }
+        function saveZones() { 
+            mappedZones = Array.from(document.querySelectorAll('.mapper-zone')).map(z => {
+                const inputs = z.getElementsByTagName('input');
+                return { label: inputs[0] ? inputs[0].value : '', word: inputs[1] ? inputs[1].value : '', left: z.style.left, top: z.style.top, width: z.style.width, height: z.style.height };
+            });
+        }
         
         function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
-        function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } document.getElementById('cw-builder-grid').innerHTML = html; }
+        function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } document.getElementById('cw-builder-grid').innerHTML = html; }
         
         function findCWWords() {
-            let grid = []; for(let y=0; y<12; y++) { grid[y] = []; for(let x=0; x<12; x++) grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase(); }
+            let grid = []; for(let y=0; y<12; y++) { grid[y] = []; for(let x=0; x<12; x++) { grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase(); } }
             let words = []; let counter = 1;
-            for(let y=0; y<12; y++) { let currWord = "", startX = -1; for(let x=0; x<=12; x++) { if(x<12 && grid[y][x]) { if(currWord === "") startX = x; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: startX, y: y, dir: 'h' }); currWord = ""; } } }
-            for(let x=0; x<12; x++) { let currWord = "", startY = -1; for(let y=0; y<=12; y++) { if(y<12 && grid[y][x]) { if(currWord === "") startY = y; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: x, y: startY, dir: 'v' }); currWord = ""; } } }
+            for(let y=0; y<12; y++) { let currWord = ""; let startX = -1; for(let x=0; x<=12; x++) { if(x<12 && grid[y][x]) { if(currWord === "") startX = x; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: startX, y: y, dir: 'h' }); currWord = ""; } } }
+            for(let x=0; x<12; x++) { let currWord = ""; let startY = -1; for(let y=0; y<=12; y++) { if(y<12 && grid[y][x]) { if(currWord === "") startY = y; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: x, y: startY, dir: 'v' }); currWord = ""; } } }
             if(words.length === 0) return;
             let starts = {}; words.forEach(w => { let key = `${w.x}-${w.y}`; if(!starts[key]) starts[key] = counter++; w.num = starts[key]; });
             document.querySelectorAll('.cw-number').forEach(e => e.remove());
@@ -370,7 +421,9 @@
         }
         
         function closeCWBuilder() {
-            cwData = []; cwClues = []; cwVerbLabel = document.getElementById('cw-in-verb').value; cwShowClues = document.getElementById('cw-in-show-clues').checked;
+            cwData = []; cwClues = [];
+            cwVerbLabel = document.getElementById('cw-in-verb').value;
+            cwShowClues = document.getElementById('cw-in-show-clues').checked;
             document.querySelectorAll('.cw-cell').forEach(inp => { if(inp.value.trim() !== '') { let numSpan = inp.parentElement.querySelector('.cw-number'); cwData.push({ x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y), char: inp.value.toUpperCase(), num: numSpan ? parseInt(numSpan.innerText) : null }); } });
             document.querySelectorAll('.cw-clue-input').forEach(inp => { cwClues.push({ num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word, clue: inp.value || inp.dataset.word }); });
             document.getElementById('cw-modal').classList.add('hidden'); startGame();
@@ -378,15 +431,30 @@
 
         /* --- LOGICA DI GIOCO LIVE --- */
         function initGame() {
-            const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d'; const listEl = document.getElementById(listId); if(!listEl) return;
-            const rawItems = listEl.value.trim() !== '' ? listEl.value : listEl.placeholder; items = rawItems.split(';').map(i=>i.trim()).filter(i=>i);
+            const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
+            const listEl = document.getElementById(listId);
+            if(!listEl) return;
+            const rawItems = listEl.value.trim() !== '' ? listEl.value : listEl.placeholder;
+            items = rawItems.split(';').map(i=>i.trim()).filter(i=>i);
+            
             document.getElementById('res-badge').style.setProperty('--theme-color', document.getElementById('in-color').value || '#E84C7B');
-            let showLecon = document.getElementById('in-show-lecon').checked; let leconWrapper = document.getElementById('res-lecon-wrapper');
-            if(showLecon) { leconWrapper.classList.remove('hidden'); const inLecon = document.getElementById('in-lecon'); document.getElementById('res-lecon').innerText = inLecon.value.trim() !== '' ? inLecon.value : inLecon.placeholder; } else { leconWrapper.classList.add('hidden'); }
-            const inUnite = document.getElementById('in-unite'); const uniteText = inUnite.value.trim() !== '' ? inUnite.value : inUnite.placeholder;
+            
+            let showLecon = document.getElementById('in-show-lecon').checked;
+            let leconWrapper = document.getElementById('res-lecon-wrapper');
+            if(showLecon) {
+                leconWrapper.classList.remove('hidden');
+                const inLecon = document.getElementById('in-lecon');
+                document.getElementById('res-lecon').innerText = inLecon.value.trim() !== '' ? inLecon.value : inLecon.placeholder;
+            } else { leconWrapper.classList.add('hidden'); }
+
+            const inUnite = document.getElementById('in-unite');
+            const uniteText = inUnite.value.trim() !== '' ? inUnite.value : inUnite.placeholder;
             document.getElementById('res-unite').innerText = uniteText; document.getElementById('start-unite').innerText = uniteText;
-            const inTitre = document.getElementById('in-titre'); const titreText = inTitre.value.trim() !== '' ? inTitre.value : inTitre.placeholder;
+            
+            const inTitre = document.getElementById('in-titre');
+            const titreText = inTitre.value.trim() !== '' ? inTitre.value : inTitre.placeholder;
             document.getElementById('res-titre').innerText = titreText; document.getElementById('start-titre').innerText = titreText;
+            
             toggleToolBtns('f'); toggleToolBtns('d');
         }
 
@@ -404,17 +472,27 @@
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden');
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
+            
+            let errs = errorTracker.reduce((a, b) => a + b, 0);
+            let scorePerc = Math.max(0, 100 - (errs * 10));
+
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-            if (type === 'crossword') { cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; }); } 
-            else if (type === 'domino') { answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`; } 
-            else if (type === 'sentence_ordering') { items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`; }); } 
-            else if (type === 'rebus') { items.forEach(it => { let sentence = rebusData[it] || `{${it}}`; let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`; }); } 
-            else { items.forEach(it => { answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`; }); }
+            if (type === 'crossword') {
+                cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; });
+            } else if (type === 'domino') {
+                answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
+            } else if (type === 'sentence_ordering') {
+                items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`; });
+            } else if (type === 'rebus') {
+                items.forEach(it => { let sentence = rebusData[it] || `{${it}}`; let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`; });
+            } else {
+                items.forEach(it => { answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`; });
+            }
             answersHtml += '</ul></div>';
+
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
 
-            const imgHigh = dbImg['score_high'], imgLow = dbImg['score_low'];
+            const imgHigh = dbImg['score_high']; const imgLow = dbImg['score_low'];
             const visualContainer = document.getElementById('visual-container');
             if (visualContainer) {
                 if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = `<img src="${imgHigh}" class="w-full h-full object-contain drop-shadow-xl scale-125">`; } 
@@ -467,26 +545,27 @@
                 gridHtml += '</div>';
                 let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-left">` + cwClues.map(c=>`<div class="w-full md:w-[45%] bg-slate-50 p-2 rounded-lg"><b>${c.num}. ${c.dir === 'h' ? 'Horiz' : 'Vert'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
                 stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}</div>${cluesHtml}`;
-                document.getElementById('nav-step').innerHTML = ''; return;
+                return document.getElementById('nav-step').innerHTML = '';
             }
 
             if(items.length === 0) return; const word = items[idx];
             const useAuto = document.getElementById('in-auto-audio').checked;
             
             if (dbAud[word+'_audio'] || (useAuto && ['sentence_ordering','anagramme','rebus'].includes(type))) {
+                const safeWord = word.replace(/'/g, "\\'");
                 stage.insertAdjacentHTML('beforeend', `<button data-word="${word.replace(/"/g, '&quot;')}" onclick="playStepAudio(this)" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`);
             }
 
             if(type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
-                items.forEach(it => { const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`; boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word + '_shadow')" data-expected="${it.replace(/"/g, '&quot;')}">${shadowImg}</div>`; });
+                items.forEach(it => { const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`; boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it}_shadow')" data-expected="${it.replace(/"/g, '&quot;')}">${shadowImg}</div>`; });
                 stage.insertAdjacentHTML('beforeend', boardHtml + '</div>');
                 const shuffled = [...items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = shuffled.map(it => { const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`; return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)">${stickerImg}</div>`; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes');
             }
             else if(type === 'dressing') {
-                const getImg = (key) => dbImg[key], bgImage = getImg('mapper_bg'), bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
+                const bgImage = dbImg['mapper_bg']; const bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
                 let zonesHtml = '';
                 mappedZones.forEach(z => {
                     const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
@@ -496,7 +575,7 @@
                 });
                 stage.insertAdjacentHTML('beforeend', `<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
                 const shuffled = [...items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)">${it}</div>`; } }).join('');
+                pool.innerHTML = shuffled.map(it => { const stickerImg = dbImg[it]; if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)">${it}</div>`; } }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing');
             }
             else if(type === 'domino') {
@@ -518,8 +597,8 @@
             }
             else if(type === 'rebus') {
                 const text = (rebusData[word] || `C'est {${word}}`).replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
-                const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
-                stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full max-w-3xl gap-6"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer transition hover:scale-105" data-word="${word.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)">${imgContent}</div><div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`);
+                let imgHtml = dbImg[word] ? `<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6 cursor-pointer hover:scale-105 transition" data-word="${word.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)"><img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none"></div>` : `<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6 cursor-pointer hover:scale-105 transition" data-word="${word.replace(/"/g, '&quot;')}" onclick="pickImg(this.dataset.word)"><span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span></div>`;
+                stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full max-w-3xl">${imgHtml}<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`);
                 const shuffledItems = [...items].sort(() => Math.random() - 0.5);
                 pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}">${it}</div>`).join('');
                 setupSortable('rebus');
@@ -616,10 +695,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>bSmart | ${config.titre}</title>
-    <script src="https://cdn.tailwindcss.com">` + `</` + `script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">` + `</` + `script>
+    <script src="https://cdn.tailwindcss.com"></scr` + `ipt>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></scr` + `ipt>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="js/config.js">` + `</` + `script>
+    <script src="js/config.js"></scr` + `ipt>
     <style>
         :root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; }
         body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
@@ -649,10 +728,8 @@
         .cw-cell-wrapper { position: relative; width: 35px; height: 35px; }
         .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; }
         .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; }
-        .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; }
         .cw-play-wrapper { position: relative; width: 40px; height: 40px; }
         .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; transition: 0.3s; }
-        .cw-play-cell:focus { background: #e0f2fe; }
         .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
@@ -671,10 +748,7 @@
         
         <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-                <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
-                    <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">Essaie<br>encore !</div>
-                    <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
-                </div>
+                <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
                 <div class="flex flex-col items-center md:items-start w-full max-w-sm">
                     <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
                     <div class="flex items-center gap-4 w-full mb-8">
@@ -849,7 +923,11 @@
                 });
                 stage.insertAdjacentHTML('beforeend', '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>');
                 const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it.replace(/"/g, '&quot;') + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it.replace(/"/g, '&quot;') + '">' + it + '</div>'; } }).join('');
+                pool.innerHTML = shuffled.map(it => {
+                    const stickerImg = getImg(it);
+                    if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it.replace(/"/g, '&quot;') + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } 
+                    else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it.replace(/"/g, '&quot;') + '">' + it + '</div>'; }
+                }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing');
             }
             else if(lvlConfig.type === 'domino') {
@@ -927,7 +1005,7 @@
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
         function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); } }
-    ` + `<` + `/script>
+    </scr` + `ipt>
 </body>
 </html>`;
 
