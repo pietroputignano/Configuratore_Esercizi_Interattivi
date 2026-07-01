@@ -199,6 +199,12 @@
                     </div>
                     <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
                 </div>
+
+                <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 mt-4">
+                    <p class="font-bold text-emerald-900 uppercase mb-2 text-[10px]">📥 Nome File Export</p>
+                    <input id="in-filename" type="text" class="w-full p-2 border rounded text-xs" placeholder="Verrà usato il Titre se lasci vuoto">
+                    <p class="text-[8px] text-gray-500 mt-1 italic">Nome del file .zip che verrà scaricato (senza estensione).</p>
+                </div>
             </div>
             
             <button onclick="initGame(); startGame();" class="w-full mt-6 bg-blue-700 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-blue-800 transition transform hover:-translate-y-1">🚀 AGGIORNA ANTEPRIMA</button>
@@ -647,14 +653,6 @@
                 stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}</div>${cluesHtml}`;
                 document.getElementById('nav-step').innerHTML = ''; return;
             }
-                }
-                gridHtml += '</div>';
-                let cluesHtml = '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">';
-                cwClues.forEach(c => { cluesHtml += `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`; });
-                cluesHtml += '</div></div>';
-                stage.innerHTML = `<div class="flex flex-col items-center w-full">${gridHtml}${cluesHtml}</div>`;
-                document.getElementById('nav-step').innerHTML = ''; return;
-            }
 
             if(items.length === 0) return;
             const word = items[idx];
@@ -1022,7 +1020,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row gap-6">
                         <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                        "                        <button onclick=\"document.getElementById('end-score').classList.toggle('hidden')\" class=\"flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group\"><span class=\"w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition\">💡</span> Les solutions</button>",
+                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
                     </div>
                 </div>
             </div>
@@ -1099,7 +1097,7 @@
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
             let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-            "            if (type === 'crossword') { GAME_CONFIG.cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += '<li class=\"text-blue-800 border-b border-gray-50 py-2 text-sm\"><b>' + c.num + '. ' + dirLabel + ' :</b> ' + c.word + '</li>'; }); } ",
+            if (type === 'crossword') { GAME_CONFIG.cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>' + c.num + '. ' + dirLabel + ' :</b> ' + c.word + '</li>'; }); } 
             else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } 
             else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } 
             else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } 
@@ -1360,7 +1358,9 @@
 </html>`;
 
             zip.file("index.html", playerHTML);
-            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `bSmart_${gameConfig.titre.replace(/\s+/g, '_')}.zip`));
+            const customName = document.getElementById('in-filename') ? document.getElementById('in-filename').value.trim() : '';
+            const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
+            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
         }
     </script>
 </body>
