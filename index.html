@@ -85,9 +85,7 @@
             <div class="p-3 flex flex-wrap gap-2 bg-gray-50 border-b items-center">
                 <button onclick="pickImg('mapper_bg')" class="bg-white border-2 border-blue-200 px-3 py-1.5 rounded font-bold text-xs">1. Carica Sfondo</button>
                 <button onclick="addZone()" class="bg-white border-2 border-orange-200 px-3 py-1.5 rounded font-bold text-xs text-orange-700">+ 2. Aggiungi Zona</button>
-                
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
-                
                 <span class="text-[10px] font-bold text-gray-500 uppercase">Allinea/Ridimensiona:</span>
                 <button onclick="alignZones('width')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Larghezza">↔️ Largh.</button>
                 <button onclick="alignZones('height')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Altezza">↕️ Alt.</button>
@@ -106,8 +104,23 @@
     
     <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh]">
-            <div class="p-4 border-b flex justify-between items-center bg-orange-50"><h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3><div class="flex gap-2"><button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button><button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button></div></div>
-            <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center"><div id="cw-builder-grid" class="cw-grid bg-white p-4 shadow-lg rounded-lg mb-6"></div><div id="cw-clues-container" class="w-full bg-white p-4 shadow-lg rounded-lg hidden"></div></div>
+            <div class="p-4 border-b flex justify-between items-center bg-orange-50">
+                <h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3>
+                <div class="flex gap-2">
+                    <button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button>
+                    <button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-4 items-center">
+                <label class="flex items-center gap-2 text-xs font-bold text-blue-900">
+                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra Definizioni
+                </label>
+                <input id="cw-in-verb" type="text" class="border border-gray-300 p-2 rounded text-xs w-64 shadow-inner" placeholder="Etichetta / Verbo opzionale (es: HABITER)">
+            </div>
+            <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center">
+                <div id="cw-builder-grid" class="cw-grid bg-white p-4 shadow-lg rounded-lg mb-6"></div>
+                <div id="cw-clues-container" class="w-full bg-white p-4 shadow-lg rounded-lg hidden"></div>
+            </div>
         </div>
     </div>
     
@@ -119,6 +132,7 @@
     </div>
 
     <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-6">
+        
         <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
             <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
             
@@ -150,13 +164,12 @@
                     <div class="mt-3 pt-3 border-t border-blue-200">
                         <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
                         <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs placeholder-gray-400" placeholder="Il / habite / dans / une yourte ; Tu / habites / dans / une maison" oninput="initGame(); startGame();"></textarea>
-                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici).</p>
                     </div>
                 </div>
 
                 <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
                     <p class="font-black text-white text-lg uppercase">Difficile</p>
-                    <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Écoute et complète le tableau de conjugaison." oninput="initGame(); startGame();">
+                    <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Conjugue les verbes." oninput="initGame(); startGame();">
                     <select id="type-d" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('d'); initGame(); startGame();"></select>
                     <div class="flex gap-2">
                         <button onclick="pickAud('aud-d')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-100 text-gray-800">🎵 Audio Consigne</button>
@@ -171,8 +184,11 @@
                 </div>
 
                 <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center shadow-sm">
-                    <p class="text-[10px] text-yellow-800 font-bold mb-2">Se usi giochi con audio specifico per frase (es. Mise en ordre):</p>
-                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia anteprima e cambia step in basso per caricare audio')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition">🎵 Carica Audio per la Frase Corrente</button>
+                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia anteprima e seleziona lo step per caricare audio')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition mb-2">🎵 Carica Audio per la Frase Corrente</button>
+                    <label class="flex items-center justify-center gap-2 text-[10px] text-yellow-900 cursor-pointer font-bold">
+                        <input type="checkbox" id="in-auto-audio" checked onchange="if(items.length > 0) loadStep(curStep)">
+                        Usa voce computer se non c'è file audio
+                    </label>
                 </div>
 
                 <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
@@ -182,25 +198,6 @@
                         <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Sconfitta (&lt;50%)</button>
                     </div>
                 </div>
-
-                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
-                    <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="pickAud('drag')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drag (Presa)</button>
-                        <button onclick="pickAud('drop')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drop (Rilascio)</button>
-                        <button onclick="pickAud('global_ok')" class="bg-white border p-1 rounded hover:bg-green-50 text-[9px]">🔊 Esatto</button>
-                        <button onclick="pickAud('global_ko')" class="bg-white border p-1 rounded hover:bg-red-50 text-[9px]">🔊 Errore</button>
-                        <button onclick="pickAud('report_high')" class="bg-white border p-1 rounded hover:bg-blue-50 text-[9px]">🔊 Report Vittoria</button>
-                        <button onclick="pickAud('report_low')" class="bg-white border p-1 rounded hover:bg-orange-50 text-[9px]">🔊 Report Sconfitta</button>
-                    </div>
-                    <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
-                </div>
-
-                <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 mt-4">
-                    <p class="font-bold text-emerald-900 uppercase mb-2 text-[10px]">📥 Nome File Export</p>
-                    <input id="in-filename" type="text" class="w-full p-2 border rounded text-xs" placeholder="Verrà usato il Titre se lasci vuoto">
-                    <p class="text-[8px] text-gray-500 mt-1 italic">Nome del file .zip che verrà scaricato (senza estensione).</p>
-                </div>
             </div>
             
             <button onclick="initGame(); startGame();" class="w-full mt-6 bg-blue-700 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-blue-800 transition transform hover:-translate-y-1">🚀 AGGIORNA ANTEPRIMA</button>
@@ -208,11 +205,10 @@
         </div>
 
         <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
-            
             <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
-                <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase">Unité <span id="start-unite"></span></h2>
+                <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase font-mont">Unité <span id="start-unite"></span></h2>
                 <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-mont leading-tight break-words px-4"></h1>
-                <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400">COMMENCER</button>
+                <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400 font-mont uppercase">COMMENCER</button>
             </div>
             
             <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
@@ -221,17 +217,15 @@
                         <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">Essaie<br>encore !</div>
                         <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                     </div>
-
                     <div class="flex flex-col items-center md:items-start w-full max-w-sm">
                         <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
                         <div class="flex items-center gap-4 w-full mb-8">
                             <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
                             <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
                         </div>
-                        
                         <div class="flex flex-col sm:flex-row gap-6">
                             <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les réponses</button>
+                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
                         </div>
                     </div>
                 </div>
@@ -275,10 +269,10 @@
     <script>
         const types = [
             {id: 'sentence_ordering', n: 'Mise en ordre (Frasi)'},
-            {id: 'dressing', n: 'Dressing Game (Mapper / Lavagna)'},
+            {id: 'dressing', n: 'Dressing Game (Mapper)'},
             {id: 'domino', n: 'Domino Chain'},
-            {id: 'anagramme', n: 'Anagramme (Ordering)'},
-            {id: 'autocollantes', n: 'Autocollantes (Stickers)'},
+            {id: 'anagramme', n: 'Anagramme'},
+            {id: 'autocollantes', n: 'Autocollantes'},
             {id: 'rebus', n: 'Texte à trous (Rebus)'},
             {id: 'crossword', n: 'Mots Croisés (Cruciverba)'}
         ];
@@ -286,6 +280,10 @@
         let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
         let errorTracker = [];
         let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
+        
+        /* NUOVE VARIABILI PER IL CRUCIVERBA */
+        let cwVerbLabel = "";
+        let cwShowClues = true;
 
         let isMuted = false;
         function toggleMute() {
@@ -294,7 +292,6 @@
             document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted);
         }
 
-        // Suoni bambini morbidi
         function playSound(type) {
             if (isMuted) return;
             const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
@@ -345,7 +342,7 @@
             let html = '';
             items.forEach(word => {
                 const prevSentence = rebusData[word] || `Oggi mangio la {${word}}`;
-                html += `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><label class="font-bold text-green-800 uppercase block mb-1">Parola: ${word}</label><input type="text" class="rebus-input w-full border border-gray-300 p-2 rounded" data-word="${word}" value="${prevSentence}"></div>`;
+                html += `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><label class="font-bold text-green-800 uppercase block mb-1">Parola: ${word}</label><input type="text" class="rebus-input w-full border border-gray-300 p-2 rounded" data-word="${word.replace(/"/g, '&quot;')}" value="${prevSentence.replace(/"/g, '&quot;')}"></div>`;
             });
             document.getElementById('rebus-sentences-container').innerHTML = html; document.getElementById('rebus-modal').classList.remove('hidden');
         }
@@ -358,7 +355,6 @@
             startGame(); 
         }
         
-        // --- NUOVI STRUMENTI MAPPER: Selezione & Allineamento ---
         function clearSelection(e) {
             if (e.target.id === 'mapper-container' || e.target.id === 'mapper-preview' || e.target.id === 'mapper-hint') {
                 document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone'));
@@ -382,7 +378,7 @@
             const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center rounded-md'; z.style.cssText = "width:25%; height:12%; left:35%; top:40%;";
             const word = items[mappedZones.length] || "verbo";
             z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (usa ... per buco)" value="" onmousedown="event.stopPropagation()">
-                           <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${word}" onmousedown="event.stopPropagation()">
+                           <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${word.replace(/"/g, '&quot;')}" onmousedown="event.stopPropagation()">
                            <div class="resize-handle"></div>`;
             document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
         }
@@ -451,11 +447,15 @@
             document.querySelectorAll('.cw-number').forEach(e => e.remove());
             Object.keys(starts).forEach(key => { let [x,y] = key.split('-'); let cellWrap = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).parentElement; let span = document.createElement('span'); span.className = 'cw-number'; span.innerText = starts[key]; cellWrap.appendChild(span); });
             let cluesHtml = `<h4 class="font-bold text-blue-900 border-b pb-2 mb-3">Definizioni</h4><div class="grid grid-cols-2 gap-4">`;
-            words.sort((a,b) => a.num - b.num).forEach(w => { let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale'; let prevClue = cwClues.find(c => c.word === w.word && c.dir === w.dir)?.clue || ""; cluesHtml += `<div><label class="text-xs font-bold text-gray-700 block">${w.num}. ${label} (${w.word})</label><input type="text" class="cw-clue-input w-full border border-gray-300 rounded p-2 text-xs" data-word="${w.word}" data-num="${w.num}" data-dir="${w.dir}" value="${prevClue}"></div>`; });
+            words.sort((a,b) => a.num - b.num).forEach(w => { let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale'; let prevClue = cwClues.find(c => c.word === w.word && c.dir === w.dir)?.clue || ""; cluesHtml += `<div><label class="text-xs font-bold text-gray-700 block">${w.num}. ${label} (${w.word})</label><input type="text" class="cw-clue-input w-full border border-gray-300 rounded p-2 text-xs" data-word="${w.word.replace(/"/g, '&quot;')}" data-num="${w.num}" data-dir="${w.dir}" value="${prevClue.replace(/"/g, '&quot;')}"></div>`; });
             cluesHtml += `</div>`; document.getElementById('cw-clues-container').innerHTML = cluesHtml; document.getElementById('cw-clues-container').classList.remove('hidden');
         }
         function closeCWBuilder() {
             cwData = []; cwClues = [];
+            // Salvataggio nuove impostazioni cruciverba
+            if(document.getElementById('cw-in-verb')) cwVerbLabel = document.getElementById('cw-in-verb').value;
+            if(document.getElementById('cw-in-show-clues')) cwShowClues = document.getElementById('cw-in-show-clues').checked;
+
             document.querySelectorAll('.cw-cell').forEach(inp => { if(inp.value.trim() !== '') { let numSpan = inp.parentElement.querySelector('.cw-number'); cwData.push({ x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y), char: inp.value.toUpperCase(), num: numSpan ? parseInt(numSpan.innerText) : null }); } });
             document.querySelectorAll('.cw-clue-input').forEach(inp => { cwClues.push({ num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word, clue: inp.value || inp.dataset.word }); });
             document.getElementById('cw-modal').classList.add('hidden'); startGame();
@@ -515,14 +515,15 @@
             let errs = errorTracker.reduce((a, b) => a + b, 0);
             let scorePerc = Math.max(0, 100 - (errs * 10));
 
+            // Logica esatta per mostrare tutte le soluzioni nel report finale
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
             if (type === 'crossword') {
-                answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>';
+                cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; });
             } else if (type === 'domino') {
                 answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
-            } else if (type === 'sentence_ordering') {
+            } else if (type === 'sentence_ordering' || type === 'anagramme') {
                 items.forEach(it => {
-                    let correctSentence = it.split('/').map(w => w.trim()).join(' ');
+                    let correctSentence = type === 'sentence_ordering' ? it.split('/').map(w => w.trim()).join(' ') : it;
                     answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
                 });
             } else if (type === 'rebus') {
@@ -620,6 +621,33 @@
             }
         }
 
+        // --- GESTIONE AUDIO AUDIO PER STEP ---
+        function playStepAudio(btnEl) {
+            const wordStr = btnEl.getAttribute('data-word');
+            const stepAudioKey = wordStr + '_audio';
+            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+            
+            if (audioSrc) {
+                new Audio(audioSrc).play();
+            } else {
+                let textToSpeak = wordStr;
+                const type = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].type : document.getElementById(curLvl === 'facile' ? 'type-f' : 'type-d').value;
+                
+                if (type === 'sentence_ordering') {
+                    textToSpeak = wordStr.replace(/\//g, ' ');
+                } else if (type === 'rebus') {
+                    const rData = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.rebusData : rebusData;
+                    const sentence = rData[wordStr] || wordStr;
+                    textToSpeak = sentence.replace(/[{}]/g, '');
+                }
+                
+                const m = new SpeechSynthesisUtterance(textToSpeak);
+                m.lang = 'fr-FR';
+                m.rate = 0.6; // TTS Speed
+                window.speechSynthesis.speak(m);
+            }
+        }
+
         function loadStep(idx) {
             curStep = idx; renderNav();
             const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
@@ -632,19 +660,24 @@
             
             if(type === 'crossword') {
                 if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
+                
+                // Disegna Etichetta facoltativa
+                let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
+                
                 let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
                 for(let y=0; y<12; y++) {
                     for(let x=0; x<12; x++) {
                         let cell = cwData.find(c => c.x === x && c.y === y);
-                        if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
+                        if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
                         else gridHtml += `<div class="w-10 h-10"></div>`;
                     }
                 }
                 gridHtml += '</div>';
-                let cluesHtml = '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">';
-                cwClues.forEach(c => { cluesHtml += `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`; });
-                cluesHtml += '</div></div>';
-                stage.innerHTML = `<div class="flex flex-col items-center w-full">${gridHtml}${cluesHtml}</div>`;
+                
+                // Disegna le Definizioni solo se la spunta è attiva
+                let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">${cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('')}</div></div>` : '';
+                
+                stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}</div>${cluesHtml}`;
                 document.getElementById('nav-step').innerHTML = ''; return;
             }
 
@@ -654,15 +687,19 @@
             let stepAudioHtml = '';
             const stepAudioKey = word + '_audio';
             const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-            if (audioSrc && type !== 'dressing') {
-                stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
+            const useAutoAudio = document.getElementById('in-auto-audio') ? document.getElementById('in-auto-audio').checked : true;
+            
+            // Mostra il bottone Audio se c'è l'mp3 oppure se è attiva la spunta TTS
+            if ((audioSrc || useAutoAudio) && ['sentence_ordering', 'anagramme', 'rebus'].includes(type)) {
+                const safeWord = word.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                stepAudioHtml = `<button data-word="${safeWord}" onclick="playStepAudio(this)" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
             }
 
             if(type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
                 items.forEach(it => {
                     const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`;
-                    boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it}_shadow')" data-expected="${it}">${shadowImg}</div>`;
+                    boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it.replace(/'/g, "\\'")}_shadow')" data-expected="${it.replace(/"/g, '&quot;')}">${shadowImg}</div>`;
                 });
                 boardHtml += '</div>';
                 stage.innerHTML = boardHtml;
@@ -670,7 +707,7 @@
                 const shuffled = [...items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = shuffled.map(it => {
                     const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`;
-                    return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it}" onclick="pickImg('${it}')">${stickerImg}</div>`;
+                    return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')">${stickerImg}</div>`;
                 }).join('');
 
                 document.getElementById('nav-step').innerHTML = '';
@@ -686,7 +723,7 @@
                 
                 zoneList.forEach(z => {
                     const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
-                    let targetDiv = `<div id="target-${z.word}" data-expected="${z.word}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
+                    let targetDiv = `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
                     let labelHtml = '';
 
                     if (z.label) {
@@ -710,8 +747,8 @@
                 const shuffled = [...items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = shuffled.map(it => {
                     const stickerImg = getImg(it);
-                    if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it}" onclick="pickImg('${it}')"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
-                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="${it}" onclick="pickImg('${it}')">${it}</div>`; }
+                    if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
+                    else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')">${it}</div>`; }
                 }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
@@ -722,7 +759,7 @@
                         <div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div>
                         <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
                     </div>
-                    <div id="target" class="drop-target" data-expected="${nextExpected}">GLISSE ICI</div>
+                    <div id="target" class="drop-target" data-expected="${nextExpected.replace(/"/g, '&quot;')}">GLISSE ICI</div>
                 </div>`;
                 stage.innerHTML = `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`;
                 
@@ -730,7 +767,8 @@
                 pool.innerHTML = poolItems.map((it) => {
                     let i = items.indexOf(it);
                     const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
-                    return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1" data-word="${it}"><div class="tile-img" onclick="pickImg('${imgNeeded}')">${dbImg[imgNeeded]?`<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">`:`📷 ${imgNeeded}`}</div><div class="tile-text">${it}</div></div>`;
+                    const imgContent = dbImg[imgNeeded] ? `<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">` : '📷';
+                    return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img" onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')">${imgContent}</div><div class="tile-text">${it}</div></div>`;
                 }).join('');
                 document.getElementById('nav-step').innerHTML = '';
                 setupSortable('domino', null);
@@ -739,11 +777,11 @@
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
                 stage.innerHTML = `<div class="flex flex-col items-center gap-8">
-                    <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
+                    <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
                     <div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                        + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l}">${l.toLowerCase()}</div>`).join('') + 
+                        + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l.replace(/"/g, '&quot;')}">${l.toLowerCase()}</div>`).join('') + 
                     `</div>
-                    <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button>
+                    <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
                 </div>`;
                 pool.innerHTML = '';
                 setupSortable('anagramme', word);
@@ -752,11 +790,11 @@
                 const chunks = word.split('/').map(c => c.trim());
                 const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
                 const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                stage.innerHTML = `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word}')">${imgContent}</div>
+                stage.innerHTML = `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
                     <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                        + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="${c}">${c}</div>`).join('') + 
+                        + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
                     `</div>
-                    <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button>
+                    <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
                 </div>`;
                 pool.innerHTML = '';
                 setupSortable('sentence_ordering', word);
@@ -764,9 +802,10 @@
             else if(type === 'rebus') {
                 const sentence = rebusData[word] || `{${word}}`;
                 const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
-                stage.innerHTML = `<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center mt-10 font-mont">${text}</div>`;
+                const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
+                stage.innerHTML = `<div class="flex flex-col items-center w-full max-w-3xl gap-6"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer hover:scale-105 transition" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div><div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`;
                 const shuffledItems = [...items].sort(() => Math.random() - 0.5);
-                pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition" data-word="${it}">${it}</div>`).join('');
+                pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}">${it}</div>`).join('');
                 setupSortable('rebus', word);
             }
 
@@ -813,7 +852,7 @@
                                 const expectedWord = e.target.getAttribute('data-expected');
                                 if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
                                     if (mode === 'dressing') {
-                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont";
+                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase";
                                     } else {
                                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
                                     }
@@ -883,7 +922,7 @@
                     else if(mode === 'rebus') {
                         const targetAns = e.target.getAttribute('data-ans');
                         if(dropped.toLowerCase() === targetAns.toLowerCase()) {
-                            e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont";
+                            e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont uppercase";
                             e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true);
                         } else { e.item.remove(); validate(false); }
                     } else { e.item.remove(); validate(false); }
@@ -896,7 +935,7 @@
             if(correct) { 
                 status[curStep]='completed'; playSound('global_ok');
                 setTimeout(() => { 
-                    if (type === 'domino' || type === 'autocollantes' || type === 'crossword' || type === 'dressing' || curStep >= items.length - 1) {
+                    if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= items.length - 1) {
                         showEndScreen();
                     } else {
                         loadStep(curStep + 1);
@@ -904,7 +943,7 @@
                 }, 1500); 
             } else { 
                 status[curStep]='error'; 
-                if(type !== 'domino' && type !== 'autocollantes' && type !== 'dressing') errorTracker[curStep]++; 
+                if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; 
                 playSound('global_ko');
             }
             renderNav();
@@ -912,7 +951,7 @@
 
         function renderNav() { 
             const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            if(type === 'crossword' || type === 'domino' || type === 'autocollantes' || type === 'dressing') { document.getElementById('nav-step').innerHTML = ''; return; }
+            if(['crossword','domino','autocollantes','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
             document.getElementById('nav-step').innerHTML = items.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i]}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
         }
 
@@ -932,7 +971,7 @@
             else { 
                 const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
                 const m = new SpeechSynthesisUtterance(conInput.value.trim() !== '' ? conInput.value : conInput.placeholder); 
-                m.lang='fr-FR'; m.rate=0.5; 
+                m.lang='fr-FR'; m.rate=0.6; 
                 window.speechSynthesis.speak(m); 
             } 
         }
@@ -971,12 +1010,17 @@
             const conD = document.getElementById('con-d');
             const conDText = conD.value.trim() !== '' ? conD.value : conD.placeholder;
 
+            const inAutoAudio = document.getElementById('in-auto-audio') ? document.getElementById('in-auto-audio').checked : true;
+
             const gameConfig = { 
                 unite: uniteText, 
                 uniteColor: document.getElementById('in-color').value || '#E84C7B',
                 showLecon: document.getElementById('in-show-lecon').checked,
                 lecon: leconText,
                 titre: titreText, 
+                cwVerbLabel: cwVerbLabel,
+                cwShowClues: cwShowClues,
+                autoAudio: inAutoAudio,
                 mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
                 levels: { facile: { type: typeF, consigne: conFText, items: itemsF }, difficile: { type: typeD, consigne: conDText, items: itemsD } } 
             };
@@ -1012,7 +1056,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row gap-6">
                         <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les réponses</button>
+                        <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
                     </div>
                 </div>
             </div>
@@ -1083,18 +1127,36 @@
             if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
             else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
         };
-        function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
         
+        function startGame() { 
+            document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); 
+            GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; 
+            status = new Array(GAME_CONFIG.items.length).fill('pending'); 
+            if(['domino', 'autocollantes', 'dressing', 'crossword'].includes(type)) errorTracker = [0]; 
+            else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); 
+            loadStep(0); 
+        }
+
         function showEndScreen() {
             document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
             let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
+            
             let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-            if (type === 'crossword') { answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>'; } 
+            if (type === 'crossword') { 
+                GAME_CONFIG.cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>' + c.num + '. ' + dirLabel + ' :</b> ' + c.word + '</li>'; }); 
+            } 
             else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } 
-            else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } 
-            else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } 
-            else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); }
+            else if (type === 'sentence_ordering' || type === 'anagramme') { 
+                GAME_CONFIG.items.forEach(it => { let correctSentence = type === 'sentence_ordering' ? it.split('/').map(w => w.trim()).join(' ') : it; answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); 
+            } 
+            else if (type === 'rebus') { 
+                GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); 
+            } 
+            else { 
+                GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); 
+            }
             answersHtml += '</ul></div>';
+            
             setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
             
             const visualContainer = document.getElementById('visual-container');
@@ -1115,244 +1177,168 @@
         function checkCrossword(inputEl) {
             if (inputEl && inputEl.value.trim() !== '') {
                 if (inputEl.value.toUpperCase() !== inputEl.dataset.ans) {
-                    errorTracker[0]++;
-                    playSound('global_ko');
-                    inputEl.classList.add('shake-error', 'text-red-500');
-                    setTimeout(() => {
-                        inputEl.classList.remove('shake-error', 'text-red-500');
-                        inputEl.value = '';
-                    }, 500);
-                } else {
-                    inputEl.classList.add('correct');
-                    playSound('drop');
-                }
+                    errorTracker[0]++; playSound('global_ko'); inputEl.classList.add('shake-error', 'text-red-500');
+                    setTimeout(() => { inputEl.classList.remove('shake-error', 'text-red-500'); inputEl.value = ''; }, 500);
+                } else { inputEl.classList.add('correct'); playSound('drop'); }
             }
-
-            let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
-            inputs.forEach(inp => {
-                if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; }
-                if(inp.value.trim() !== '') filledCount++;
-            });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
-                playSound('global_ok');
-                setTimeout(() => showEndScreen(), 1500);
-            }
+            let allCorrect = true, filledCount = 0, inputs = document.querySelectorAll('.cw-play-cell');
+            inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) allCorrect = false; if(inp.value.trim() !== '') filledCount++; });
+            if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(showEndScreen, 1500); }
         }
 
         function checkOrder(mode) {
-            const target = document.getElementById('target');
-            const targetWord = GAME_CONFIG.items[curStep];
-            let isCorrect = false;
-            if (mode === 'anagramme') {
-                const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
-                isCorrect = (current === targetWord);
-            } else if (mode === 'sentence_ordering') {
-                const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
-                const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
-                isCorrect = (currentStr === expectedStr);
-            }
+            const target = document.getElementById('target'), targetWord = GAME_CONFIG.items[curStep]; let isCorrect = false;
+            if (mode === 'anagramme') { isCorrect = (Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('') === targetWord); } 
+            else if (mode === 'sentence_ordering') { isCorrect = (Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('') === targetWord.split('/').map(c=>c.trim()).join('')); }
             if (isCorrect) {
-                Array.from(target.children).forEach(el => {
-                    if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont";
-                    else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont";
-                });
-                target.style.border = "none"; target.style.background = "transparent";
-                document.getElementById('check-btn').classList.add('hidden');
-                validate(true);
-            } else {
-                playSound('global_ko');
-                target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500);
-                validate(false);
-            }
+                Array.from(target.children).forEach(el => { el.className = (mode === 'anagramme') ? "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont" : "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont"; });
+                target.style.border = "none"; target.style.background = "transparent"; document.getElementById('check-btn').classList.add('hidden'); validate(true);
+            } else { playSound('global_ko'); target.classList.add('shake-error', 'border-red-500'); setTimeout(() => target.classList.remove('shake-error', 'border-red-500'), 500); validate(false); }
         }
 
         function loadStep(idx) {
-            curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; pool.innerHTML = '';
+            curStep = idx; renderNav(); const stage = document.getElementById('main-content'), pool = document.getElementById('pool'), lvlConfig = GAME_CONFIG.levels[curLvl]; 
+            document.getElementById('res-consigne').innerText = lvlConfig.consigne; 
+            stage.innerHTML = ''; pool.innerHTML = '';
+            
             if(lvlConfig.type === 'crossword') {
+                if(GAME_CONFIG.cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400 italic'>Configura la griglia 🧩</p>"; return; }
+                let labelHtml = GAME_CONFIG.cwVerbLabel ? '<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">' + GAME_CONFIG.cwVerbLabel + '</div>' : '';
                 let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
                 for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } }
                 gridHtml += '</div>';
-                let cluesHtml = '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">';
-                GAME_CONFIG.cwClues.forEach(c => { cluesHtml += '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>'; });
-                cluesHtml += '</div></div>'; stage.innerHTML = '<div class="flex flex-col items-center w-full">' + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return;
+                let cluesHtml = (GAME_CONFIG.cwShowClues && GAME_CONFIG.cwClues.length > 0) ? '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">' + GAME_CONFIG.cwClues.map(c => '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>').join('') + '</div></div>' : '';
+                stage.innerHTML = '<div class="flex flex-col items-center w-full">' + labelHtml + gridHtml + '</div>' + cluesHtml;
+                return document.getElementById('nav-step').innerHTML = '';
             }
+            
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
             
-            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
-            if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { 
-                stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; 
+            const audioSrc = GAME_CONFIG.audio[word + '_audio']; 
+            if (audioSrc || (GAME_CONFIG.autoAudio && ['sentence_ordering','anagramme','rebus'].includes(lvlConfig.type))) { 
+                stage.insertAdjacentHTML('beforeend', '<button data-word="' + word.replace(/'/g, "\\\\'") + '" onclick="playStepAudio(this)" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>'); 
             }
 
             if(lvlConfig.type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
-                GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it + '">' + shadowImg + '</div>'; });
-                boardHtml += '</div>'; stage.innerHTML = boardHtml;
+                GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it.replace(/"/g, '&quot;') + '">' + shadowImg + '</div>'; });
+                boardHtml += '</div>'; stage.insertAdjacentHTML('beforeend', boardHtml);
                 const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join('');
+                pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it.replace(/"/g, '&quot;') + '">' + stickerImg + '</div>'; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null);
             }
             else if(lvlConfig.type === 'dressing') {
-                const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
-                const bgImage = getImg('mapper_bg');
-                const bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
-                
+                const getImg = (key) => GAME_CONFIG.images[key];
+                const bgImage = getImg('mapper_bg'), bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
                 let zonesHtml = '';
-                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                zoneList.forEach(z => {
+                GAME_CONFIG.mappedZones.forEach(z => {
                     const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
-                    let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>';
-                    let labelHtml = '';
-
-                    if (z.label) {
-                        if (z.label.includes('...')) {
-                            const parts = z.label.split('...');
-                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[0].trim() + '</span>' + 
-                                        targetDiv + 
-                                        '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[1].trim() + '</span>';
-                        } else {
-                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv;
-                        }
-                    } else {
-                        labelHtml = targetDiv;
-                    }
-
+                    let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word.replace(/"/g, '&quot;') + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>';
+                    let labelHtml = z.label ? (z.label.includes('...') ? '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[0].trim() + '</span>' + targetDiv + '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[1].trim() + '</span>' : '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv) : targetDiv;
                     zonesHtml += '<div class="absolute flex items-center gap-3" style="left:' + z.left + '; top:' + z.top + '; width:' + z.width + '; height:' + z.height + '">' + labelHtml + '</div>';
                 });
-
-                stage.innerHTML = '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>';
-                
+                stage.insertAdjacentHTML('beforeend', '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>');
                 const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => {
-                    const stickerImg = getImg(it);
-                    if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it + '" onclick="pickImg(\'' + it + '\')"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } 
-                    else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source" data-word="' + it + '" onclick="pickImg(\'' + it + '\')">' + it + '</div>'; }
-                }).join('');
+                pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it.replace(/"/g, '&quot;') + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it.replace(/"/g, '&quot;') + '">' + it + '</div>'; } }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
             else if(lvlConfig.type === 'domino') {
                 let nextExpected = GAME_CONFIG.items[1] || GAME_CONFIG.items[0];
-                let dominoChainHtml = '<div class="domino-chain custom-scrollbar" id="domino-board"><div class="domino-tile opacity-90 shadow-sm"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + GAME_CONFIG.items[0] + '</div></div><div id="target" class="drop-target" data-expected="' + nextExpected + '">GLISSE ICI</div></div>';
-                stage.innerHTML = '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>';
+                let dominoChainHtml = '<div class="domino-chain custom-scrollbar" id="domino-board"><div class="domino-tile opacity-90 shadow-sm"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + GAME_CONFIG.items[0] + '</div></div><div id="target" class="drop-target" data-expected="' + nextExpected.replace(/"/g, '&quot;') + '">GLISSE ICI</div></div>';
+                stage.insertAdjacentHTML('beforeend', '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>');
                 const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '📷 ' + imgNeeded; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it + '"><div class="tile-img" onclick="pickImg(\'' + imgNeeded + '\')">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join('');
+                pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '📷 ' + imgNeeded; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it.replace(/"/g, '&quot;') + '"><div class="tile-img">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null);
             }
             else if(lvlConfig.type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\'' + word + '\')">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
-                pool.innerHTML = '';
+                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l.replace(/"/g, '&quot;') + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 uppercase font-mont">Vérifier</button></div>');
                 setupSortable('anagramme', word);
             }
             else if(lvlConfig.type === 'sentence_ordering') {
                 const chunks = word.split('/').map(c => c.trim()), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto', shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\'' + word + '\')">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
-                pool.innerHTML = '';
+                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c.replace(/"/g, '&quot;') + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button></div>');
                 setupSortable('sentence_ordering', word);
             }
             else if(lvlConfig.type === 'rebus') {
-                const sentence = GAME_CONFIG.rebusData[word] || ('{' + word + '}');
-                const text = sentence.replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>');
+                const text = (GAME_CONFIG.rebusData[word] || ('{' + word + '}')).replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>');
                 let imgHtml = GAME_CONFIG.images[word] ? '<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6"><img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none"></div>' : '';
-                stage.innerHTML = '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>';
+                stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>');
                 const shuffledItems = [...GAME_CONFIG.items].sort(() => Math.random() - 0.5);
-                pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="' + it + '">' + it + '</div>').join('');
+                pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="' + it.replace(/"/g, '&quot;') + '">' + it + '</div>').join('');
                 setupSortable('rebus', word);
             }
+        }
 
-            if (stepAudioHtml !== '') { stage.insertAdjacentHTML('afterbegin', stepAudioHtml); }
+        function playStepAudio(btn) {
+            const wordStr = btn.getAttribute('data-word');
+            const audioSrc = GAME_CONFIG.audio[wordStr + '_audio'];
+            if (audioSrc) new Audio(audioSrc).play();
+            else {
+                let textToSpeak = wordStr; const type = GAME_CONFIG.levels[curLvl].type;
+                if (type === 'sentence_ordering') textToSpeak = wordStr.replace(/\\//g, ' ');
+                else if (type === 'rebus') textToSpeak = (GAME_CONFIG.rebusData[wordStr] || wordStr).replace(/[{}]/g, '');
+                const m = new SpeechSynthesisUtterance(textToSpeak); m.lang = 'fr-FR'; m.rate = 0.6; window.speechSynthesis.speak(m);
+            }
         }
 
         function setupSortable(mode, targetWord) {
-            const pool = document.getElementById('pool'); 
+            const pool = document.getElementById('pool'), target = document.getElementById('target');
+            if (mode === 'sentence_ordering' || mode === 'anagramme') return new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
+            if (pool) new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
             
-            if (mode === 'autocollantes' || mode === 'dressing') {
-                if(!pool) return;
-                new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                
-                const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
-                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
-
+            if (mode === 'dressing' || mode === 'autocollantes') {
+                const targetWords = mode === 'autocollantes' ? GAME_CONFIG.items : GAME_CONFIG.mappedZones.map(z => z.word);
                 targetWords.forEach(w => {
                     const tgt = document.getElementById('target-' + w);
-                    if (tgt) {
-                        new Sortable(tgt, {
-                            group: 'game', animation: 150, onStart: () => playSound('drag'),
-                            onAdd: (e) => {
-                                const dropped = e.item.getAttribute('data-word');
-                                const expectedWord = e.target.getAttribute('data-expected');
-                                if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
-                                    if (mode === 'dressing') {
-                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont";
-                                    } else {
-                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
-                                    }
-                                    const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
-                                    e.item.removeAttribute('draggable');
-                                    e.target.innerHTML = ''; e.target.appendChild(e.item);
-                                    e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok');
-                                    
-                                    const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                                    if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); }
-                                } else { 
-                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
-                                    e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
-                                }
-                            }
-                        });
-                    }
+                    if (tgt) new Sortable(tgt, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => {
+                        if(e.item.dataset.word.toLowerCase() === e.target.dataset.expected.toLowerCase()) {
+                            e.item.className = mode === 'dressing' ? "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase" : "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
+                            const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
+                            e.item.removeAttribute('draggable'); e.target.innerHTML = ''; e.target.appendChild(e.item); e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok');
+                            if (Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost')).length === 0) setTimeout(showEndScreen, 1500);
+                        } else { errorTracker[0]++; playSound('global_ko'); e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); pool.appendChild(e.item); }, 500); }
+                    }});
                 });
-                return;
-            }
-
-            const target = document.getElementById('target'); if(!target) return;
-            
-            if (mode === 'anagramme' || mode === 'sentence_ordering') {
-                new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                return;
-            }
-
-            if(!pool) return;
-            new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-            new Sortable(target, { 
-                group: 'game', animation: 150, onStart: () => playSound('drag'),
-                onAdd: (e) => {
-                    const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
+            } else if(target) {
+                new Sortable(target, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => {
+                    const dropped = e.item.dataset.word || e.item.dataset.letter || e.item.dataset.chunk;
                     if(mode === 'domino') {
-                        const expectedWord = e.target.getAttribute('data-expected');
-                        if(dropped === expectedWord) {
-                            e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
-                            const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
-                            let currentIndex = GAME_CONFIG.items.indexOf(dropped); let nextIndex = (currentIndex + 1) % GAME_CONFIG.items.length;
-                            const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                            if (remainingPool.length === 0) { e.target.remove(); validate(true); } else { e.target.setAttribute('data-expected', GAME_CONFIG.items[nextIndex]); playSound('global_ok'); }
-                        } else { 
-                            e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
-                            e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
-                        }
-                    } 
-                    else if(mode === 'rebus') { const targetAns = e.target.getAttribute('data-ans'); if(dropped.toLowerCase() === targetAns.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } else { e.item.remove(); validate(false); } } else { e.item.remove(); validate(false); }
-                }
-            });
+                        if(dropped === e.target.dataset.expected) { e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item); document.getElementById('domino-board').scrollLeft = document.getElementById('domino-board').scrollWidth; let nextIndex = (GAME_CONFIG.items.indexOf(dropped) + 1) % GAME_CONFIG.items.length; if (Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost')).length === 0) { e.target.remove(); validate(true); } else { e.target.dataset.expected = GAME_CONFIG.items[nextIndex]; playSound('global_ok'); } } 
+                        else { errorTracker[0]++; playSound('global_ko'); e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); pool.appendChild(e.item); }, 500); }
+                    } else if(mode === 'rebus') {
+                        if(dropped.toLowerCase() === e.target.dataset.ans.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont uppercase"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } 
+                        else { e.item.remove(); validate(false); }
+                    }
+                }});
+            }
         }
 
-        function validate(correct) {
-            const type = GAME_CONFIG.levels[curLvl].type;
-            if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } 
-            else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; playSound('global_ko'); } renderNav();
+        function validate(correct) { 
+            const type = GAME_CONFIG.levels[curLvl].type; 
+            if(correct) { 
+                status[curStep]='completed'; playSound('global_ok'); 
+                setTimeout(() => { 
+                    if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); 
+                    else loadStep(curStep + 1); 
+                }, 1500); 
+            } else { 
+                status[curStep]='error'; 
+                if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; 
+                playSound('global_ko'); 
+            } 
+            renderNav(); 
         }
 
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
-    <\/script>
+        function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); } }
+    </` + `script>
 </body>
 </html>`;
 
             zip.file("index.html", playerHTML);
-            const customName = document.getElementById('in-filename') ? document.getElementById('in-filename').value.trim() : '';
-            const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
-            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
+            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `bSmart_${gameConfig.titre.replace(/\s+/g, '_')}.zip`));
         }
     </script>
 </body>
