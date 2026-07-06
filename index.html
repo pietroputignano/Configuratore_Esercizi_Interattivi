@@ -106,8 +106,23 @@
     
     <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh]">
-            <div class="p-4 border-b flex justify-between items-center bg-orange-50"><h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3><div class="flex gap-2"><button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button><button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button></div></div>
-            <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center"><div id="cw-builder-grid" class="cw-grid bg-white p-4 shadow-lg rounded-lg mb-6"></div><div id="cw-clues-container" class="w-full bg-white p-4 shadow-lg rounded-lg hidden"></div></div>
+            <div class="p-4 border-b flex justify-between items-center bg-orange-50">
+                <h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3>
+                <div class="flex gap-2">
+                    <button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button>
+                    <button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-4 items-center">
+                <label class="flex items-center gap-2 text-xs font-bold text-blue-900">
+                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra Definizioni
+                </label>
+                <input id="cw-in-verb" type="text" class="border border-gray-300 p-2 rounded text-xs w-64 shadow-inner" placeholder="Etichetta / Verbo (es: HABITER)">
+            </div>
+            <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center">
+                <div id="cw-builder-grid" class="cw-grid bg-white p-4 shadow-lg rounded-lg mb-6"></div>
+                <div id="cw-clues-container" class="w-full bg-white p-4 shadow-lg rounded-lg hidden"></div>
+            </div>
         </div>
     </div>
     
@@ -286,6 +301,7 @@
         let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
         let errorTracker = [];
         let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
+        let cwVerbLabel = ""; let cwShowClues = true; 
 
         let isMuted = false;
         function toggleMute() {
@@ -456,9 +472,9 @@
         }
         function closeCWBuilder() {
             cwData = []; cwClues = [];
+            cwVerbLabel = document.getElementById('cw-in-verb') ? document.getElementById('cw-in-verb').value : "";
+            cwShowClues = document.getElementById('cw-in-show-clues') ? document.getElementById('cw-in-show-clues').checked : true;
             document.querySelectorAll('.cw-cell').forEach(inp => { if(inp.value.trim() !== '') { let numSpan = inp.parentElement.querySelector('.cw-number'); cwData.push({ x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y), char: inp.value.toUpperCase(), num: numSpan ? parseInt(numSpan.innerText) : null }); } });
-            document.querySelectorAll('.cw-clue-input').forEach(inp => { cwClues.push({ num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word, clue: inp.value || inp.dataset.word }); });
-            document.getElementById('cw-modal').classList.add('hidden'); startGame();
         }
 
         /* --- GAME LOGIC --- */
@@ -630,21 +646,24 @@
             
             pool.innerHTML = '';
             
-            if(type === 'crossword') {
+           if(type === 'crossword') {
                 if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
+                
+                let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
+                
                 let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
                 for(let y=0; y<12; y++) {
                     for(let x=0; x<12; x++) {
                         let cell = cwData.find(c => c.x === x && c.y === y);
-                        if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
+                        if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
                         else gridHtml += `<div class="w-10 h-10"></div>`;
                     }
                 }
                 gridHtml += '</div>';
-                let cluesHtml = '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">';
-                cwClues.forEach(c => { cluesHtml += `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`; });
-                cluesHtml += '</div></div>';
-                stage.innerHTML = `<div class="flex flex-col items-center w-full">${gridHtml}${cluesHtml}</div>`;
+                
+                let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
+                
+                stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`;
                 document.getElementById('nav-step').innerHTML = ''; return;
             }
 
