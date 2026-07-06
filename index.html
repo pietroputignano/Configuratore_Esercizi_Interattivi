@@ -754,24 +754,11 @@
             }
             else if(type === 'domino') {
                 let nextExpected = items[1] || items[0];
-                let dominoChainHtml = `<div class="domino-chain custom-scrollbar" id="domino-board">
-                    <div class="domino-tile opacity-90 shadow-sm">
-                        <div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div>
-                        <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
-                    </div>
-                    <div id="target" class="drop-target" data-expected="${nextExpected.replace(/"/g, '&quot;')}">GLISSE ICI</div>
-                </div>`;
-                stage.innerHTML = `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`;
-                
+                let dominoChainHtml = '<div class="domino-chain custom-scrollbar" id="domino-board"><div class="domino-tile opacity-90 shadow-sm"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + items[0] + '</div></div><div id="target" class="drop-target" data-expected="' + nextExpected.replace(/"/g, '&quot;') + '">GLISSE ICI</div></div>';
+                stage.insertAdjacentHTML('beforeend', '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>');
                 const poolItems = [...items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = poolItems.map((it) => {
-                    let i = items.indexOf(it);
-                    const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
-                    const imgContent = dbImg[imgNeeded] ? `<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">` : '📷';
-                    return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img" onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')">${imgContent}</div><div class="tile-text">${it}</div></div>`;
-                }).join('');
-                document.getElementById('nav-step').innerHTML = '';
-                setupSortable('domino', null);
+                pool.innerHTML = poolItems.map((it) => { let i = items.indexOf(it); const imgNeeded = i === 0 ? items[items.length-1] : items[i-1]; const imgContent = dbImg[imgNeeded] ? '<img src="' + dbImg[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷<br>' + imgNeeded + '</span>'; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it.replace(/"/g, '&quot;') + '"><div class="tile-img" onclick="pickImg(\'' + imgNeeded.replace(/'/g, "\\'") + '\')">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join('');
+                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino');
             }
             else if(type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
@@ -1242,13 +1229,12 @@
                 pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it.replace(/"/g, '&quot;') + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it.replace(/"/g, '&quot;') + '">' + it + '</div>'; } }).join('');
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
-            else if(lvlConfig.type === 'domino') {
-                let nextExpected = GAME_CONFIG.items[1] || GAME_CONFIG.items[0];
-                let dominoChainHtml = '<div class="domino-chain custom-scrollbar" id="domino-board"><div class="domino-tile opacity-90 shadow-sm"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + GAME_CONFIG.items[0] + '</div></div><div id="target" class="drop-target" data-expected="' + nextExpected.replace(/"/g, '&quot;') + '">GLISSE ICI</div></div>';
-                stage.insertAdjacentHTML('beforeend', '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>');
-                const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '📷 ' + imgNeeded; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it.replace(/"/g, '&quot;') + '"><div class="tile-img">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join('');
-                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null);
+            else if(lvlConfig.type === 'domino') {",
+                "                let nextExpected = GAME_CONFIG.items[1] || GAME_CONFIG.items[0];",
+                "                stage.insertAdjacentHTML('beforeend', '<div class=\"w-full flex justify-center px-4\"><div class=\"domino-chain custom-scrollbar\" id=\"domino-board\"><div class=\"domino-tile opacity-90 shadow-sm\"><div class=\"tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0\">▶</div><div class=\"tile-text border-l-2 border-dashed border-blue-200\">' + GAME_CONFIG.items[0] + '</div></div><div id=\"target\" class=\"drop-target\" data-expected=\"' + nextExpected.replace(/\"/g, '&quot;') + '\">GLISSE ICI</div></div></div>');",
+                "                const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);",
+                "                pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src=\"' + GAME_CONFIG.images[imgNeeded] + '\" class=\"object-contain w-full h-full pointer-events-none\">' : '<span class=\"text-[10px] text-gray-500 font-bold uppercase text-center\">📷<br>' + imgNeeded + '</span>'; return '<div class=\"domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab\" data-word=\"' + it.replace(/\"/g, '&quot;') + '\"><div class=\"tile-img\">' + imgContent + '</div><div class=\"tile-text\">' + it + '</div></div>'; }).join('');",
+                "                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino');
             }
             else if(lvlConfig.type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
