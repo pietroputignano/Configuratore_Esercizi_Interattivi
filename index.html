@@ -998,7 +998,9 @@
                 showLecon: document.getElementById('in-show-lecon').checked,
                 lecon: leconText,
                 titre: titreText, 
-                mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, images: expImg, audio: expAud, 
+                mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData,
+                cwVerbLabel: cwVerbLabel, cwShowClues: cwShowClues,
+                images: expImg, audio: expAud, 
                 levels: { facile: { type: typeF, consigne: conFText, items: itemsF }, difficile: { type: typeD, consigne: conDText, items: itemsD } } 
             };
             jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
@@ -1190,12 +1192,12 @@
         function loadStep(idx) {
             curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; pool.innerHTML = '';
             if(lvlConfig.type === 'crossword') {
+                let labelHtml = GAME_CONFIG.cwVerbLabel ? '<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">' + GAME_CONFIG.cwVerbLabel + '</div>' : '';
                 let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
-                for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } }
+                for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } }
                 gridHtml += '</div>';
-                let cluesHtml = '<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">';
-                GAME_CONFIG.cwClues.forEach(c => { cluesHtml += '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>'; });
-                cluesHtml += '</div></div>'; stage.innerHTML = '<div class="flex flex-col items-center w-full">' + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return;
+                let cluesHtml = (GAME_CONFIG.cwShowClues && GAME_CONFIG.cwClues.length > 0) ? ('<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">' + GAME_CONFIG.cwClues.map(c => '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>').join('') + '</div></div>') : '';
+                stage.innerHTML = '<div class="flex flex-col items-center w-full">' + labelHtml + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return;
             }
             if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
             
