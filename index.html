@@ -32,21 +32,13 @@
         .nav-square.completed { background-color: var(--hfle-success); }
         .nav-square.error { background-color: var(--hfle-error); }
 
-        .domino-chain { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; align-items: center; padding: 2rem 1rem; width: 100%; min-height: 140px; border-radius: 16px; background: rgba(255,255,255,0.5); border: 2px dashed #cbd5e1; }
-        
-        .domino-tile { 
-            background: linear-gradient(to bottom, #ffffff, #f8fafc); 
-            border-radius: 16px; 
-            display: flex; 
-            height: 90px; 
-            width: 220px; 
-            cursor: grab; 
-            flex-shrink: 0; 
-            box-shadow: 0 8px 0 #cbd5e1, 0 12px 20px rgba(0,0,0,0.15); /* Effetto Spessore 3D */
-            border: 2px solid #e2e8f0;
-            transform: translateY(0);
-            transition: transform 0.1s, box-shadow 0.1s;
-            margin-bottom: 8px; /* Spazio per l'ombra 3D */
+ .domino-chain { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; align-items: center; padding: 2rem 1rem; width: 100%; min-height: 140px; border-radius: 16px; background: rgba(255,255,255,0.5); border: 2px dashed #cbd5e1; }
+        .domino-tile { background: linear-gradient(to bottom, #ffffff, #f8fafc) !important; border-radius: 16px !important; display: flex !important; height: 90px !important; width: 220px !important; cursor: grab; flex-shrink: 0 !important; box-shadow: 0 8px 0 #cbd5e1, 0 12px 20px rgba(0,0,0,0.15) !important; border: 2px solid #e2e8f0 !important; transform: translateY(0) !important; transition: transform 0.1s, box-shadow 0.1s !important; margin-bottom: 8px !important; padding: 0 !important; }
+        .domino-tile:active { transform: translateY(6px) !important; box-shadow: 0 2px 0 #cbd5e1, 0 5px 10px rgba(0,0,0,0.15) !important; }
+        .tile-img { width: 50%; display: flex; align-items: center; justify-content: center; border-right: 4px solid #e2e8f0; position: relative; padding: 6px; }
+        .tile-img img { max-height: 90%; max-width: 90%; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); }
+        .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; text-align: center; padding: 8px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; }
+        .drop-target { width: 220px !important; height: 90px !important; border: 4px dashed var(--hfle-orange) !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: var(--hfle-orange) !important; font-weight: 900 !important; font-size: 18px !important; flex-shrink: 0 !important; background: rgba(239, 169, 44, 0.1) !important; margin-bottom: 8px !important; }
         }
         .domino-tile:active {
             transform: translateY(6px); /* Si schiaccia quando la afferri */
@@ -784,24 +776,28 @@
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
             else if(type === 'domino') {
-                let nextExpected = items[1] || items[0];
-                let dominoChainHtml = `<div class="domino-chain custom-scrollbar" id="domino-board">
-                    <div class="domino-tile opacity-90 shadow-sm">
+                let targetSequence = [];
+                for(let i = 1; i < items.length; i++) { targetSequence.push(items[i]); }
+                if(items.length > 0) targetSequence.push(items[0]); // L'ultimo buco chiude il loop
+
+                let dominoChainHtml = `<div class="domino-chain" id="domino-board">
+                    <div class="domino-tile" style="box-shadow: 0 4px 0 #cbd5e1 !important; transform: none !important; cursor: default;">
                         <div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div>
-                        <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
-                    </div>
-                    <div id="target" class="drop-target" data-expected="${nextExpected}">GLISSE ICI</div>
-                </div>`;
+                        <div class="tile-text">${items[0]}</div>
+                    </div>`;
+                
+                targetSequence.forEach(w => {
+                    dominoChainHtml += `<div id="target-${w}" class="drop-target" data-expected="${w}"></div>`;
+                });
+                dominoChainHtml += `</div>`;
                 stage.innerHTML = `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`;
                 
                 const poolItems = [...items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = poolItems.map((it) => {
-                    let i = items.indexOf(it);
-                    const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
-                    return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1" data-word="${it}"><div class="tile-img" onclick="pickImg('${imgNeeded}')">${dbImg[imgNeeded]?`<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">`:`📷 ${imgNeeded}`}</div><div class="tile-text">${it}</div></div>`;
+                    let i = items.indexOf(it); const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
+                    return `<div class="domino-tile" data-word="${it}"><div class="tile-img" onclick="pickImg('${imgNeeded}')">${dbImg[imgNeeded]?`<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">`:`📷 ${imgNeeded}`}</div><div class="tile-text">${it}</div></div>`;
                 }).join('');
-                document.getElementById('nav-step').innerHTML = '';
-                setupSortable('domino', null);
+                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null);
             }
             else if(type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
@@ -863,13 +859,13 @@
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); 
             
-            if (mode === 'autocollantes' || mode === 'dressing') {
+            if (mode === 'autocollantes' || mode === 'dressing' || mode === 'domino') {
                 if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 
                 const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
                 const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
+                const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word);
 
                 targetWords.forEach(w => {
                     const tgt = document.getElementById('target-' + w);
@@ -882,29 +878,24 @@
                                 if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
                                     if (mode === 'dressing') {
                                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont";
+                                    } else if (mode === 'domino') {
+                                        e.item.className = "domino-tile";
+                                        e.item.style.setProperty('box-shadow', '0 4px 0 #cbd5e1', 'important');
+                                        e.item.style.setProperty('transform', 'none', 'important');
+                                        e.item.style.cursor = 'default';
                                     } else {
                                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
                                     }
                                     const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                                     e.item.removeAttribute('draggable');
-                                    e.target.innerHTML = '';
-                                    e.target.appendChild(e.item);
-                                    e.target.style.border = "none";
-                                    e.target.style.backgroundColor = "transparent";
-                                    playSound('global_ok');
-
+                                    e.target.innerHTML = ''; e.target.appendChild(e.item);
+                                    e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok');
+                                    
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                                    if (remainingPool.length === 0) {
-                                        setTimeout(() => showEndScreen(), 1500);
-                                    }
-                                } else {
-                                    errorTracker[0]++; 
-                                    playSound('global_ko');
-                                    e.item.classList.add('shake-error');
-                                    setTimeout(() => {
-                                        e.item.classList.remove('shake-error');
-                                        pool.appendChild(e.item);
-                                    }, 500);
+                                    if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); }
+                                } else { 
+                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
+                                    e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
                                 }
                             }
                         });
@@ -913,8 +904,7 @@
                 return;
             }
 
-            const target = document.getElementById('target');
-            if(!target) return;
+            const target = document.getElementById('target'); if(!target) return;
             
             if (mode === 'anagramme' || mode === 'sentence_ordering') {
                 new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
@@ -927,28 +917,7 @@
                 group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
-                    
-                    if(mode === 'domino') {
-                        const expectedWord = e.target.getAttribute('data-expected');
-                        if(dropped === expectedWord) {
-                            e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
-                            const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
-                            let currentIndex = items.indexOf(dropped); let nextIndex = (currentIndex + 1) % items.length;
-                            
-                            const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                            if (remainingPool.length === 0) { e.target.remove(); validate(true); } 
-                            else { e.target.setAttribute('data-expected', items[nextIndex]); playSound('global_ok'); }
-                        } else { 
-                            errorTracker[0]++; 
-                            playSound('global_ko');
-                            e.item.classList.add('shake-error');
-                            setTimeout(() => {
-                                e.item.classList.remove('shake-error');
-                                pool.appendChild(e.item);
-                            }, 500);
-                        }
-                    } 
-                    else if(mode === 'rebus') {
+                    if(mode === 'rebus') {
                         const targetAns = e.target.getAttribute('data-ans');
                         if(dropped.toLowerCase() === targetAns.toLowerCase()) {
                             e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont";
@@ -1175,307 +1144,28 @@
         let curStep = 0, curLvl = 'facile', status = []; let errorTracker = [];
         let isMuted = false;
         function toggleMute() { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted); }
-        function playSound(type) {
-            if (isMuted) return;
-            const audioSrc = GAME_CONFIG.audio[type];
-            if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
-            if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); }
-            if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-            const now = window.audioCtx.currentTime;
-            const playTone = (freq, wave, time, dur, vol) => {
-                const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
-                osc.type = wave; osc.frequency.setValueAtTime(freq, time);
-                gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
-                osc.connect(gain); gain.connect(window.audioCtx.destination);
-                osc.start(time); osc.stop(time + dur);
-            };
-            if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } 
-            else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } 
-            else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } 
-            else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } 
-            else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } 
-            else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); }
-        }
-
-        window.onload = () => { 
-            document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; 
-            document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; 
-            document.getElementById('res-badge').style.setProperty('--theme-color', GAME_CONFIG.uniteColor);
-            document.getElementById('start-screen').style.backgroundColor = GAME_CONFIG.uniteColor;
-            if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } 
-            else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); }
-        };
+        function playSound(type) { if (isMuted) return; const audioSrc = GAME_CONFIG.audio[type]; if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; } if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); } if (window.audioCtx.state === 'suspended') window.audioCtx.resume(); const now = window.audioCtx.currentTime; const playTone = (freq, wave, time, dur, vol) => { const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain(); osc.type = wave; osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + dur); osc.connect(gain); gain.connect(window.audioCtx.destination); osc.start(time); osc.stop(time + dur); }; if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); } }
+        window.onload = () => { document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-badge').style.setProperty('--theme-color', GAME_CONFIG.uniteColor); document.getElementById('start-screen').style.backgroundColor = GAME_CONFIG.uniteColor; if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); } };
         function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
-        
-        function showEndScreen() {
-            document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type;
-            let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10));
-            let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
-            if (type === 'crossword') { answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>'; } 
-            else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } 
-            else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } 
-            else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } 
-            else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); }
-            answersHtml += '</ul></div>';
-            setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100);
-            
-            const visualContainer = document.getElementById('visual-container');
-            const imgHigh = GAME_CONFIG.images['score_high']; const imgLow = GAME_CONFIG.images['score_low'];
-            if (visualContainer) {
-                if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = '<img src="' + imgHigh + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } 
-                else if (scorePerc < 50 && imgLow) { visualContainer.innerHTML = '<img src="' + imgLow + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } 
-                else {
-                    let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼');
-                    let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !');
-                    visualContainer.innerHTML = '<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">' + mascotText + '</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">' + mascotFace + '</div>';
-                }
-            }
-            if (scorePerc >= 50) playSound('report_high'); else playSound('report_low');
-            document.getElementById('end-score').innerHTML = answersHtml;
-        }
-
-        function checkCrossword(inputEl) {
-            if (inputEl && inputEl.value.trim() !== '') {
-                if (inputEl.value.toUpperCase() !== inputEl.dataset.ans) {
-                    errorTracker[0]++;
-                    playSound('global_ko');
-                    inputEl.classList.add('shake-error', 'text-red-500');
-                    setTimeout(() => {
-                        inputEl.classList.remove('shake-error', 'text-red-500');
-                        inputEl.value = '';
-                    }, 500);
-                } else {
-                    inputEl.classList.add('correct');
-                    playSound('drop');
-                }
-            }
-
-            let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
-            inputs.forEach(inp => {
-                if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; }
-                if(inp.value.trim() !== '') filledCount++;
-            });
-            if(allCorrect && filledCount === inputs.length && inputs.length > 0) {
-                playSound('global_ok');
-                setTimeout(() => showEndScreen(), 1500);
-            }
-        }
-
-        function checkOrder(mode) {
-            const target = document.getElementById('target');
-            const targetWord = GAME_CONFIG.items[curStep];
-            let isCorrect = false;
-            if (mode === 'anagramme') {
-                const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
-                isCorrect = (current === targetWord);
-            } else if (mode === 'sentence_ordering') {
-                const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
-                const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
-                isCorrect = (currentStr === expectedStr);
-            }
-            if (isCorrect) {
-                Array.from(target.children).forEach(el => {
-                    if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont";
-                    else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont";
-                });
-                target.style.border = "none"; target.style.background = "transparent";
-                document.getElementById('check-btn').classList.add('hidden');
-                validate(true);
-            } else {
-                playSound('global_ko');
-                target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500);
-                validate(false);
-            }
-        }
-
-        function loadStep(idx) {
-            curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; pool.innerHTML = '';
-            if(lvlConfig.type === 'crossword') {
-                let labelHtml = GAME_CONFIG.cwVerbLabel ? '<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">' + GAME_CONFIG.cwVerbLabel + '</div>' : '';
-                let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
-                for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } }
-                gridHtml += '</div>';
-                let cluesHtml = (GAME_CONFIG.cwShowClues && GAME_CONFIG.cwClues.length > 0) ? ('<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">' + GAME_CONFIG.cwClues.map(c => '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>').join('') + '</div></div>') : '';
-                stage.innerHTML = '<div class="flex flex-col items-center w-full">' + labelHtml + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return;
-            }
-            if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx];
-            
-            let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; 
-            if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { 
-                stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; 
-            }
-
-            if(lvlConfig.type === 'autocollantes') {
-                let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
-                GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it + '">' + shadowImg + '</div>'; });
-                boardHtml += '</div>'; stage.innerHTML = boardHtml;
-                const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join('');
-                document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null);
-            }
-            else if(lvlConfig.type === 'dressing') {
-                const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
-                const bgImage = getImg('mapper_bg');
-                const bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>';
-                
-                let zonesHtml = '';
-                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                zoneList.forEach(z => {
-                    const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
-                    let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>';
-                    let labelHtml = '';
-
-                    if (z.label) {
-                        if (z.label.includes('...')) {
-                            const parts = z.label.split('...');
-                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[0].trim() + '</span>' + 
-                                        targetDiv + 
-                                        '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[1].trim() + '</span>';
-                        } else {
-                            labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv;
-                        }
-                    } else {
-                        labelHtml = targetDiv;
-                    }
-
-                    zonesHtml += '<div class="absolute flex items-center gap-3" style="left:' + z.left + '; top:' + z.top + '; width:' + z.width + '; height:' + z.height + '">' + labelHtml + '</div>';
-                });
-
-                stage.innerHTML = '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>';
-                
-                const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = shuffled.map(it => {
-                    const stickerImg = getImg(it);
-                    if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it + '" onclick="pickImg(\\'' + it + '\\')"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } 
-                    else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source" data-word="' + it + '" onclick="pickImg(\\'' + it + '\\')">' + it + '</div>'; }
-                }).join('');
-                document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
-            }
-            else if(lvlConfig.type === 'domino') {
-                let nextExpected = GAME_CONFIG.items[1] || GAME_CONFIG.items[0];
-                let dominoChainHtml = '<div class="domino-chain custom-scrollbar" id="domino-board"><div class="domino-tile opacity-90 shadow-sm"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + GAME_CONFIG.items[0] + '</div></div><div id="target" class="drop-target" data-expected="' + nextExpected + '">GLISSE ICI</div></div>';
-                stage.innerHTML = '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>';
-                const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5);
-                pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '📷 ' + imgNeeded; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it + '"><div class="tile-img" onclick="pickImg(\\'' + imgNeeded + '\\')">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join('');
-                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null);
-            }
-            else if(lvlConfig.type === 'anagramme') {
-                const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto';
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word + '\\')">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
-                pool.innerHTML = '';
-                setupSortable('anagramme', word);
-            }
-            else if(lvlConfig.type === 'sentence_ordering') {
-                const chunks = word.split('/').map(c => c.trim()), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto', shuffled = [...chunks].sort(()=>Math.random()-0.5);
-                stage.innerHTML = '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word + '\\')">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>';
-                pool.innerHTML = '';
-                setupSortable('sentence_ordering', word);
-            }
-            else if(lvlConfig.type === 'rebus') {
-                const sentence = GAME_CONFIG.rebusData[word] || ('{' + word + '}');
-                const text = sentence.replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>');
-                let imgHtml = GAME_CONFIG.images[word] ? '<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6"><img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none"></div>' : '';
-                stage.innerHTML = '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>';
-                const shuffledItems = [...GAME_CONFIG.items].sort(() => Math.random() - 0.5);
-                pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="' + it + '">' + it + '</div>').join('');
-                setupSortable('rebus', word);
-            }
-
+        function showEndScreen() { document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10)); let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">'; if (type === 'crossword') { answersHtml += '<li class="text-blue-800 font-bold text-sm">Remplir la grille correctement.</li>'; } else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); } answersHtml += '</ul></div>'; setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100); const visualContainer = document.getElementById('visual-container'); const imgHigh = GAME_CONFIG.images['score_high']; const imgLow = GAME_CONFIG.images['score_low']; if (visualContainer) { if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = '<img src="' + imgHigh + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } else if (scorePerc < 50 && imgLow) { visualContainer.innerHTML = '<img src="' + imgLow + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } else { let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼'); let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !'); visualContainer.innerHTML = '<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">' + mascotText + '</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">' + mascotFace + '</div>'; } } if (scorePerc >= 50) playSound('report_high'); else playSound('report_low'); document.getElementById('end-score').innerHTML = answersHtml; }
+        function checkCrossword(inputEl) { if (inputEl && inputEl.value.trim() !== '') { if (inputEl.value.toUpperCase() !== inputEl.dataset.ans) { errorTracker[0]++; playSound('global_ko'); inputEl.classList.add('shake-error', 'text-red-500'); setTimeout(() => { inputEl.classList.remove('shake-error', 'text-red-500'); inputEl.value = ''; }, 500); } else { inputEl.classList.add('correct'); playSound('drop'); } } let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell'); inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; } if(inp.value.trim() !== '') filledCount++; }); if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(() => showEndScreen(), 1500); } }
+        function checkOrder(mode) { const target = document.getElementById('target'); const targetWord = GAME_CONFIG.items[curStep]; let isCorrect = false; if (mode === 'anagramme') { const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join(''); isCorrect = (current === targetWord); } else if (mode === 'sentence_ordering') { const expectedStr = targetWord.split('/').map(c=>c.trim()).join(''); const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join(''); isCorrect = (currentStr === expectedStr); } if (isCorrect) { Array.from(target.children).forEach(el => { if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont"; else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont"; }); target.style.border = "none"; target.style.background = "transparent"; document.getElementById('check-btn').classList.add('hidden'); validate(true); } else { playSound('global_ko'); target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500); validate(false); } }
+        function loadStep(idx) { curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; pool.innerHTML = '';
+            if(lvlConfig.type === 'crossword') { let labelHtml = GAME_CONFIG.cwVerbLabel ? '<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">' + GAME_CONFIG.cwVerbLabel + '</div>' : ''; let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">'; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } } gridHtml += '</div>'; let cluesHtml = (GAME_CONFIG.cwShowClues && GAME_CONFIG.cwClues.length > 0) ? ('<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">' + GAME_CONFIG.cwClues.map(c => '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>').join('') + '</div></div>') : ''; stage.innerHTML = '<div class="flex flex-col items-center w-full">' + labelHtml + gridHtml + cluesHtml + '</div>'; document.getElementById('nav-step').innerHTML = ''; return; }
+            if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx]; let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>'; }
+            if(lvlConfig.type === 'autocollantes') { let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">'; GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it + '">' + shadowImg + '</div>'; }); boardHtml += '</div>'; stage.innerHTML = boardHtml; const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it + '">' + stickerImg + '</div>'; }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null); }
+            else if(lvlConfig.type === 'dressing') { const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key]; const bgImage = getImg('mapper_bg'); const bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>'; let zonesHtml = ''; const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones; zoneList.forEach(z => { const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm'; let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>'; let labelHtml = ''; if (z.label) { if (z.label.includes('...')) { const parts = z.label.split('...'); labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[0].trim() + '</span>' + targetDiv + '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + parts[1].trim() + '</span>'; } else { labelHtml = '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv; } } else { labelHtml = targetDiv; } zonesHtml += '<div class="absolute flex items-center gap-3" style="left:' + z.left + '; top:' + z.top + '; width:' + z.width + '; height:' + z.height + '">' + labelHtml + '</div>'; }); stage.innerHTML = '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>'; const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it + '" onclick="pickImg(\\'' + it + '\\')"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source" data-word="' + it + '" onclick="pickImg(\\'' + it + '\\')">' + it + '</div>'; } }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null); }
+            else if(lvlConfig.type === 'domino') { let targetSequence = []; for(let i = 1; i < GAME_CONFIG.items.length; i++) { targetSequence.push(GAME_CONFIG.items[i]); } if(GAME_CONFIG.items.length > 0) targetSequence.push(GAME_CONFIG.items[0]); let dominoChainHtml = '<div class="domino-chain" id="domino-board"><div class="domino-tile" style="box-shadow: 0 4px 0 #cbd5e1 !important; transform: none !important; cursor: default;"><div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div><div class="tile-text">' + GAME_CONFIG.items[0] + '</div></div>'; targetSequence.forEach(w => { dominoChainHtml += '<div id="target-' + w + '" class="drop-target" data-expected="' + w + '"></div>'; }); dominoChainHtml += '</div>'; stage.innerHTML = '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>'; const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '📷 ' + imgNeeded; return '<div class="domino-tile" data-word="' + it + '"><div class="tile-img" onclick="pickImg(\\'' + imgNeeded + '\\')">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null); }
+            else if(lvlConfig.type === 'anagramme') { const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto'; stage.innerHTML = '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word + '\\')">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>'; pool.innerHTML = ''; setupSortable('anagramme', word); }
+            else if(lvlConfig.type === 'sentence_ordering') { const chunks = word.split('/').map(c => c.trim()), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto', shuffled = [...chunks].sort(()=>Math.random()-0.5); stage.innerHTML = '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word + '\\')">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105">Vérifier</button></div>'; pool.innerHTML = ''; setupSortable('sentence_ordering', word); }
+            else if(lvlConfig.type === 'rebus') { const sentence = GAME_CONFIG.rebusData[word] || ('{' + word + '}'); const text = sentence.replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>'); let imgHtml = GAME_CONFIG.images[word] ? '<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6"><img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none"></div>' : ''; stage.innerHTML = '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>'; const shuffledItems = [...GAME_CONFIG.items].sort(() => Math.random() - 0.5); pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="' + it + '">' + it + '</div>').join(''); setupSortable('rebus', word); }
             if (stepAudioHtml !== '') { stage.insertAdjacentHTML('afterbegin', stepAudioHtml); }
         }
-
-        function setupSortable(mode, targetWord) {
-            const pool = document.getElementById('pool'); 
-            
-            if (mode === 'autocollantes' || mode === 'dressing') {
-                if(!pool) return;
-                new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                
-                const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
-                const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
-
-                targetWords.forEach(w => {
-                    const tgt = document.getElementById('target-' + w);
-                    if (tgt) {
-                        new Sortable(tgt, {
-                            group: 'game', animation: 150, onStart: () => playSound('drag'),
-                            onAdd: (e) => {
-                                const dropped = e.item.getAttribute('data-word');
-                                const expectedWord = e.target.getAttribute('data-expected');
-                                if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
-                                    if (mode === 'dressing') {
-                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont";
-                                    } else {
-                                        e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
-                                    }
-                                    const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
-                                    e.item.removeAttribute('draggable');
-                                    e.target.innerHTML = ''; e.target.appendChild(e.item);
-                                    e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok');
-                                    
-                                    const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                                    if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); }
-                                } else { 
-                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
-                                    e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
-                                }
-                            }
-                        });
-                    }
-                });
-                return;
-            }
-
-            const target = document.getElementById('target'); if(!target) return;
-            
-            if (mode === 'anagramme' || mode === 'sentence_ordering') {
-                new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-                return;
-            }
-
-            if(!pool) return;
-            new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-            new Sortable(target, { 
-                group: 'game', animation: 150, onStart: () => playSound('drag'),
-                onAdd: (e) => {
-                    const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
-                    if(mode === 'domino') {
-                        const expectedWord = e.target.getAttribute('data-expected');
-                        if(dropped === expectedWord) {
-                            e.item.className = "domino-tile shadow-sm"; e.item.removeAttribute('draggable'); e.target.before(e.item);
-                            const board = document.getElementById('domino-board'); board.scrollLeft = board.scrollWidth;
-                            let currentIndex = GAME_CONFIG.items.indexOf(dropped); let nextIndex = (currentIndex + 1) % GAME_CONFIG.items.length;
-                            const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                            if (remainingPool.length === 0) { e.target.remove(); validate(true); } else { e.target.setAttribute('data-expected', GAME_CONFIG.items[nextIndex]); playSound('global_ok'); }
-                        } else { 
-                            e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
-                            e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
-                        }
-                    } 
-                    else if(mode === 'rebus') { const targetAns = e.target.getAttribute('data-ans'); if(dropped.toLowerCase() === targetAns.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } else { e.item.remove(); validate(false); } } else { e.item.remove(); validate(false); }
-                }
-            });
-        }
-
-        function validate(correct) {
-            const type = GAME_CONFIG.levels[curLvl].type;
-            if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } 
-            else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; playSound('global_ko'); } renderNav();
-        }
-
+        function setupSortable(mode, targetWord) { const pool = document.getElementById('pool'); if (mode === 'autocollantes' || mode === 'dressing' || mode === 'domino') { if(!pool) return; new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items; const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones; const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word); targetWords.forEach(w => { const tgt = document.getElementById('target-' + w); if (tgt) { new Sortable(tgt, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => { const dropped = e.item.getAttribute('data-word'); const expectedWord = e.target.getAttribute('data-expected'); if(dropped.toLowerCase() === expectedWord.toLowerCase()) { if (mode === 'dressing') { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont"; } else if (mode === 'domino') { e.item.className = "domino-tile"; e.item.style.setProperty('box-shadow', '0 4px 0 #cbd5e1', 'important'); e.item.style.setProperty('transform', 'none', 'important'); e.item.style.cursor = 'default'; } else { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none"; } const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.item.removeAttribute('draggable'); e.target.innerHTML = ''; e.target.appendChild(e.item); e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok'); const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost')); if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); } } else { e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500); } } }); } }); return; } const target = document.getElementById('target'); if(!target) return; if (mode === 'anagramme' || mode === 'sentence_ordering') { new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); return; } if(!pool) return; new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); new Sortable(target, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => { const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk'); if(mode === 'rebus') { const targetAns = e.target.getAttribute('data-ans'); if(dropped.toLowerCase() === targetAns.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } else { e.item.remove(); validate(false); } } else { e.item.remove(); validate(false); } } }); }
+        function validate(correct) { const type = GAME_CONFIG.levels[curLvl].type; if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; playSound('global_ko'); } renderNav(); }
         function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
         function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
         function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
-</html>`;
-
-            zip.file("index.html", playerHTML);
-            const customName = document.getElementById('in-filename') ? document.getElementById('in-filename').value.trim() : '';
-            const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
-            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
-        }
-    </script>
-</body>
-</html>
+</html>`
