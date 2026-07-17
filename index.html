@@ -1143,7 +1143,7 @@
             playerHTML += `<script>
         let curStep = 0, curLvl = 'facile', status = []; let errorTracker = [];
         let isMuted = false;
-        function toggleMute() { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted); }
+        { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted); }
         function playSound(type) { if (isMuted) return; const audioSrc = GAME_CONFIG.audio[type]; if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; } if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); } if (window.audioCtx.state === 'suspended') window.audioCtx.resume(); const now = window.audioCtx.currentTime; const playTone = (freq, wave, time, dur, vol) => { const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain(); osc.type = wave; osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + dur); osc.connect(gain); gain.connect(window.audioCtx.destination); osc.start(time); osc.stop(time + dur); }; if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); } }
         window.onload = () => { document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-badge').style.setProperty('--theme-color', GAME_CONFIG.uniteColor); document.getElementById('start-screen').style.backgroundColor = GAME_CONFIG.uniteColor; if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); } };
         function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
@@ -1168,4 +1168,12 @@
         function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
     <\/script>
 </body>
-</html>`
+</html>`;
+            zip.file("index.html", playerHTML);
+            const customName = document.getElementById('in-filename') ? document.getElementById('in-filename').value.trim() : '';
+            const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
+            zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
+        }
+    </script>
+</body>
+</html>
