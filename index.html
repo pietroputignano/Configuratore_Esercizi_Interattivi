@@ -32,14 +32,14 @@
         .nav-square.completed { background-color: var(--hfle-success); }
         .nav-square.error { background-color: var(--hfle-error); }
 
- .domino-chain { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; align-items: center; padding: 2rem 1rem; width: 100%; min-height: 140px; border-radius: 16px; background: rgba(255,255,255,0.5); border: 2px dashed #cbd5e1; }
-        .domino-tile { background: linear-gradient(to bottom, #ffffff, #f8fafc) !important; border-radius: 16px !important; display: flex !important; height: 90px !important; width: 220px !important; cursor: grab; flex-shrink: 0 !important; box-shadow: 0 8px 0 #cbd5e1, 0 12px 20px rgba(0,0,0,0.15) !important; border: 2px solid #e2e8f0 !important; transform: translateY(0) !important; transition: transform 0.1s, box-shadow 0.1s !important; margin-bottom: 8px !important; padding: 0 !important; }
-        .domino-tile:active { transform: translateY(6px) !important; box-shadow: 0 2px 0 #cbd5e1, 0 5px 10px rgba(0,0,0,0.15) !important; }
-        .tile-img { width: 50%; display: flex; align-items: center; justify-content: center; border-right: 4px solid #e2e8f0; position: relative; padding: 6px; }
-        .tile-img img { max-height: 90%; max-width: 90%; object-fit: contain; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1)); }
-        .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; text-align: center; padding: 8px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; }
-        .drop-target { width: 220px !important; height: 90px !important; border: 4px dashed var(--hfle-orange) !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: var(--hfle-orange) !important; font-weight: 900 !important; font-size: 18px !important; flex-shrink: 0 !important; background: rgba(239, 169, 44, 0.1) !important; margin-bottom: 8px !important; }
-        }
+/* STILE DOMINO REALISTICO */
+        .domino-chain { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px; align-items: center; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: rgba(255,255,255,0.5); border: 2px dashed #cbd5e1; align-content: flex-start; }
+        .domino-tile { background: linear-gradient(to bottom, #ffffff, #f1f5f9) !important; border-radius: 8px !important; display: flex !important; height: 80px !important; width: 180px !important; cursor: grab; flex-shrink: 0 !important; box-shadow: 2px 4px 0px #cbd5e1, 0 5px 10px rgba(0,0,0,0.15) !important; border: 1px solid #cbd5e1 !important; transform: translateY(0) !important; transition: all 0.1s !important; margin-bottom: 12px !important; padding: 0 !important; }
+        .domino-tile:active { transform: translate(2px, 4px) !important; box-shadow: 0 0 0 #cbd5e1, 0 2px 5px rgba(0,0,0,0.1) !important; }
+        .tile-img { width: 50%; display: flex; align-items: center; justify-content: center; border-right: 2px solid #cbd5e1; position: relative; padding: 6px; background: white; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+        .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; text-align: center; padding: 6px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; background: #f8fafc; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+        .drop-target { width: 180px !important; height: 80px !important; border: 3px dashed var(--hfle-orange) !important; border-radius: 8px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: var(--hfle-orange) !important; font-weight: 900 !important; font-size: 14px !important; flex-shrink: 0 !important; background: rgba(239, 169, 44, 0.1) !important; margin-bottom: 12px !important; transition: all 0.2s; }
         .domino-tile:active {
             transform: translateY(6px); /* Si schiaccia quando la afferri */
             box-shadow: 0 2px 0 #cbd5e1, 0 5px 10px rgba(0,0,0,0.15);
@@ -776,28 +776,24 @@
                 document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
             }
             else if(type === 'domino') {
-                let targetSequence = [];
-                for(let i = 1; i < items.length; i++) { targetSequence.push(items[i]); }
-                if(items.length > 0) targetSequence.push(items[0]); // L'ultimo buco chiude il loop
-
+                let nextExpected = items[1] || items[0];
                 let dominoChainHtml = `<div class="domino-chain" id="domino-board">
-                    <div class="domino-tile" style="box-shadow: 0 4px 0 #cbd5e1 !important; transform: none !important; cursor: default;">
-                        <div class="tile-img text-blue-300 text-3xl font-black bg-slate-50 border-r-0">▶</div>
+                    <div class="domino-tile" style="box-shadow: 2px 4px 0 #cbd5e1 !important; transform: none !important; cursor: default;">
+                        <div class="tile-img text-blue-300 text-3xl font-black bg-white border-r-2 border-slate-300">▶</div>
                         <div class="tile-text">${items[0]}</div>
-                    </div>`;
-                
-                targetSequence.forEach(w => {
-                    dominoChainHtml += `<div id="target-${w}" class="drop-target" data-expected="${w}"></div>`;
-                });
-                dominoChainHtml += `</div>`;
+                    </div>
+                    <div id="target" class="drop-target" data-expected="${nextExpected}">GLISSE ICI</div>
+                </div>`;
                 stage.innerHTML = `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`;
                 
                 const poolItems = [...items].sort(()=>Math.random()-0.5);
                 pool.innerHTML = poolItems.map((it) => {
-                    let i = items.indexOf(it); const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
+                    let i = items.indexOf(it);
+                    const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
                     return `<div class="domino-tile" data-word="${it}"><div class="tile-img" onclick="pickImg('${imgNeeded}')">${dbImg[imgNeeded]?`<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">`:`📷 ${imgNeeded}`}</div><div class="tile-text">${it}</div></div>`;
                 }).join('');
-                document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null);
+                document.getElementById('nav-step').innerHTML = '';
+                setupSortable('domino', null);
             }
             else if(type === 'anagramme') {
                 const shuffled = word.split('').sort(()=>Math.random()-0.5);
@@ -859,13 +855,13 @@
         function setupSortable(mode, targetWord) {
             const pool = document.getElementById('pool'); 
             
-            if (mode === 'autocollantes' || mode === 'dressing' || mode === 'domino') {
+            if (mode === 'autocollantes' || mode === 'dressing') {
                 if(!pool) return;
                 new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
                 
                 const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
                 const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-                const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word);
+                const targetWords = mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word);
 
                 targetWords.forEach(w => {
                     const tgt = document.getElementById('target-' + w);
@@ -878,24 +874,29 @@
                                 if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
                                     if (mode === 'dressing') {
                                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont";
-                                    } else if (mode === 'domino') {
-                                        e.item.className = "domino-tile";
-                                        e.item.style.setProperty('box-shadow', '0 4px 0 #cbd5e1', 'important');
-                                        e.item.style.setProperty('transform', 'none', 'important');
-                                        e.item.style.cursor = 'default';
                                     } else {
                                         e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none";
                                     }
                                     const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none";
                                     e.item.removeAttribute('draggable');
-                                    e.target.innerHTML = ''; e.target.appendChild(e.item);
-                                    e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok');
-                                    
+                                    e.target.innerHTML = '';
+                                    e.target.appendChild(e.item);
+                                    e.target.style.border = "none";
+                                    e.target.style.backgroundColor = "transparent";
+                                    playSound('global_ok');
+
                                     const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                                    if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); }
-                                } else { 
-                                    e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); 
-                                    e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500);
+                                    if (remainingPool.length === 0) {
+                                        setTimeout(() => showEndScreen(), 1500);
+                                    }
+                                } else {
+                                    errorTracker[0]++; 
+                                    playSound('global_ko');
+                                    e.item.classList.add('shake-error');
+                                    setTimeout(() => {
+                                        e.item.classList.remove('shake-error');
+                                        pool.appendChild(e.item);
+                                    }, 500);
                                 }
                             }
                         });
@@ -904,7 +905,8 @@
                 return;
             }
 
-            const target = document.getElementById('target'); if(!target) return;
+            const target = document.getElementById('target');
+            if(!target) return;
             
             if (mode === 'anagramme' || mode === 'sentence_ordering') {
                 new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
@@ -917,7 +919,38 @@
                 group: 'game', animation: 150, onStart: () => playSound('drag'),
                 onAdd: (e) => {
                     const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
-                    if(mode === 'rebus') {
+                    
+                    if(mode === 'domino') {
+                        const expectedWord = e.target.getAttribute('data-expected');
+                        if(dropped === expectedWord) {
+                            e.item.className = "domino-tile"; 
+                            e.item.style.setProperty('box-shadow', '2px 4px 0 #cbd5e1', 'important');
+                            e.item.style.setProperty('transform', 'none', 'important');
+                            e.item.style.cursor = 'default';
+                            e.item.removeAttribute('draggable'); 
+                            e.target.before(e.item);
+                            
+                            let currentIndex = items.indexOf(dropped); 
+                            let nextIndex = (currentIndex + 1) % items.length;
+                            
+                            const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
+                            if (remainingPool.length === 0) { 
+                                e.target.remove(); validate(true); 
+                            } else { 
+                                e.target.setAttribute('data-expected', items[nextIndex]); 
+                                playSound('global_ok'); 
+                            }
+                        } else { 
+                            errorTracker[0]++; 
+                            playSound('global_ko');
+                            e.item.classList.add('shake-error');
+                            setTimeout(() => {
+                                e.item.classList.remove('shake-error');
+                                pool.appendChild(e.item);
+                            }, 500);
+                        }
+                    } 
+                    else if(mode === 'rebus') {
                         const targetAns = e.target.getAttribute('data-ans');
                         if(dropped.toLowerCase() === targetAns.toLowerCase()) {
                             e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont";
