@@ -14,6 +14,39 @@ let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {};
 let cwVerbLabel = ""; let cwShowClues = true; 
 
 let isMuted = false;
+
+function isPlayerMode() { return typeof GAME_CONFIG !== 'undefined'; }
+function getCurrentType() {
+    if (isPlayerMode()) return GAME_CONFIG.levels?.[curLvl]?.type || 'sentence_ordering';
+    const id = curLvl === 'facile' ? 'type-f' : 'type-d';
+    return document.getElementById(id)?.value || 'sentence_ordering';
+}
+function getCurrentItems() {
+    if (isPlayerMode()) return GAME_CONFIG.levels?.[curLvl]?.items || [];
+    return items;
+}
+function syncPlayerConfig() {
+    if (!isPlayerMode()) return;
+    items = [...getCurrentItems()];
+    mappedZones = GAME_CONFIG.mappedZones || [];
+    cwData = GAME_CONFIG.cwData || [];
+    cwClues = GAME_CONFIG.cwClues || [];
+    rebusData = GAME_CONFIG.rebusData || {};
+    cwVerbLabel = GAME_CONFIG.cwVerbLabel || '';
+    cwShowClues = GAME_CONFIG.cwShowClues !== false;
+
+    const badge = document.getElementById('res-badge');
+    if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
+    const unite = String(GAME_CONFIG.unite ?? '1');
+    const titre = GAME_CONFIG.titre || 'Jeu';
+    document.getElementById('res-unite') && (document.getElementById('res-unite').innerText = unite);
+    document.getElementById('start-unite') && (document.getElementById('start-unite').innerText = unite);
+    document.getElementById('res-titre') && (document.getElementById('res-titre').innerText = titre);
+    document.getElementById('start-titre') && (document.getElementById('start-titre').innerText = titre);
+    const leconWrapper = document.getElementById('res-lecon-wrapper');
+    if (leconWrapper) leconWrapper.classList.toggle('hidden', GAME_CONFIG.showLecon === false);
+    document.getElementById('res-lecon') && (document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1');
+}
 function toggleMute() {
     isMuted = !isMuted;
     document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊';
@@ -49,6 +82,11 @@ function playSound(type) {
 }
 
 window.onload = () => {
+    if (isPlayerMode()) {
+        syncPlayerConfig();
+        showStartScreen();
+        return;
+    }
     document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`<option value="${t.id}">${t.n}</option>`).join(''); });
     const btnF = document.getElementById('type-f'); if(btnF) btnF.value = 'sentence_ordering';
     const btnD = document.getElementById('type-d'); if(btnD) btnD.value = 'dressing';
@@ -165,7 +203,7 @@ function saveZones() {
 }
 
 function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
-function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } document.getElementById('cw-builder-grid').innerHTML = html; }
+function buildCWGrid() { const gridEl = document.getElementById('cw-builder-grid'); if(!gridEl) return; let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } gridEl.innerHTML = html; }
 function findCWWords() {
     let grid = []; for(let y=0; y<12; y++) { grid[y] = []; for(let x=0; x<12; x++) { grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase(); } }
     let words = []; let counter = 1;
@@ -190,6 +228,7 @@ function closeCWBuilder() {
 
 /* --- GAME LOGIC --- */
 function initGame() {
+    if (isPlayerMode()) { syncPlayerConfig(); return; }
     const listId = curLvl === 'facile' ? 'items-list-f' : 'items-list-d';
     const listEl = document.getElementById(listId);
     if(!listEl) return;
@@ -228,7 +267,9 @@ function showStartScreen() {
 
 function startGame() {
     document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden');
-    const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+    if (isPlayerMode()) syncPlayerConfig();
+    const type = getCurrentType();
+    items = [...getCurrentItems()];
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
     else errorTracker = new Array(items.length).fill(0);
@@ -237,7 +278,7 @@ function startGame() {
 
 function showEndScreen() {
     document.getElementById('end-screen').classList.remove('hidden');
-    const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+    const type = getCurrentType();
     
     let errs = errorTracker.reduce((a, b) => a + b, 0);
     let scorePerc = Math.max(0, 100 - (errs * 10));
@@ -266,8 +307,10 @@ function showEndScreen() {
     answersHtml += '</ul></div>';
 
     setTimeout(() => {
-        document.getElementById('score-bar').style.width = scorePerc + '%';
-        document.getElementById('score-text').innerText = scorePerc + '%';
+        const scoreBar = document.getElementById('score-bar');
+        const scoreText = document.getElementById('score-text');
+        if(scoreBar) scoreBar.style.width = scorePerc + '%';
+        if(scoreText) scoreText.innerText = scorePerc + '%';
     }, 100);
 
     const imgHigh = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_high'] : dbImg['score_high'];
@@ -350,11 +393,17 @@ function checkOrder(mode) {
 function loadStep(idx) {
     curStep = idx; renderNav();
     const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
-    const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+    const type = getCurrentType();
     
-    const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
-    document.getElementById('res-consigne').innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder;
+    const resConsigne = document.getElementById('res-consigne');
+    if (isPlayerMode()) {
+        if (resConsigne) resConsigne.innerText = GAME_CONFIG.levels?.[curLvl]?.consigne || '';
+    } else {
+        const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
+        if (resConsigne && conInput) resConsigne.innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder;
+    }
     
+    stage.innerHTML = '';
     pool.innerHTML = '';
     
    if(type === 'crossword') {
@@ -543,7 +592,7 @@ function setupSortable(mode, targetWord) {
         if(!pool) return;
         new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
         
-        const itemArray = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
+        const itemArray = getCurrentItems();
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
         const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word);
 
@@ -614,15 +663,19 @@ function setupSortable(mode, targetWord) {
                 if(dropped.toLowerCase() === targetAns.toLowerCase()) {
                     e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont uppercase";
                     e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true);
-                } else { e.item.remove(); validate(false); }
+                } else {
+                    e.item.classList.add('shake-error');
+                    setTimeout(() => { e.item.classList.remove('shake-error'); pool.appendChild(e.item); }, 500);
+                    validate(false);
+                }
             } else { e.item.remove(); validate(false); }
         }
     });
 }
 
 function validate(correct) {
-    const type = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].type : document.getElementById('type-' + curLvl).value;
-    const itemsArr = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
+    const type = getCurrentType();
+    const itemsArr = getCurrentItems();
     
     if(correct) { 
         status[curStep]='completed'; playSound('global_ok'); 
@@ -639,8 +692,8 @@ function validate(correct) {
 }
 
 function renderNav() { 
-    const type = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].type : document.getElementById('type-' + curLvl).value;
-    const itemsArr = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
+    const type = getCurrentType();
+    const itemsArr = getCurrentItems();
     if(['crossword','domino','autocollantes','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
     document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i] || ''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
 }
@@ -649,7 +702,8 @@ function switchLvl(l) {
     curLvl = l; 
     document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
     document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
-    if (typeof GAME_CONFIG === 'undefined') { initGame(); startGame(); } else { startGame(); }
+    if (isPlayerMode()) syncPlayerConfig(); else initGame();
+    startGame();
 }
 
 function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
@@ -683,6 +737,17 @@ async function exportToZIP() {
     const zip = new JSZip(); 
     const assetsFolder = zip.folder("assets"); 
     const jsFolder = zip.folder("js");
+
+    try {
+        const [coreResp, styleResp] = await Promise.all([fetch('core.js'), fetch('style.css')]);
+        if (!coreResp.ok || !styleResp.ok) throw new Error('Impossibile leggere core.js o style.css');
+        jsFolder.file('core.js', await coreResp.text());
+        zip.file('style.css', await styleResp.text());
+    } catch (err) {
+        console.error(err);
+        alert('Export interrotto: avvia il configuratore tramite un web server (http/https), non direttamente con file://, così posso includere core.js e style.css nello ZIP.');
+        return;
+    }
 
     function dataURLtoBlob(url) { 
         let arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]; 
@@ -748,7 +813,20 @@ async function exportToZIP() {
         <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400 font-mont uppercase">COMMENCER</button>
     </div>
     <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
-        <div id="visual-container"></div>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+            <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
+            <div class="flex flex-col items-center md:items-start w-full max-w-sm">
+                <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
+                <div class="flex items-center gap-4 w-full mb-8">
+                    <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
+                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <button onclick="startGame()" class="font-bold text-gray-800">↺ Je rejoue</button>
+                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="font-bold text-gray-800">💡 Les solutions</button>
+                </div>
+            </div>
+        </div>
         <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
     </div>
     <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
@@ -758,6 +836,13 @@ async function exportToZIP() {
         </div>
         <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
             <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+        </div>
+        <div class="flex items-center gap-3 z-10 shrink-0">
+            <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+            </div>
+            <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200"><span id="mute-icon">🔊</span></button>
         </div>
     </div>
     <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
