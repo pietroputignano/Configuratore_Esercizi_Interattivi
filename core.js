@@ -666,7 +666,6 @@ function playConsigne() {
         const m = new SpeechSynthesisUtterance(consigneText); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); 
     } 
 }
-
 /* --- EXPORT JSZIP --- */
 async function exportToZIP() {
     const typeF = document.getElementById('type-f').value; 
