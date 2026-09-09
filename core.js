@@ -49,7 +49,7 @@ function playSound(type) {
 }
 
 window.onload = () => {
-    document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`<option value="${t.id}">${t.n}</option>`).join(''); });
+    document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`${t.n}`).join(''); });
     const btnF = document.getElementById('type-f'); if(btnF) btnF.value = 'sentence_ordering';
     const btnD = document.getElementById('type-d'); if(btnD) btnD.value = 'dressing';
     toggleToolBtns('f'); toggleToolBtns('d');
@@ -71,7 +71,9 @@ function openRebusBuilder() {
     let html = '';
     items.forEach(word => {
         const prevSentence = rebusData[word] || `Oggi mangio la {${word}}`;
-        html += `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><label class="font-bold text-green-800 uppercase block mb-1">Parola: ${word}</label><input type="text" class="rebus-input w-full border border-gray-300 p-2 rounded" data-word="${word.replace(/"/g, '&quot;')}" value="${prevSentence.replace(/"/g, '&quot;')}"></div>`;
+        html += `
+Parola: ${word}
+`;
     });
     document.getElementById('rebus-sentences-container').innerHTML = html; document.getElementById('rebus-modal').classList.remove('hidden');
 }
@@ -106,9 +108,10 @@ function alignZones(prop) {
 function addZone() {
     const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center rounded-md'; z.style.cssText = "width:25%; height:12%; left:35%; top:40%;";
     const word = items[mappedZones.length] || "verbo";
-    z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (usa ... per buco)" value="" onmousedown="event.stopPropagation()">
-                   <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${word.replace(/"/g, '&quot;')}" onmousedown="event.stopPropagation()">
-                   <div class="resize-handle"></div>`;
+    z.innerHTML = `
+                   
+                   
+`;
     document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
 }
 
@@ -165,7 +168,8 @@ function saveZones() {
 }
 
 function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
-function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } document.getElementById('cw-builder-grid').innerHTML = html; }
+function buildCWGrid() { let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `
+`; } } document.getElementById('cw-builder-grid').innerHTML = html; }
 function findCWWords() {
     let grid = []; for(let y=0; y<12; y++) { grid[y] = []; for(let x=0; x<12; x++) { grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase(); } }
     let words = []; let counter = 1;
@@ -175,9 +179,14 @@ function findCWWords() {
     let starts = {}; words.forEach(w => { let key = `${w.x}-${w.y}`; if(!starts[key]) starts[key] = counter++; w.num = starts[key]; });
     document.querySelectorAll('.cw-number').forEach(e => e.remove());
     Object.keys(starts).forEach(key => { let [x,y] = key.split('-'); let cellWrap = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).parentElement; let span = document.createElement('span'); span.className = 'cw-number'; span.innerText = starts[key]; cellWrap.appendChild(span); });
-    let cluesHtml = `<h4 class="font-bold text-blue-900 border-b pb-2 mb-3">Definizioni</h4><div class="grid grid-cols-2 gap-4">`;
-    words.sort((a,b) => a.num - b.num).forEach(w => { let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale'; let prevClue = cwClues.find(c => c.word === w.word && c.dir === w.dir)?.clue || ""; cluesHtml += `<div><label class="text-xs font-bold text-gray-700 block">${w.num}. ${label} (${w.word})</label><input type="text" class="cw-clue-input w-full border border-gray-300 rounded p-2 text-xs" data-word="${w.word.replace(/"/g, '&quot;')}" data-num="${w.num}" data-dir="${w.dir}" value="${prevClue.replace(/"/g, '&quot;')}"></div>`; });
-    cluesHtml += `</div>`; document.getElementById('cw-clues-container').innerHTML = cluesHtml; document.getElementById('cw-clues-container').classList.remove('hidden');
+    let cluesHtml = `
+Definizioni
+`;
+    words.sort((a,b) => a.num - b.num).forEach(w => { let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale'; let prevClue = cwClues.find(c => c.word === w.word && c.dir === w.dir)?.clue || ""; cluesHtml += `
+${w.num}. ${label} (${w.word})
+`; });
+    cluesHtml += `
+`; document.getElementById('cw-clues-container').innerHTML = cluesHtml; document.getElementById('cw-clues-container').classList.remove('hidden');
 }
 function closeCWBuilder() {
     cwData = []; cwClues = [];
@@ -242,28 +251,42 @@ function showEndScreen() {
     let errs = errorTracker.reduce((a, b) => a + b, 0);
     let scorePerc = Math.max(0, 100 - (errs * 10));
 
-    let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+    let answersHtml = '
+
+Les solutions
+';
     if (type === 'crossword') {
-        cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; });
+        cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `
+${c.num}. ${dirLabel} : ${c.word}
+`; });
     } else if (type === 'domino') {
-        answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
+        answersHtml += `
+${items.join(' ➔ ')}
+`;
     } else if (type === 'sentence_ordering' || type === 'anagramme') {
         items.forEach(it => {
             let correctSentence = type === 'sentence_ordering' ? it.split('/').map(w => w.trim()).join(' ') : it;
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
+            answersHtml += `
+${correctSentence}
+`;
         });
     } else if (type === 'rebus') {
         items.forEach(it => {
             let sentence = rebusData[it] || `{${it}}`;
-            let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>');
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`;
+            let solved = sentence.replace(/{([^}]+)}/g, '$1');
+            answersHtml += `
+${solved}
+`;
         });
     } else {
         items.forEach(it => {
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`;
+            answersHtml += `
+${it}
+`;
         });
     }
-    answersHtml += '</ul></div>';
+    answersHtml += '
+';
 
     setTimeout(() => {
         document.getElementById('score-bar').style.width = scorePerc + '%';
@@ -276,13 +299,18 @@ function showEndScreen() {
     
     if (visualContainer) {
         if (scorePerc >= 50 && imgHigh) {
-            visualContainer.innerHTML = `<img src="${imgHigh}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
+            visualContainer.innerHTML = ``;
         } else if (scorePerc < 50 && imgLow) {
-            visualContainer.innerHTML = `<img src="${imgLow}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
+            visualContainer.innerHTML = ``;
         } else {
             let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼');
-            let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !');
-            visualContainer.innerHTML = `<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">${mascotText}</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">${mascotFace}</div>`;
+            let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien
+joué !' : 'Essaie
+encore !');
+            visualContainer.innerHTML = `
+${mascotText}
+${mascotFace}
+`;
         }
     }
     
@@ -364,28 +392,45 @@ function loadStep(idx) {
     else { ttsText = document.getElementById('tts-context-' + (curLvl === 'facile' ? 'f' : 'd'))?.value; }
 
     if (ttsText && ttsText.trim() !== '') {
-        const safeText = ttsText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        stage.insertAdjacentHTML('afterbegin', `<button onclick="const m = new SpeechSynthesisUtterance('${safeText}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-emerald-100 border-2 border-emerald-400 text-emerald-800 rounded-full px-6 py-2 font-black text-sm hover:bg-emerald-200 transition shadow-sm flex items-center gap-2 mx-auto font-mont uppercase">📢 Écoute Tout</button>`);
+        const safeText = ttsText.replace(/'/g, "\\'").replace(/"/g, '"');
+        stage.insertAdjacentHTML('afterbegin', `📢 Écoute Tout`);
     }
     
    if(type === 'crossword') {
-        if(cwData.length === 0) { stage.insertAdjacentHTML('beforeend', "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"); return; }
+        if(cwData.length === 0) { stage.insertAdjacentHTML('beforeend', "
+Usa il Costruttore Cruciverba (🧩).
+"); return; }
         
-        let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
+        let labelHtml = cwVerbLabel ? `
+${cwVerbLabel}
+` : '';
         
-        let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
+        let gridHtml = '
+';
         for(let y=0; y<12; y++) {
             for(let x=0; x<12; x++) {
                 let cell = cwData.find(c => c.x === x && c.y === y);
-                if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
-                else gridHtml += `<div class="w-10 h-10"></div>`;
+                if(cell) gridHtml += `
+${cell.num || ''}
+`;
+                else gridHtml += `
+`;
             }
         }
-        gridHtml += '</div>';
+        gridHtml += '
+';
         
-        let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
+        let cluesHtml = (cwShowClues && cwClues.length > 0) ? `
+
+Définitions
+` + cwClues.map(c => `
+${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} : ${c.clue}
+`).join('') + `
+` : '';
         
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`);
+        stage.insertAdjacentHTML('beforeend', `
+${labelHtml}${gridHtml}${cluesHtml}
+`);
         document.getElementById('nav-step').innerHTML = ''; return;
     }
 
@@ -397,29 +442,37 @@ function loadStep(idx) {
     const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
     
     if (audioSrc && type !== 'dressing') {
-        stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
+        stepAudioHtml = `▶ ÉCOUTE`;
     } else if (['sentence_ordering', 'anagramme', 'rebus'].includes(type)) {
-        let safeWord = word.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\//g, ' ');
+        let safeWord = word.replace(/'/g, "\\'").replace(/"/g, '"').replace(/\//g, ' ');
         if (type === 'rebus') {
             const rData = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.rebusData : rebusData;
             safeWord = (rData[word] || word).replace(/[{}]/g, '').replace(/'/g, "\\'");
         }
-        stepAudioHtml = `<button onclick="const m = new SpeechSynthesisUtterance('${safeWord}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
+        stepAudioHtml = `▶ ÉCOUTE`;
     }
 
     if(type === 'autocollantes') {
-        let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
+        let boardHtml = '
+';
         items.forEach(it => {
-            const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`;
-            boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it.replace(/'/g, "\\'")}_shadow')" data-expected="${it.replace(/"/g, '&quot;')}">${shadowImg}</div>`;
+            const shadowImg = dbImg[it + '_shadow'] ? `` : `📷 Ombre
+${it}`;
+            boardHtml += `
+${shadowImg}
+`;
         });
-        boardHtml += '</div>';
+        boardHtml += '
+';
         stage.insertAdjacentHTML('beforeend', boardHtml);
 
         const shuffled = [...items].sort(()=>Math.random()-0.5);
         pool.innerHTML = shuffled.map(it => {
-            const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`;
-            return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')">${stickerImg}</div>`;
+            const stickerImg = dbImg[it] ? `` : `📷 Sticker
+${it}`;
+            return `
+${stickerImg}
+`;
         }).join('');
 
         document.getElementById('nav-step').innerHTML = '';
@@ -428,39 +481,49 @@ function loadStep(idx) {
     else if(type === 'dressing') {
         const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
         const bgImage = getImg('mapper_bg');
-        const bg = bgImage ? `<img src="${bgImage}" class="absolute inset-0 w-full h-full object-cover">` : `<div class="p-10 text-gray-400">Nessuno Sfondo</div>`;
+        const bg = bgImage ? `` : `
+Nessuno Sfondo
+`;
         
         let zonesHtml = '';
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
         
         zoneList.forEach(z => {
             const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
-            let targetDiv = `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
+            let targetDiv = `
+`;
             let labelHtml = '';
 
             if (z.label) {
                 if (z.label.includes('...')) {
                     const parts = z.label.split('...');
-                    labelHtml = `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${parts[0].trim()}</span>` + 
+                    labelHtml = `${parts[0].trim()}` + 
                                 targetDiv + 
-                                `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${parts[1].trim()}</span>`;
+                                `${parts[1].trim()}`;
                 } else {
-                    labelHtml = `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label.trim()}</span>` + targetDiv;
+                    labelHtml = `${z.label.trim()}` + targetDiv;
                 }
             } else {
                 labelHtml = targetDiv;
             }
 
-            zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">${labelHtml}</div>`;
+            zonesHtml += `
+${labelHtml}
+`;
         });
 
-        stage.insertAdjacentHTML('beforeend', `<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
+        stage.insertAdjacentHTML('beforeend', `
+${bg}${zonesHtml}
+`);
         
         const shuffled = [...items].sort(()=>Math.random()-0.5);
         pool.innerHTML = shuffled.map(it => {
             const stickerImg = getImg(it);
-            if (stickerImg) { return `<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')"><img src="${stickerImg}" class="max-h-full object-contain pointer-events-none"></div>`; } 
-            else { return `<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')">${it}</div>`; }
+            if (stickerImg) { return `
+`; } 
+            else { return `
+${it}
+`; }
         }).join('');
         document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
     }
@@ -469,61 +532,103 @@ function loadStep(idx) {
         for(let i = 1; i < items.length; i++) targetSequence.push(items[i]);
         if(items.length > 0) targetSequence.push(items[0]);
 
-        let dominoChainHtml = `<div class="domino-chain" id="domino-board">
-            <div class="domino-tile opacity-90 cursor-default" style="box-shadow: 0 4px 0 var(--hfle-blue) !important; transform: none !important;">
-                <div class="tile-img text-blue-300 text-3xl font-black border-r-0">▶</div>
-                <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
-            </div>`;
+        let dominoChainHtml = `
+
+            
+
+                
+▶
+
+                
+${items[0]}
+
+            
+`;
         targetSequence.forEach(w => {
-            dominoChainHtml += `<div class="domino-connector">➔</div>`;
-            dominoChainHtml += `<div id="target-${w}" class="drop-target" data-expected="${w.replace(/"/g, '&quot;')}"></div>`;
+            dominoChainHtml += `
+➔
+`;
+            dominoChainHtml += `
+`;
         });
-        dominoChainHtml += `</div>`;
-        stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`);
+        dominoChainHtml += `
+`;
+        stage.insertAdjacentHTML('beforeend', `
+${dominoChainHtml}
+`);
         
         const poolItems = [...items].sort(()=>Math.random()-0.5);
         pool.innerHTML = poolItems.map((it) => {
             let i = items.indexOf(it);
             const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
-            const imgContent = dbImg[imgNeeded] ? `<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷<br>${imgNeeded}</span>`;
-            return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img" onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')">${imgContent}</div><div class="tile-text">${it}</div></div>`;
+            const imgContent = dbImg[imgNeeded] ? `` : `📷
+${imgNeeded}`;
+            return `
+
+${imgContent}
+${it}
+`;
         }).join('');
         document.getElementById('nav-step').innerHTML = '';
         setupSortable('domino', null);
     }
     else if(type === 'anagramme') {
         const shuffled = word.split('').sort(()=>Math.random()-0.5);
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8">
-            <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
-            <div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l.replace(/"/g, '&quot;')}">${l.toLowerCase()}</div>`).join('') + 
-            `</div>
-            <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
-        </div>`);
+        const imgContent = dbImg[word] ? `` : '📷 Foto';
+        stage.insertAdjacentHTML('beforeend', `
+
+            
+${imgContent}
+
+            
+` 
+                + shuffled.map(l => `
+${l.toLowerCase()}
+`).join('') + 
+            `
+
+            Vérifier
+        
+`);
         pool.innerHTML = '';
         setupSortable('anagramme', word);
     }
     else if(type === 'sentence_ordering') {
         const chunks = word.split('/').map(c => c.trim());
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
+        const imgContent = dbImg[word] ? `` : '📷 Foto';
         const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
-            <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
-            `</div>
-            <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
-        </div>`);
+        stage.insertAdjacentHTML('beforeend', `
+
+${imgContent}
+
+            
+` 
+                + shuffled.map(c => `
+${c}
+`).join('') + 
+            `
+
+            Vérifier
+        
+`);
         pool.innerHTML = '';
         setupSortable('sentence_ordering', word);
     }
     else if(type === 'rebus') {
         const sentence = rebusData[word] || `{${word}}`;
-        const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full max-w-3xl gap-6"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer hover:scale-105 transition" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div><div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`);
+        const text = sentence.replace(/{([^}]+)}/g, `
+`);
+        const imgContent = dbImg[word] ? `` : '📷 Immagine
+(Opzionale)';
+        stage.insertAdjacentHTML('beforeend', `
+
+${imgContent}
+${text}
+`);
         const shuffledItems = [...items].sort(() => Math.random() - 0.5);
-        pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}">${it}</div>`).join('');
+        pool.innerHTML = shuffledItems.map(it => `
+${it}
+`).join('');
         setupSortable('rebus', word);
     }
 
@@ -636,7 +741,9 @@ function renderNav() {
     const type = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].type : document.getElementById('type-' + curLvl).value;
     const itemsArr = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.items : items;
     if(['crossword','domino','autocollantes','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
-    document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i] || ''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
+    document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `
+${i+1}
+`).join(''); 
 }
 
 function switchLvl(l) { 
@@ -711,98 +818,4 @@ async function exportToZIP() {
     };
     jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
 
-    let playerHTML = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>bSmart | ' + gameConfig.titre + '</title>\n<script src="https://cdn.tailwindcss.com"><\\/script>\n<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"><\\/script>\n<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">\n<script src="js/config.js"><\\/script>\n';
-    playerHTML = playerHTML.replace(/\\/g, ""); 
-    
-    playerHTML += `<style>
-:root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; } body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; } .font-mont { font-family: 'Montserrat', sans-serif; } .font-source { font-family: 'Source Sans Pro', sans-serif; } .h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; } .unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); } .unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; } .unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; } .lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); } .header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; } .striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); } .nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; } .nav-square:hover { transform: translateY(-2px); } .nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); } .nav-square.completed { background-color: var(--hfle-success); } .nav-square.error { background-color: var(--hfle-error); } 
-.domino-chain { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; align-items: center; padding: 1.5rem; width: 100%; min-height: 140px; border-radius: 16px; background: rgba(255,255,255,0.6); border: 2px dashed #cbd5e1; } .domino-tile { background: white !important; border-radius: 12px !important; display: flex !important; height: 85px !important; width: 190px !important; cursor: grab; flex-shrink: 0 !important; box-shadow: 0 6px 0 var(--hfle-blue), 0 10px 15px rgba(0,0,0,0.1) !important; border: 3px solid var(--hfle-blue) !important; transform: translateY(0) !important; transition: 0.1s !important; margin-bottom: 6px !important; padding: 0 !important; } .domino-tile:active { transform: translateY(6px) !important; box-shadow: 0 0 0 var(--hfle-blue), 0 2px 5px rgba(0,0,0,0.1) !important; } .tile-img { width: 50%; display: flex; align-items: center; justify-content: center; border-right: 2px dashed var(--hfle-blue); position: relative; padding: 4px; background: #fff; border-top-left-radius: 12px; border-bottom-left-radius: 12px; } .tile-img img { max-height: 85%; max-width: 85%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); } .tile-text { width: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; text-align: center; padding: 4px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; } .drop-target { width: 190px !important; height: 85px !important; border: 3px dashed var(--hfle-orange) !important; border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: var(--hfle-orange) !important; font-weight: bold !important; font-size: 18px !important; flex-shrink: 0 !important; background: rgba(239, 169, 44, 0.1) !important; margin-bottom: 6px !important; } .domino-connector { color: var(--hfle-orange); font-size: 38px; font-weight: 900; margin: 0 8px; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); } .rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; } .modal-bg { background: rgba(0,0,0,0.85); z-index: 100; } .cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; } .cw-cell-wrapper { position: relative; width: 35px; height: 35px; } .cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; } .cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; } .cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; } .cw-play-wrapper { position: relative; width: 40px; height: 40px; } .cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; transition: 0.3s; } .cw-play-cell:focus { background: #e0f2fe; } .cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; } .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-8px); } } .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; } .shake-error > div { background-color: #fee2e2 !important; }
-</style>\n</head>\n`;
-
-    playerHTML += `<body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
-<div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
-    <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
-        <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase font-mont">Unité <span id="start-unite"></span></h2>
-        <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-mont leading-tight break-words px-4"></h1>
-        <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400 font-mont uppercase">COMMENCER</button>
-    </div>
-    <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
-        <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-            <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
-                <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">Essaie<br>encore !</div>
-                <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
-            </div>
-            <div class="flex flex-col items-center md:items-start w-full max-w-sm">
-                <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
-                <div class="flex items-center gap-4 w-full mb-8">
-                    <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
-                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-6">
-                    <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
-                </div>
-            </div>
-        </div>
-        <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
-    </div>
-    <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
-        <div class="flex flex-col items-center md:items-start z-10 shrink-0">
-            <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
-            <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
-        </div>
-        <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-            <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-        </div>
-        <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
-            <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son"><span id="mute-icon">🔊</span></button>
-        </div>
-    </div>
-    <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
-        <div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full">
-            <button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button>
-            <p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p>
-        </div>
-        <div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div>
-        <div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div>
-    </div>
-    <div id="nav-step" class="striped-footer flex justify-center gap-3 flex-wrap mt-auto"></div>
-</div>\n`;
-
-    playerHTML += `<script src="core.js"><\\/script>
-</body>
-</html>`;
-    playerHTML = playerHTML.replace(/\\/g, ""); 
-    
-    const coreJsString = `
-let curStep = 0, curLvl = 'facile', status = []; let errorTracker = []; let isMuted = false;
-function toggleMute() { isMuted = !isMuted; document.getElementById('mute-icon').innerText = isMuted ? '🔇' : '🔊'; document.getElementById('mute-btn').classList.toggle('opacity-50', isMuted); }
-function playSound(type) { if (isMuted) return; const audioSrc = GAME_CONFIG.audio[type]; if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; } if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); } if (window.audioCtx.state === 'suspended') window.audioCtx.resume(); const now = window.audioCtx.currentTime; const playTone = (freq, wave, time, dur, vol) => { const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain(); osc.type = wave; osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, time + dur); osc.connect(gain); gain.connect(window.audioCtx.destination); osc.start(time); osc.stop(time + dur); }; if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); } }
-window.onload = () => { document.getElementById('start-unite').innerText = GAME_CONFIG.unite; document.getElementById('start-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-unite').innerText = GAME_CONFIG.unite; document.getElementById('res-titre').innerText = GAME_CONFIG.titre; document.getElementById('res-badge').style.setProperty('--theme-color', GAME_CONFIG.uniteColor); document.getElementById('start-screen').style.backgroundColor = GAME_CONFIG.uniteColor; if(GAME_CONFIG.showLecon) { document.getElementById('res-lecon-wrapper').classList.remove('hidden'); document.getElementById('res-lecon').innerText = GAME_CONFIG.lecon || '1'; } else { document.getElementById('res-lecon-wrapper').classList.add('hidden'); } startGame(); };
-function startGame() { document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); GAME_CONFIG.items = GAME_CONFIG.levels[curLvl].items; const type = GAME_CONFIG.levels[curLvl].type; status = new Array(GAME_CONFIG.items.length).fill('pending'); if(['domino', 'autocollantes', 'dressing', 'crossword'].includes(type)) errorTracker = [0]; else errorTracker = new Array(GAME_CONFIG.items.length).fill(0); loadStep(0); }
-function showEndScreen() { document.getElementById('end-screen').classList.remove('hidden'); const type = GAME_CONFIG.levels[curLvl].type; let errs = errorTracker.reduce((a, b) => a + b, 0); let scorePerc = Math.max(0, 100 - (errs * 10)); let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">'; if (type === 'crossword') { GAME_CONFIG.cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>' + c.num + '. ' + dirLabel + ' :</b> ' + c.word + '</li>'; }); } else if (type === 'domino') { answersHtml += '<li class="text-blue-800 font-bold text-sm leading-relaxed">' + GAME_CONFIG.items.join(' <span class="text-orange-500">➔</span> ') + '</li>'; } else if (type === 'sentence_ordering') { GAME_CONFIG.items.forEach(it => { let correctSentence = it.split('/').map(w => w.trim()).join(' '); answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + correctSentence + '</li>'; }); } else if (type === 'rebus') { GAME_CONFIG.items.forEach(it => { let sentence = GAME_CONFIG.rebusData[it] || ('{' + it + '}'); let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>'); answersHtml += '<div class="text-blue-800 border-b border-gray-50 py-2 text-sm">' + solved + '</div>'; }); } else { GAME_CONFIG.items.forEach(it => { answersHtml += '<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">' + it + '</li>'; }); } answersHtml += '</ul></div>'; setTimeout(() => { document.getElementById('score-bar').style.width = scorePerc + '%'; document.getElementById('score-text').innerText = scorePerc + '%'; }, 100); const visualContainer = document.getElementById('visual-container'); const imgHigh = GAME_CONFIG.images['score_high']; const imgLow = GAME_CONFIG.images['score_low']; if (visualContainer) { if (scorePerc >= 50 && imgHigh) { visualContainer.innerHTML = '<img src="' + imgHigh + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } else if (scorePerc < 50 && imgLow) { visualContainer.innerHTML = '<img src="' + imgLow + '" class="w-full h-full object-contain drop-shadow-xl scale-125">'; } else { let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼'); let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !'); visualContainer.innerHTML = '<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">' + mascotText + '</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">' + mascotFace + '</div>'; } } if (scorePerc >= 50) playSound('report_high'); else playSound('report_low'); document.getElementById('end-score').innerHTML = answersHtml; }
-function checkCrossword(inputEl) { if (inputEl && inputEl.value.trim() !== '') { if (inputEl.value.toUpperCase() !== inputEl.dataset.ans) { errorTracker[0]++; playSound('global_ko'); inputEl.classList.add('shake-error', 'text-red-500'); setTimeout(() => { inputEl.classList.remove('shake-error', 'text-red-500'); inputEl.value = ''; }, 500); } else { inputEl.classList.add('correct'); playSound('drop'); } } let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell'); inputs.forEach(inp => { if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; } if(inp.value.trim() !== '') filledCount++; }); if(allCorrect && filledCount === inputs.length && inputs.length > 0) { playSound('global_ok'); setTimeout(() => showEndScreen(), 1500); } }
-function checkOrder(mode) { const target = document.getElementById('target'); const targetWord = GAME_CONFIG.items[curStep]; let isCorrect = false; if (mode === 'anagramme') { const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join(''); isCorrect = (current === targetWord); } else if (mode === 'sentence_ordering') { const expectedStr = targetWord.split('/').map(c=>c.trim()).join(''); const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join(''); isCorrect = (currentStr === expectedStr); } if (isCorrect) { Array.from(target.children).forEach(el => { if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont"; else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont"; }); target.style.border = "none"; target.style.background = "transparent"; document.getElementById('check-btn').classList.add('hidden'); validate(true); } else { playSound('global_ko'); target.classList.add('shake-error'); setTimeout(() => target.classList.remove('shake-error'), 500); validate(false); } }
-function loadStep(idx) { curStep = idx; renderNav(); const stage = document.getElementById('main-content'); const pool = document.getElementById('pool'); const lvlConfig = GAME_CONFIG.levels[curLvl]; document.getElementById('res-consigne').innerText = lvlConfig.consigne; stage.innerHTML = ''; pool.innerHTML = ''; let ttsText = GAME_CONFIG.levels[curLvl].ttsContext; if (ttsText && ttsText.trim() !== '') { const safeText = ttsText.replace(/'/g, "\\\\\\'").replace(/"/g, '&quot;'); stage.insertAdjacentHTML('afterbegin', \`<button onclick="const m = new SpeechSynthesisUtterance('\${safeText}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-emerald-100 border-2 border-emerald-400 text-emerald-800 rounded-full px-6 py-2 font-black text-sm hover:bg-emerald-200 transition shadow-sm flex items-center gap-2 mx-auto font-mont uppercase">📢 Écoute Tout</button>\`); }
-    if(lvlConfig.type === 'crossword') { let labelHtml = GAME_CONFIG.cwVerbLabel ? '<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">' + GAME_CONFIG.cwVerbLabel + '</div>' : ''; let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">'; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { let cell = GAME_CONFIG.cwData.find(c => c.x === x && c.y === y); if(cell) gridHtml += '<div class="cw-play-wrapper"><span class="cw-number">' + (cell.num || '') + '</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="' + cell.char + '" oninput="checkCrossword(this)"></div>'; else gridHtml += '<div class="w-10 h-10"></div>'; } } gridHtml += '</div>'; let cluesHtml = (GAME_CONFIG.cwShowClues && GAME_CONFIG.cwClues.length > 0) ? ('<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">' + GAME_CONFIG.cwClues.map(c => '<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">' + c.num + '. ' + (c.dir === 'h' ? 'Horizontal' : 'Vertical') + ' :</b> ' + c.clue + '</div>').join('') + '</div></div>') : ''; stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center w-full">' + labelHtml + gridHtml + cluesHtml + '</div>'); document.getElementById('nav-step').innerHTML = ''; return; }
-    if(GAME_CONFIG.items.length === 0) return; const word = GAME_CONFIG.items[idx]; let stepAudioHtml = ''; const stepAudioKey = word + '_audio'; if (GAME_CONFIG.audio[stepAudioKey] && lvlConfig.type !== 'dressing') { stepAudioHtml = '<button onclick="new Audio(\\'' + GAME_CONFIG.audio[stepAudioKey] + '\\').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>'; } else if (['sentence_ordering', 'anagramme', 'rebus'].includes(lvlConfig.type)) { let safeWord = word.replace(/'/g, "\\\\\\'").replace(/"/g, '&quot;').replace(/\\//g, ' '); if (lvlConfig.type === 'rebus') { const rData = GAME_CONFIG.rebusData; safeWord = (rData[word] || word).replace(/[{}]/g, '').replace(/'/g, "\\\\\\'"); } stepAudioHtml = \`<button onclick="const m = new SpeechSynthesisUtterance('\${safeWord}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>\`; }
-    if(lvlConfig.type === 'autocollantes') { let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">'; GAME_CONFIG.items.forEach(it => { const shadowImg = GAME_CONFIG.images[it + '_shadow'] ? '<img src="' + GAME_CONFIG.images[it + '_shadow'] + '" class="w-full h-full object-contain pointer-events-none opacity-40">' : '<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>' + it + '</span>'; boardHtml += '<div id="target-' + it + '" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white relative transition-all" data-expected="' + it.replace(/\"/g, '&quot;') + '">' + shadowImg + '</div>'; }); boardHtml += '</div>'; stage.insertAdjacentHTML('beforeend', boardHtml); const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = shuffled.map(it => { const stickerImg = GAME_CONFIG.images[it] ? '<img src="' + GAME_CONFIG.images[it] + '" class="w-full h-full object-contain pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>' + it + '</span>'; return '<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="' + it.replace(/\"/g, '&quot;') + '">' + stickerImg + '</div>'; }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('autocollantes', null); }
-    else if(lvlConfig.type === 'dressing') { const getImg = (key) => GAME_CONFIG.images[key]; const bgImage = getImg('mapper_bg'); const bg = bgImage ? '<img src="' + bgImage + '" class="absolute inset-0 w-full h-full object-cover">' : '<div class="p-10 text-gray-400">Nessuno Sfondo</div>'; let zonesHtml = ''; GAME_CONFIG.mappedZones.forEach(z => { const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm'; let targetDiv = '<div id="target-' + z.word + '" data-expected="' + z.word.replace(/\"/g, '&quot;') + '" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ' + boxStyle + '"></div>'; let labelHtml = z.label ? (z.label.includes('...') ? '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[0].trim() + '</span>' + targetDiv + '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.split('...')[1].trim() + '</span>' : '<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">' + z.label.trim() + '</span>' + targetDiv) : targetDiv; zonesHtml += '<div class="absolute flex items-center gap-3" style="left:' + z.left + '; top:' + z.top + '; width:' + z.width + '; height:' + z.height + '">' + labelHtml + '</div>'; }); stage.insertAdjacentHTML('beforeend', '<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">' + bg + zonesHtml + '</div>'); const shuffled = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = shuffled.map(it => { const stickerImg = getImg(it); if (stickerImg) { return '<div class="w-24 h-24 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400 shrink-0" data-word="' + it.replace(/\"/g, '&quot;') + '"><img src="' + stickerImg + '" class="max-h-full object-contain pointer-events-none"></div>'; } else { return '<div class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl rounded-xl shadow-md cursor-grab transition-all flex items-center justify-center min-w-[100px] shrink-0 font-source uppercase" data-word="' + it.replace(/\"/g, '&quot;') + '">' + it + '</div>'; } }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null); }
-    else if(lvlConfig.type === 'domino') { let targetSequence = []; for(let i = 1; i < GAME_CONFIG.items.length; i++) { targetSequence.push(GAME_CONFIG.items[i]); } if(GAME_CONFIG.items.length > 0) targetSequence.push(GAME_CONFIG.items[0]); let dominoChainHtml = '<div class="domino-chain" id="domino-board"><div class="domino-tile opacity-90 cursor-default" style="box-shadow: 0 4px 0 var(--hfle-blue) !important; transform: none !important;"><div class="tile-img text-blue-300 text-3xl font-black border-r-0">▶</div><div class="tile-text border-l-2 border-dashed border-blue-200">' + GAME_CONFIG.items[0] + '</div></div>'; targetSequence.forEach(w => { dominoChainHtml += '<div class="domino-connector">➔</div><div id="target-' + w + '" class="drop-target" data-expected="' + w.replace(/\"/g, '&quot;') + '"></div>'; }); dominoChainHtml += '</div>'; stage.insertAdjacentHTML('beforeend', '<div class="w-full flex justify-center px-4">' + dominoChainHtml + '</div>'); const poolItems = [...GAME_CONFIG.items].sort(()=>Math.random()-0.5); pool.innerHTML = poolItems.map((it) => { let i = GAME_CONFIG.items.indexOf(it); const imgNeeded = i === 0 ? GAME_CONFIG.items[GAME_CONFIG.items.length-1] : GAME_CONFIG.items[i-1]; const imgContent = GAME_CONFIG.images[imgNeeded] ? '<img src="' + GAME_CONFIG.images[imgNeeded] + '" class="object-contain w-full h-full pointer-events-none">' : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷<br>' + imgNeeded + '</span>'; return '<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="' + it.replace(/\"/g, '&quot;') + '"><div class="tile-img">' + imgContent + '</div><div class="tile-text">' + it + '</div></div>'; }).join(''); document.getElementById('nav-step').innerHTML = ''; setupSortable('domino', null); }
-    else if(lvlConfig.type === 'anagramme') { const shuffled = word.split('').sort(()=>Math.random()-0.5); const imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto'; stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word.replace(/'/g, "\\\\'") + '\\')">' + imgContent + '</div><div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(l => '<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="' + l.replace(/\"/g, '&quot;') + '">' + l.toLowerCase() + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'anagramme\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button></div>'); pool.innerHTML = ''; setupSortable('anagramme', word); }
-    else if(lvlConfig.type === 'sentence_ordering') { const chunks = word.split('/').map(c => c.trim()), imgContent = GAME_CONFIG.images[word] ? '<img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none">' : '📷 Foto', shuffled = [...chunks].sort(()=>Math.random()-0.5); stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg(\\'' + word.replace(/'/g, "\\\\'") + '\\')">' + imgContent + '</div><div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">' + shuffled.map(c => '<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="' + c.replace(/\"/g, '&quot;') + '">' + c + '</div>').join('') + '</div><button id="check-btn" onclick="checkOrder(\\'sentence_ordering\\')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button></div>'); pool.innerHTML = ''; setupSortable('sentence_ordering', word); }
-    else if(lvlConfig.type === 'rebus') { const sentence = GAME_CONFIG.rebusData[word] || ('{' + word + '}'); const text = sentence.replace(/{([^}]+)}/g, '<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>'); let imgHtml = GAME_CONFIG.images[word] ? '<div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center mb-6"><img src="' + GAME_CONFIG.images[word] + '" class="h-full w-full object-contain pointer-events-none"></div>' : ''; stage.insertAdjacentHTML('beforeend', '<div class="flex flex-col items-center w-full max-w-3xl">' + imgHtml + '<div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">' + text + '</div></div>'); const shuffledItems = [...GAME_CONFIG.items].sort(() => Math.random() - 0.5); pool.innerHTML = shuffledItems.map(it => '<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="' + it.replace(/\"/g, '&quot;') + '">' + it + '</div>').join(''); setupSortable('rebus', word); }
-    if (stepAudioHtml !== '') { stage.insertAdjacentHTML('afterbegin', stepAudioHtml); }
-}
-function setupSortable(mode, targetWord) { const pool = document.getElementById('pool'); if (mode === 'autocollantes' || mode === 'dressing' || mode === 'domino') { if(!pool) return; new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); const itemArray = GAME_CONFIG.items; const zoneList = GAME_CONFIG.mappedZones; const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word); targetWords.forEach(w => { const tgt = document.getElementById('target-' + w); if (tgt) { new Sortable(tgt, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => { const dropped = e.item.getAttribute('data-word'); const expectedWord = e.target.getAttribute('data-expected'); if(dropped.toLowerCase() === expectedWord.toLowerCase()) { if (mode === 'dressing') { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase"; } else if (mode === 'domino') { e.item.className = "domino-tile shadow-sm"; e.item.style.setProperty('box-shadow', '0 4px 0 var(--hfle-blue)', 'important'); e.item.style.setProperty('transform', 'none', 'important'); e.item.style.cursor = 'default'; } else { e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none"; } const img = e.item.querySelector('img'); if(img) img.className = "w-full h-full object-contain pointer-events-none"; e.item.removeAttribute('draggable'); e.target.innerHTML = ''; e.target.appendChild(e.item); e.target.style.border = "none"; e.target.style.backgroundColor = "transparent"; playSound('global_ok'); const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost')); if (remainingPool.length === 0) { setTimeout(() => showEndScreen(), 1500); } } else { e.item.remove(); pool.appendChild(e.item); errorTracker[0]++; playSound('global_ko'); e.item.classList.add('shake-error'); setTimeout(() => { e.item.classList.remove('shake-error'); }, 500); } } }); } }); return; } const target = document.getElementById('target'); if(!target) return; if (mode === 'anagramme' || mode === 'sentence_ordering') { new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); return; } if(!pool) return; new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') }); new Sortable(target, { group: 'game', animation: 150, onStart: () => playSound('drag'), onAdd: (e) => { const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk'); if(mode === 'rebus') { const targetAns = e.target.getAttribute('data-ans'); if(dropped.toLowerCase() === targetAns.toLowerCase()) { e.item.className = "w-full h-full flex items-center justify-center text-xl font-black bg-transparent border-none shadow-none text-blue-800 m-0 p-0 font-mont uppercase"; e.target.style.border = "none"; e.target.style.background = "transparent"; validate(true); } else { e.item.remove(); validate(false); } } else { e.item.remove(); validate(false); } } }); }
-function validate(correct) { const type = GAME_CONFIG.levels[curLvl].type; if(correct) { status[curStep]='completed'; playSound('global_ok'); setTimeout(() => { if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= GAME_CONFIG.items.length - 1) showEndScreen(); else loadStep(curStep + 1); }, 1500); } else { status[curStep]='error'; if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; playSound('global_ko'); } renderNav(); }
-function renderNav() { const type = GAME_CONFIG.levels[curLvl].type; if(['crossword','domino','autocollantes','dressing'].includes(type)) return document.getElementById('nav-step').innerHTML = ''; document.getElementById('nav-step').innerHTML = GAME_CONFIG.items.map((_, i) => '<div class="nav-square ' + (i===curStep?'active ':'') + status[i] + '" onclick="loadStep(' + i + ')">' + (i+1) + '</div>').join(''); }
-function switchLvl(l) { curLvl = l; document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent'; startGame(); }
-function playConsigne() { const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; if(GAME_CONFIG.audio[key]) new Audio(GAME_CONFIG.audio[key]).play(); else { const m = new SpeechSynthesisUtterance(GAME_CONFIG.levels[curLvl].consigne); m.lang='fr-FR'; m.rate=0.5; window.speechSynthesis.speak(m); } }
-`;
-    jsFolder.file("core.js", coreJsString);
-
-    zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
-}
+    let playerHTML = '\n\n\n\n\n\n
