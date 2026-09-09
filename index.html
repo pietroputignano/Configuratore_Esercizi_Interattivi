@@ -1075,6 +1075,6 @@
             const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
             zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
         }
-    </script>
+    <script src="core.js?v=2"></script>
 </body>
 </html>
