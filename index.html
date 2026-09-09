@@ -598,14 +598,25 @@
         }
 
         function loadStep(idx) {
-            curStep = idx; renderNav();
-            const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
-            const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
-            
-            const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
-            document.getElementById('res-consigne').innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder;
-            
-            pool.innerHTML = '';
+    curStep = idx; renderNav();
+    const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
+    const type = curLvl === 'facile' ? document.getElementById('type-f').value : document.getElementById('type-d').value;
+    
+    const conInput = document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d');
+    document.getElementById('res-consigne').innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder;
+    
+    stage.innerHTML = '';
+    pool.innerHTML = '';
+
+    // Generatore del bottone Lettura Completa
+    let ttsText = "";
+    if (typeof GAME_CONFIG !== 'undefined') { ttsText = GAME_CONFIG.levels[curLvl].ttsContext; } 
+    else { ttsText = document.getElementById('tts-context-' + (curLvl === 'facile' ? 'f' : 'd'))?.value; }
+
+    if (ttsText && ttsText.trim() !== '') {
+        const safeText = ttsText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        stage.insertAdjacentHTML('afterbegin', `<button onclick="const m = new SpeechSynthesisUtterance('${safeText}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-emerald-100 border-2 border-emerald-400 text-emerald-800 rounded-full px-6 py-2 font-black text-sm hover:bg-emerald-200 transition shadow-sm flex items-center gap-2 mx-auto font-mont uppercase">📢 Écoute Tout</button>`);
+    }
             
            if(type === 'crossword') {
                 if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
@@ -629,14 +640,23 @@
             }
 
             if(items.length === 0) return;
-            const word = items[idx];
+    const word = items[idx];
 
-            let stepAudioHtml = '';
-            const stepAudioKey = word + '_audio';
-            const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-            if (audioSrc && type !== 'dressing') {
-                stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
-            }
+    let stepAudioHtml = '';
+    const stepAudioKey = word + '_audio';
+    const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
+    
+    if (audioSrc && type !== 'dressing') {
+        stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
+    } else if (['sentence_ordering', 'anagramme', 'rebus'].includes(type)) {
+        // Se non c'è l'MP3, usa la voce automatica!
+        let safeWord = word.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\//g, ' ');
+        if (type === 'rebus') {
+            const rData = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.rebusData : rebusData;
+            safeWord = (rData[word] || word).replace(/[{}]/g, '').replace(/'/g, "\\'");
+        }
+        stepAudioHtml = `<button onclick="const m = new SpeechSynthesisUtterance('${safeWord}'); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m);" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto font-mont"><span>▶</span> ÉCOUTE</button>`;
+    }
 
             if(type === 'autocollantes') {
                 let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
