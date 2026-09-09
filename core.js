@@ -505,6 +505,7 @@ function loadStep(idx) {
                 <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
             </div>`;
         targetSequence.forEach(w => {
+            dominoChainHtml += `<div class="domino-connector">➔</div>`;
             dominoChainHtml += `<div id="target-${w}" class="drop-target" data-expected="${w.replace(/"/g, '&quot;')}"></div>`;
         });
         dominoChainHtml += `</div>`;
