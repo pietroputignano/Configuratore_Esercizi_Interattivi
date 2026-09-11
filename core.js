@@ -551,6 +551,9 @@ function loadStep(idx) {
         // Ogni tessera contiene l'immagine della parola precedente e la parola corrente.
         // La disposizione interna segue quindi il verso reale della catena:
         // -> [IMG|WORD], <- [WORD|IMG], giu IMG sopra/WORD sotto, su WORD sopra/IMG sotto.
+        const desktopPath = buildDesktopDominoPath(items.length);
+        const mobilePath = buildMobileDominoPath(items.length);
+
         function axisOfDirection(dir) {
             if (dir === 'left' || dir === 'right') return 'h';
             if (dir === 'up' || dir === 'down') return 'v';
