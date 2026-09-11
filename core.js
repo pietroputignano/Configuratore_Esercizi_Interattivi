@@ -12,6 +12,8 @@ let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status =
 let errorTracker = [];
 let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
 let cwVerbLabel = ""; let cwShowClues = true; 
+let autocollantesData = { facile: {}, difficile: {} };
+let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoDraftCrop = null, autoPointerState = null;
 
 let isMuted = false;
 
@@ -34,6 +36,7 @@ function syncPlayerConfig() {
     rebusData = GAME_CONFIG.rebusData || {};
     cwVerbLabel = GAME_CONFIG.cwVerbLabel || '';
     cwShowClues = GAME_CONFIG.cwShowClues !== false;
+    autocollantesData = GAME_CONFIG.autocollantesData || { facile: {}, difficile: {} };
 
     const badge = document.getElementById('res-badge');
     if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
@@ -101,6 +104,7 @@ function toggleToolBtns(l) {
     const mBtn = document.getElementById('btn-map-' + l); if(mBtn) mBtn.classList.toggle('hidden', type !== 'dressing');
     const cBtn = document.getElementById('btn-cw-' + l); if(cBtn) cBtn.classList.toggle('hidden', type !== 'crossword');
     const rBtn = document.getElementById('btn-rebus-' + l); if(rBtn) rBtn.classList.toggle('hidden', type !== 'rebus'); 
+    const aBtn = document.getElementById('btn-auto-' + l); if(aBtn) aBtn.classList.toggle('hidden', type !== 'autocollantes');
 }
 
 /* --- BUILDERS --- */
@@ -202,6 +206,159 @@ function saveZones() {
     });
 }
 
+
+/* --- AUTOCOLLANTES BUILDER --- */
+function getAutoLevelBucket(level = autoBuilderLevel) {
+    if (!autocollantesData[level]) autocollantesData[level] = {};
+    return autocollantesData[level];
+}
+function getAutoBuilderItems(level = autoBuilderLevel) {
+    const id = level === 'facile' ? 'items-list-f' : 'items-list-d';
+    const el = document.getElementById(id);
+    if (!el) return [];
+    const raw = el.value.trim() !== '' ? el.value : el.placeholder;
+    return raw.split(';').map(v => v.trim()).filter(Boolean);
+}
+function autoSafeKey(v) { return String(v).replace(/[^a-z0-9_-]/gi, '_'); }
+function openAutocollantesBuilder(level) {
+    autoBuilderLevel = level || 'facile';
+    const keys = getAutoBuilderItems(autoBuilderLevel);
+    if (!keys.length) { alert('Inserisci prima gli identificativi delle basi nel campo Dati, separati da ; (es: 1; 2; 3).'); return; }
+    if (!autoBuilderKey || !keys.includes(autoBuilderKey)) autoBuilderKey = keys[0];
+    const sel = document.getElementById('auto-board-select');
+    sel.innerHTML = keys.map(k => `<option value="${k.replace(/"/g,'&quot;')}">${k}</option>`).join('');
+    sel.value = autoBuilderKey;
+    document.getElementById('auto-builder-level-label').innerText = autoBuilderLevel === 'facile' ? 'FACILE' : 'DIFFICILE';
+    document.getElementById('auto-modal').classList.remove('hidden');
+    renderAutocollantesBuilder();
+}
+function closeAutocollantesBuilder() {
+    autoDrawMode = null; autoDraftCrop = null; autoPointerState = null;
+    document.getElementById('auto-modal').classList.add('hidden');
+    if (curLvl === autoBuilderLevel) startGame();
+}
+function selectAutoActivity(v) { autoBuilderKey = v; autoDrawMode = null; autoDraftCrop = null; renderAutocollantesBuilder(); }
+function getAutoActivity(level = autoBuilderLevel, key = autoBuilderKey) {
+    const bucket = getAutoLevelBucket(level);
+    if (!bucket[key]) bucket[key] = { baseImageKey:'', sheetImageKey:'', baseWidth:0, baseHeight:0, sheetWidth:0, sheetHeight:0, stickers:[] };
+    return bucket[key];
+}
+function pickAutoFile(kind) {
+    const inp = document.getElementById(kind === 'base' ? 'autoBaseInp' : 'autoSheetInp');
+    inp.value = '';
+    inp.click();
+}
+function handleAutoFile(e, kind) {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+        const src = ev.target.result;
+        const img = new Image();
+        img.onload = () => {
+            const cfg = getAutoActivity();
+            const imageKey = `auto_${autoBuilderLevel}_${autoSafeKey(autoBuilderKey)}_${kind}`;
+            dbImg[imageKey] = src;
+            if (kind === 'base') { cfg.baseImageKey = imageKey; cfg.baseWidth = img.naturalWidth; cfg.baseHeight = img.naturalHeight; }
+            else { cfg.sheetImageKey = imageKey; cfg.sheetWidth = img.naturalWidth; cfg.sheetHeight = img.naturalHeight; }
+            renderAutocollantesBuilder();
+            if (curLvl === autoBuilderLevel && getCurrentType() === 'autocollantes') loadStep(curStep);
+        };
+        img.src = src;
+    };
+    r.readAsDataURL(f);
+}
+function startAutoStickerPair() {
+    const cfg = getAutoActivity();
+    if (!cfg.sheetImageKey || !cfg.baseImageKey) { alert('Carica prima sia la base sia la tavola autocollantes.'); return; }
+    autoDraftCrop = null;
+    autoDrawMode = 'crop';
+    renderAutocollantesBuilder();
+}
+function cancelAutoDrawing() { autoDrawMode = null; autoDraftCrop = null; autoPointerState = null; renderAutocollantesBuilder(); }
+function deleteAutoSticker(idx) { const cfg=getAutoActivity(); cfg.stickers.splice(idx,1); renderAutocollantesBuilder(); }
+function clearAutoStickers() { if(confirm('Eliminare tutti gli sticker e le zone di questa base?')) { getAutoActivity().stickers=[]; cancelAutoDrawing(); } }
+function autoImgSrc(imageKey) { return isPlayerMode() ? (GAME_CONFIG.images?.[imageKey] || '') : (dbImg[imageKey] || ''); }
+function autoRectFromPointer(e, wrap) {
+    const r = wrap.getBoundingClientRect();
+    return { x: Math.max(0, Math.min(100, (e.clientX-r.left)/r.width*100)), y: Math.max(0, Math.min(100, (e.clientY-r.top)/r.height*100)) };
+}
+function autoPointerDown(e, kind) {
+    if ((kind === 'sheet' && autoDrawMode !== 'crop') || (kind === 'base' && autoDrawMode !== 'zone')) return;
+    e.preventDefault();
+    const wrap = e.currentTarget;
+    const p = autoRectFromPointer(e, wrap);
+    autoPointerState = { kind, wrap, sx:p.x, sy:p.y, cx:p.x, cy:p.y };
+    wrap.setPointerCapture && wrap.setPointerCapture(e.pointerId);
+    renderAutoTempRect();
+}
+function autoPointerMove(e, kind) {
+    if (!autoPointerState || autoPointerState.kind !== kind) return;
+    const p = autoRectFromPointer(e, autoPointerState.wrap); autoPointerState.cx=p.x; autoPointerState.cy=p.y; renderAutoTempRect();
+}
+function autoPointerUp(e, kind) {
+    if (!autoPointerState || autoPointerState.kind !== kind) return;
+    const p = autoRectFromPointer(e, autoPointerState.wrap); autoPointerState.cx=p.x; autoPointerState.cy=p.y;
+    const x=Math.min(autoPointerState.sx,p.x), y=Math.min(autoPointerState.sy,p.y), w=Math.abs(p.x-autoPointerState.sx), h=Math.abs(p.y-autoPointerState.sy);
+    autoPointerState=null;
+    if (w < 2 || h < 2) { renderAutocollantesBuilder(); return; }
+    const rect={x:+x.toFixed(3), y:+y.toFixed(3), w:+w.toFixed(3), h:+h.toFixed(3)};
+    if (kind === 'sheet') { autoDraftCrop=rect; autoDrawMode='zone'; renderAutocollantesBuilder(); }
+    else {
+        const cfg=getAutoActivity();
+        cfg.stickers.push({ id:`s${Date.now()}_${cfg.stickers.length+1}`, crop:autoDraftCrop, zone:rect });
+        autoDraftCrop=null; autoDrawMode=null; renderAutocollantesBuilder();
+    }
+}
+function renderAutoTempRect() {
+    document.querySelectorAll('.auto-temp-rect').forEach(el=>el.remove());
+    if (!autoPointerState) return;
+    const x=Math.min(autoPointerState.sx,autoPointerState.cx), y=Math.min(autoPointerState.sy,autoPointerState.cy), w=Math.abs(autoPointerState.cx-autoPointerState.sx), h=Math.abs(autoPointerState.cy-autoPointerState.sy);
+    const el=document.createElement('div'); el.className='auto-temp-rect'; el.style.cssText=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;`;
+    autoPointerState.wrap.appendChild(el);
+}
+function autoOverlayRect(rect, label, extra='') { return `<div class="auto-builder-rect ${extra}" style="left:${rect.x}%;top:${rect.y}%;width:${rect.w}%;height:${rect.h}%"><span>${label}</span></div>`; }
+function renderAutocollantesBuilder() {
+    const cfg=getAutoActivity();
+    const baseSrc=autoImgSrc(cfg.baseImageKey), sheetSrc=autoImgSrc(cfg.sheetImageKey);
+    const baseWrap=document.getElementById('auto-base-wrap'), sheetWrap=document.getElementById('auto-sheet-wrap');
+    const status=document.getElementById('auto-draw-status');
+    if(status) status.innerText = autoDrawMode==='crop' ? '1/2 Disegna un rettangolo attorno a uno sticker nella tavola.' : autoDrawMode==='zone' ? '2/2 Disegna ora la zona di destinazione sulla base.' : 'Crea una coppia Sticker → Zona per ogni elemento trascinabile.';
+    const baseOverlays=cfg.stickers.map((s,i)=>autoOverlayRect(s.zone,String(i+1),'auto-zone-rect')).join('');
+    const cropOverlays=cfg.stickers.map((s,i)=>autoOverlayRect(s.crop,String(i+1),'auto-crop-rect')).join('') + (autoDraftCrop?autoOverlayRect(autoDraftCrop,'NUOVO','auto-crop-rect auto-draft-rect'):'');
+    baseWrap.innerHTML = baseSrc ? `<div class="auto-img-stage"><img src="${baseSrc}" draggable="false">${baseOverlays}</div>` : `<div class="auto-empty-preview">Carica immagine base</div>`;
+    sheetWrap.innerHTML = sheetSrc ? `<div class="auto-img-stage"><img src="${sheetSrc}" draggable="false">${cropOverlays}</div>` : `<div class="auto-empty-preview">Carica tavola autocollantes</div>`;
+    const baseStage=baseWrap.querySelector('.auto-img-stage'), sheetStage=sheetWrap.querySelector('.auto-img-stage');
+    if(baseStage){ baseStage.onpointerdown=e=>autoPointerDown(e,'base'); baseStage.onpointermove=e=>autoPointerMove(e,'base'); baseStage.onpointerup=e=>autoPointerUp(e,'base'); }
+    if(sheetStage){ sheetStage.onpointerdown=e=>autoPointerDown(e,'sheet'); sheetStage.onpointermove=e=>autoPointerMove(e,'sheet'); sheetStage.onpointerup=e=>autoPointerUp(e,'sheet'); }
+    const list=document.getElementById('auto-pairs-list');
+    list.innerHTML = cfg.stickers.length ? cfg.stickers.map((s,i)=>`<div class="auto-pair-row"><b>Sticker ${i+1}</b><span>ritaglio + zona associata</span><button onclick="deleteAutoSticker(${i})">Elimina</button></div>`).join('') : '<div class="text-gray-400 italic">Nessuna coppia definita.</div>';
+}
+function autoCropSvg(sheetSrc, crop, cfg) {
+    const sw=cfg.sheetWidth||1000, sh=cfg.sheetHeight||1000;
+    const x=crop.x/100*sw, y=crop.y/100*sh, w=crop.w/100*sw, h=crop.h/100*sh;
+    return `<svg class="auto-crop-svg" viewBox="${x} ${y} ${w} ${h}" preserveAspectRatio="xMidYMid meet"><image href="${sheetSrc}" x="0" y="0" width="${sw}" height="${sh}" preserveAspectRatio="none"></image></svg>`;
+}
+function setupAutocollantesBoard(cfg) {
+    const pool=document.getElementById('pool'); if(!pool) return;
+    new Sortable(pool,{group:'autocollantes-game',sort:false,animation:150,onStart:()=>playSound('drag'),onEnd:()=>playSound('drop')});
+    cfg.stickers.forEach(s=>{
+        const tgt=document.getElementById('auto-target-'+s.id); if(!tgt) return;
+        new Sortable(tgt,{group:'autocollantes-game',animation:150,onAdd:e=>{
+            const ok=e.item.dataset.stickerId===s.id;
+            if(ok){
+                e.target.innerHTML=''; e.target.appendChild(e.item); e.target.classList.add('auto-target-solved');
+                e.item.className='auto-sticker-piece auto-sticker-placed'; e.item.style.width='100%'; e.item.style.height='100%'; e.item.style.aspectRatio='auto'; e.item.style.cursor='default';
+                playSound('global_ok');
+                const left=Array.from(pool.children).filter(ch=>!ch.classList.contains('sortable-ghost'));
+                if(!left.length){ status[curStep]='completed'; renderNav(); setTimeout(()=>{ if(curStep < getCurrentItems().length-1) loadStep(curStep+1); else showEndScreen(); },900); }
+            } else {
+                if(!errorTracker[curStep] && errorTracker[curStep]!==0) errorTracker[curStep]=0; errorTracker[curStep]++; playSound('global_ko');
+                e.item.classList.add('shake-error'); setTimeout(()=>{ e.item.classList.remove('shake-error'); pool.appendChild(e.item); },450);
+            }
+        }});
+    });
+}
+
 function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
 function buildCWGrid() { const gridEl = document.getElementById('cw-builder-grid'); if(!gridEl) return; let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } gridEl.innerHTML = html; }
 function findCWWords() {
@@ -291,7 +448,7 @@ function startGame() {
     const type = getCurrentType();
     items = [...getCurrentItems()];
     status = new Array(items.length).fill('pending'); 
-    if(type === 'domino' || type === 'autocollantes' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
+    if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
     else errorTracker = new Array(items.length).fill(0);
     loadStep(0);
 }
@@ -610,22 +767,23 @@ function loadStep(idx) {
     }
 
     if(type === 'autocollantes') {
-        let boardHtml = '<div class="w-full flex flex-wrap justify-center gap-6 p-4">';
-        items.forEach(it => {
-            const shadowImg = dbImg[it + '_shadow'] ? `<img src="${dbImg[it + '_shadow']}" class="w-full h-full object-contain pointer-events-none opacity-40">` : `<span class="text-[10px] text-gray-400 font-bold uppercase text-center">📷 Ombre<br>${it}</span>`;
-            boardHtml += `<div id="target-${it}" class="w-32 h-32 md:w-40 md:h-40 border-4 border-dashed border-gray-300 rounded-2xl flex items-center justify-center bg-white cursor-pointer relative transition-all" onclick="pickImg('${it.replace(/'/g, "\\'")}_shadow')" data-expected="${it.replace(/"/g, '&quot;')}">${shadowImg}</div>`;
-        });
-        boardHtml += '</div>';
-        stage.insertAdjacentHTML('beforeend', boardHtml);
-
-        const shuffled = [...items].sort(()=>Math.random()-0.5);
-        pool.innerHTML = shuffled.map(it => {
-            const stickerImg = dbImg[it] ? `<img src="${dbImg[it]}" class="w-full h-full object-contain pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Sticker<br>${it}</span>`;
-            return `<div class="w-24 h-24 md:w-32 md:h-32 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab p-2 flex items-center justify-center transition-all hover:border-blue-400" data-word="${it.replace(/"/g, '&quot;')}" onclick="pickImg('${it.replace(/'/g, "\\'")}')">${stickerImg}</div>`;
+        const levelData = (isPlayerMode() ? (GAME_CONFIG.autocollantesData?.[curLvl] || {}) : (autocollantesData[curLvl] || {}));
+        const boardKey = items[idx];
+        const cfg = levelData[boardKey];
+        if (!cfg || !cfg.baseImageKey || !cfg.sheetImageKey || !cfg.stickers?.length) {
+            stage.innerHTML = `<div class="auto-missing-config">Configura la base <b>${boardKey || ''}</b> con il Costruttore Autocollantes.</div>`;
+            pool.innerHTML = '';
+            return;
+        }
+        const baseSrc = autoImgSrc(cfg.baseImageKey), sheetSrc = autoImgSrc(cfg.sheetImageKey);
+        const zones = cfg.stickers.map((s,i)=>`<div id="auto-target-${s.id}" class="auto-drop-zone" data-sticker-id="${s.id}" style="left:${s.zone.x}%;top:${s.zone.y}%;width:${s.zone.w}%;height:${s.zone.h}%"><span>${i+1}</span></div>`).join('');
+        stage.insertAdjacentHTML('beforeend', `<div class="auto-game-board"><img src="${baseSrc}" draggable="false">${zones}</div>`);
+        const shuffled=[...cfg.stickers].sort(()=>Math.random()-0.5);
+        pool.innerHTML=shuffled.map((s,i)=>{
+            const ratio=((s.crop.w*(cfg.sheetWidth||1))/(s.crop.h*(cfg.sheetHeight||1))) || 1;
+            return `<div class="auto-sticker-piece" data-sticker-id="${s.id}" style="aspect-ratio:${ratio};">${autoCropSvg(sheetSrc,s.crop,cfg)}</div>`;
         }).join('');
-
-        document.getElementById('nav-step').innerHTML = '';
-        setupSortable('autocollantes', null);
+        setupAutocollantesBoard(cfg);
     }
     else if(type === 'dressing') {
         const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
@@ -1068,7 +1226,7 @@ function validate(correct) {
 function renderNav() { 
     const type = getCurrentType();
     const itemsArr = getCurrentItems();
-    if(['crossword','domino','autocollantes','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
+    if(['crossword','domino','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
     document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i] || ''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
 }
 
@@ -1156,7 +1314,7 @@ async function exportToZIP() {
         titre: document.getElementById('in-titre').value || 'Jeu', 
         cwVerbLabel: cwVerbLabel,
         cwShowClues: cwShowClues,
-        mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, 
+        mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, autocollantesData: autocollantesData, 
         images: expImg, audio: expAud, 
         levels: { 
             facile: { type: typeF, consigne: document.getElementById('con-f').value, items: itemsF }, 
