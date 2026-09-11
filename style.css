@@ -189,3 +189,36 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 }
 .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
 .shake-error > div { background-color: #fee2e2 !important; }
+/* Direzione interna del domino: l'immagine deve toccare il lato da cui arriva la catena. */
+/* Desktop/tablet - orizzontale */
+.domino-slot.orient-d-h.entry-d-left .domino-tile { flex-direction: row !important; }
+.domino-slot.orient-d-h.entry-d-left .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; }
+.domino-slot.orient-d-h.entry-d-left .tile-text { border: 0; }
+
+.domino-slot.orient-d-h.entry-d-right .domino-tile { flex-direction: row-reverse !important; }
+.domino-slot.orient-d-h.entry-d-right .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); }
+.domino-slot.orient-d-h.entry-d-right .tile-text { border: 0; }
+
+/* Desktop/tablet - verticale */
+.domino-slot.orient-d-v.entry-d-top .domino-tile { flex-direction: column !important; }
+.domino-slot.orient-d-v.entry-d-top .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; }
+.domino-slot.orient-d-v.entry-d-top .tile-text { border: 0; }
+
+.domino-slot.orient-d-v.entry-d-bottom .domino-tile { flex-direction: column-reverse !important; }
+.domino-slot.orient-d-v.entry-d-bottom .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); }
+.domino-slot.orient-d-v.entry-d-bottom .tile-text { border: 0; }
+
+@media (max-width: 700px) {
+    /* Sul mobile prevale la direzione calcolata sul percorso mobile, non quella desktop. */
+    .domino-slot.orient-m-h.entry-m-left .domino-tile { flex-direction: row !important; }
+    .domino-slot.orient-m-h.entry-m-left .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
+
+    .domino-slot.orient-m-h.entry-m-right .domino-tile { flex-direction: row-reverse !important; }
+    .domino-slot.orient-m-h.entry-m-right .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
+
+    .domino-slot.orient-m-v.entry-m-top .domino-tile { flex-direction: column !important; }
+    .domino-slot.orient-m-v.entry-m-top .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
+
+    .domino-slot.orient-m-v.entry-m-bottom .domino-tile { flex-direction: column-reverse !important; }
+    .domino-slot.orient-m-v.entry-m-bottom .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
+}
