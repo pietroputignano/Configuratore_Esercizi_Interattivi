@@ -551,9 +551,6 @@ function loadStep(idx) {
         // Ogni tessera contiene l'immagine della parola precedente e la parola corrente.
         // La disposizione interna segue quindi il verso reale della catena:
         // -> [IMG|WORD], <- [WORD|IMG], giu IMG sopra/WORD sotto, su WORD sopra/IMG sotto.
-        const desktopPath = buildDesktopDominoPath(items.length);
-        const mobilePath = buildMobileDominoPath(items.length);
-
         function axisOfDirection(dir) {
             if (dir === 'left' || dir === 'right') return 'h';
             if (dir === 'up' || dir === 'down') return 'v';
@@ -567,133 +564,158 @@ function loadStep(idx) {
             const incoming = prev ? pathDirection(prev, current) : '';
             const outgoing = next ? pathDirection(current, next) : '';
 
-            // Alle curve usiamo il tratto che corre lungo l'asse della tessera.
+            // Il contenuto della tessera segue il tratto sul quale si trova la tessera.
             if (axisOfDirection(incoming) === current.o) return incoming;
             if (axisOfDirection(outgoing) === current.o) return outgoing;
             return current.o === 'v' ? 'down' : 'right';
         }
 
+        function dominoTileSize(orientation, mobile = false) {
+            if (mobile) return orientation === 'h' ? {w:140, h:76} : {w:88, h:122};
+            return orientation === 'h' ? {w:205, h:94} : {w:108, h:140};
+        }
+
+        // Offset, rispetto al centro della tessera, del centro delle due meta'.
+        // Questi valori corrispondono esattamente alle percentuali definite nel CSS.
         function dominoSemanticAnchors(orientation, flow, mobile = false) {
             if (mobile) {
                 if (orientation === 'h') {
-                    // 140px: immagine 46%, testo 54%.
                     return flow === 'left'
-                        ? { image:{x: 37.8, y:0}, word:{x:-32.2, y:0} }
-                        : { image:{x:-37.8, y:0}, word:{x: 32.2, y:0} };
+                        ? { image:{x:37.8, y:0}, word:{x:-32.2, y:0} }
+                        : { image:{x:-37.8, y:0}, word:{x:32.2, y:0} };
                 }
-                // 122px: immagine 54%, testo 46%.
                 return flow === 'up'
-                    ? { image:{x:0, y: 28.1}, word:{x:0, y:-32.9} }
-                    : { image:{x:0, y:-28.1}, word:{x:0, y: 32.9} };
+                    ? { image:{x:0, y:28.06}, word:{x:0, y:-32.94} }
+                    : { image:{x:0, y:-28.06}, word:{x:0, y:32.94} };
             }
-
             if (orientation === 'h') {
-                // 205px: immagine 48%, testo 52%.
                 return flow === 'left'
-                    ? { image:{x: 53.3, y:0}, word:{x:-49.2, y:0} }
-                    : { image:{x:-53.3, y:0}, word:{x: 49.2, y:0} };
+                    ? { image:{x:53.3, y:0}, word:{x:-49.2, y:0} }
+                    : { image:{x:-53.3, y:0}, word:{x:49.2, y:0} };
             }
-            // 140px: immagine 55%, testo 45%.
             return flow === 'up'
-                ? { image:{x:0, y: 31.5}, word:{x:0, y:-38.5} }
-                : { image:{x:0, y:-31.5}, word:{x:0, y: 38.5} };
+                ? { image:{x:0, y:31.5}, word:{x:0, y:-38.5} }
+                : { image:{x:0, y:-31.5}, word:{x:0, y:38.5} };
         }
 
-        function computeDominoShifts(path, flows, mobile = false) {
-            if (!path.length) return [];
-            const shifts = [{x:0, y:0}];
+        // Posiziona ogni tessera a partire dalla precedente. La regola fondamentale e':
+        // il centro della meta' WORD precedente deve essere sullo stesso asse del centro
+        // della meta' IMAGE successiva. In questo modo l'allineamento resta corretto
+        // anche nelle curve in basso e a sinistra.
+        function computeDominoGeometry(path, flows, mobile = false) {
+            if (!path.length) return {positions:[], width:1, height:1};
+            const gap = mobile ? 14 : 18;
+            const pad = mobile ? 12 : 22;
+            const pos = [{x:0, y:0}];
+
             for (let i = 1; i < path.length; i++) {
                 const prev = path[i-1], curr = path[i];
                 const dir = pathDirection(prev, curr);
-                const prevA = dominoSemanticAnchors(prev.o, flows[i-1], mobile);
-                const currA = dominoSemanticAnchors(curr.o, flows[i], mobile);
-                const s = {x: shifts[i-1].x, y: shifts[i-1].y};
+                const ps = dominoTileSize(prev.o, mobile);
+                const cs = dominoTileSize(curr.o, mobile);
+                const pa = dominoSemanticAnchors(prev.o, flows[i-1], mobile).word;
+                const ca = dominoSemanticAnchors(curr.o, flows[i], mobile).image;
+                const pp = pos[i-1];
+                let x = pp.x, y = pp.y;
 
-                // Il connettore deve partire dal centro della meta' WORD e arrivare
-                // al centro della meta' IMAGE. Allineiamo l'asse perpendicolare.
-                if (dir === 'down' || dir === 'up') {
-                    s.x = shifts[i-1].x + prevA.word.x - currA.image.x;
-                } else if (dir === 'right' || dir === 'left') {
-                    s.y = shifts[i-1].y + prevA.word.y - currA.image.y;
+                if (dir === 'right') {
+                    x = pp.x + ps.w/2 + gap + cs.w/2;
+                    y = pp.y + pa.y - ca.y;
+                } else if (dir === 'left') {
+                    x = pp.x - ps.w/2 - gap - cs.w/2;
+                    y = pp.y + pa.y - ca.y;
+                } else if (dir === 'down') {
+                    y = pp.y + ps.h/2 + gap + cs.h/2;
+                    x = pp.x + pa.x - ca.x;
+                } else if (dir === 'up') {
+                    y = pp.y - ps.h/2 - gap - cs.h/2;
+                    x = pp.x + pa.x - ca.x;
                 }
-                shifts.push(s);
+                pos.push({x, y});
             }
-            return shifts;
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            path.forEach((p, i) => {
+                const sz = dominoTileSize(p.o, mobile);
+                minX = Math.min(minX, pos[i].x - sz.w/2);
+                minY = Math.min(minY, pos[i].y - sz.h/2);
+                maxX = Math.max(maxX, pos[i].x + sz.w/2);
+                maxY = Math.max(maxY, pos[i].y + sz.h/2);
+            });
+
+            const dx = pad - minX, dy = pad - minY;
+            const positions = pos.map(p => ({x:p.x + dx, y:p.y + dy}));
+            return {
+                positions,
+                width: Math.ceil(maxX - minX + pad*2),
+                height: Math.ceil(maxY - minY + pad*2)
+            };
         }
 
+        const desktopPath = buildDesktopDominoPath(items.length);
+        const mobilePath = buildMobileDominoPath(items.length);
         const desktopFlows = desktopPath.map((_, i) => tileFlowDirection(desktopPath, i, true));
         const mobileFlows = mobilePath.map((_, i) => tileFlowDirection(mobilePath, i, false));
-        const desktopShifts = computeDominoShifts(desktopPath, desktopFlows, false);
-        const mobileShifts = computeDominoShifts(mobilePath, mobileFlows, true);
-        const dCols = desktopPath.length ? Math.max(...desktopPath.map(p => p.x)) + 1 : 1;
-        const dRows = desktopPath.length ? Math.max(...desktopPath.map(p => p.y)) + 1 : 1;
-        const mCols = mobilePath.length ? Math.max(...mobilePath.map(p => p.x)) + 1 : 1;
-        const mRows = mobilePath.length ? Math.max(...mobilePath.map(p => p.y)) + 1 : 1;
+        const desktopGeo = computeDominoGeometry(desktopPath, desktopFlows, false);
+        const mobileGeo = computeDominoGeometry(mobilePath, mobileFlows, true);
 
-        // Connettori SVG: seguono i veri centri semantici delle due meta' della
-        // tessera, quindi restano allineati anche nelle curve in basso e a sinistra.
-        function buildConnectorSvg(path, flows, shifts, mobile = false, closeLoop = false) {
+        function anchorPoint(path, flows, geo, index, kind, mobile = false) {
+            const p = path[index];
+            const off = dominoSemanticAnchors(p.o, flows[index], mobile)[kind];
+            const c = geo.positions[index];
+            return {x:c.x + off.x, y:c.y + off.y};
+        }
+
+        // La linea arancione usa gli stessi identici punti semantici usati per
+        // posizionare le tessere. Non ci sono quindi due sistemi geometrici diversi.
+        function buildConnectorSvg(path, flows, geo, mobile = false, closeLoop = false) {
             if (path.length < 2) return '';
-            const trackX = mobile ? 148 : 220;
-            const trackY = mobile ? 132 : 150;
-            const pad = mobile ? 8 : 20;
-            const cols = Math.max(...path.map(p => p.x)) + 1;
-            const rows = Math.max(...path.map(p => p.y)) + 1;
-            const width = cols * trackX + pad * 2;
-            const height = rows * trackY + pad * 2;
             const klass = mobile ? 'domino-connectors domino-connectors-mobile' : 'domino-connectors domino-connectors-desktop';
             const segments = [];
             const max = closeLoop ? path.length : path.length - 1;
 
             for (let i = 0; i < max; i++) {
                 const j = (i + 1) % path.length;
-                const a = path[i], b = path[j];
-                const dir = pathDirection(a, b);
-                if (!dir) continue;
-                const aa = dominoSemanticAnchors(a.o, flows[i], mobile).word;
-                const bb = dominoSemanticAnchors(b.o, flows[j], mobile).image;
-                const sa = shifts[i] || {x:0,y:0};
-                const sb = shifts[j] || {x:0,y:0};
-                const x1 = pad + (a.x + 0.5) * trackX + sa.x + aa.x;
-                const y1 = pad + (a.y + 0.5) * trackY + sa.y + aa.y;
-                const x2 = pad + (b.x + 0.5) * trackX + sb.x + bb.x;
-                const y2 = pad + (b.y + 0.5) * trackY + sb.y + bb.y;
+                const a = anchorPoint(path, flows, geo, i, 'word', mobile);
+                const b = anchorPoint(path, flows, geo, j, 'image', mobile);
+                const topoDir = pathDirection(path[i], path[j]);
+
+                // Per la chiusura dell'anello, se ultimo e primo non sono adiacenti
+                // nella griglia logica, scegliamo il gomito piu' naturale.
+                let dir = topoDir;
+                if (!dir) {
+                    const dx = b.x - a.x, dy = b.y - a.y;
+                    dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
+                }
 
                 let points;
                 if (dir === 'left' || dir === 'right') {
-                    const mx = (x1 + x2) / 2;
-                    points = `${x1.toFixed(1)},${y1.toFixed(1)} ${mx.toFixed(1)},${y1.toFixed(1)} ${mx.toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+                    const mx = (a.x + b.x) / 2;
+                    points = `${a.x.toFixed(1)},${a.y.toFixed(1)} ${mx.toFixed(1)},${a.y.toFixed(1)} ${mx.toFixed(1)},${b.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
                 } else {
-                    const my = (y1 + y2) / 2;
-                    points = `${x1.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+                    const my = (a.y + b.y) / 2;
+                    points = `${a.x.toFixed(1)},${a.y.toFixed(1)} ${a.x.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
                 }
                 segments.push(`<polyline points="${points}" />`);
             }
-
-            return `<svg class="${klass}" viewBox="0 0 ${width} ${height}" aria-hidden="true">${segments.join('')}</svg>`;
+            return `<svg class="${klass}" viewBox="0 0 ${geo.width} ${geo.height}" aria-hidden="true">${segments.join('')}</svg>`;
         }
 
-        const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopFlows, desktopShifts, false, true);
-        const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileFlows, mobileShifts, true, false);
-        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-cols:${dCols}; --d-rows:${dRows}; --m-cols:${mCols}; --m-rows:${mRows};">${desktopConnectorSvg}${mobileConnectorSvg}`;
+        const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopFlows, desktopGeo, false, true);
+        const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileFlows, mobileGeo, true, false);
+        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
 
         items.forEach((w, i) => {
             const d = desktopPath[i];
             const m = mobilePath[i];
-            const dNext = i < items.length - 1 ? pathDirection(d, desktopPath[i+1]) : pathDirection(d, desktopPath[0]);
-            const mNext = i < items.length - 1 ? pathDirection(m, mobilePath[i+1]) : '';
-
             const dFlow = desktopFlows[i] || (d.o === 'v' ? 'down' : 'right');
             const mFlow = mobileFlows[i] || (m.o === 'v' ? 'down' : 'right');
-
-            const dClose = i === items.length - 1 && dNext ? ' domino-closes-loop' : '';
-            const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} flow-d-${dFlow} flow-m-${mFlow}${dClose}`;
-            const ds = desktopShifts[i] || {x:0,y:0};
-            const ms = mobileShifts[i] || {x:0,y:0};
-            const slotStyle = `--d-col:${d.x+1}; --d-row:${d.y+1}; --m-col:${m.x+1}; --m-row:${m.y+1}; --d-shift-x:${ds.x.toFixed(1)}px; --d-shift-y:${ds.y.toFixed(1)}px; --m-shift-x:${ms.x.toFixed(1)}px; --m-shift-y:${ms.y.toFixed(1)}px;`;
+            const ds = dominoTileSize(d.o, false), ms = dominoTileSize(m.o, true);
+            const dp = desktopGeo.positions[i], mp = mobileGeo.positions[i];
+            const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} flow-d-${dFlow} flow-m-${mFlow}`;
+            const slotStyle = `--d-left:${(dp.x-ds.w/2).toFixed(1)}px; --d-top:${(dp.y-ds.h/2).toFixed(1)}px; --d-w:${ds.w}px; --d-h:${ds.h}px; --m-left:${(mp.x-ms.w/2).toFixed(1)}px; --m-top:${(mp.y-ms.h/2).toFixed(1)}px; --m-w:${ms.w}px; --m-h:${ms.h}px;`;
 
             if (i === 0) {
-                // La prima tessera è già data: è una vera tessera del domino, non un segnaposto.
                 const imgNeeded = items[items.length - 1];
                 const imgSrc = getImg(imgNeeded);
                 const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
@@ -707,7 +729,7 @@ function loadStep(idx) {
         dominoChainHtml += `</div>`;
         stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
 
-        // La prima tessera è già collocata sul tabellone; nel pool restano le altre.
+        // La prima tessera e' gia' collocata sul tabellone; nel pool restano le altre.
         const poolItems = items.slice(1).sort(()=>Math.random()-0.5);
         pool.innerHTML = poolItems.map((it) => {
             const i = items.indexOf(it);
