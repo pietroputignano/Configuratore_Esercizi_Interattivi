@@ -59,20 +59,27 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     translate: var(--d-shift-x, 0px) var(--d-shift-y, 0px);
 }
 
-/* Il connettore parte dal centro della tessera e resta dietro alle tessere. */
-.domino-slot::after {
-    content: '';
+/* Traiettoria del domino: disegnata su un layer SVG usando i centri reali
+   delle meta' PAROLA -> IMMAGINE. In questo modo le curve restano allineate. */
+.domino-connectors {
     position: absolute;
-    z-index: -1;
-    background: var(--hfle-orange);
-    border-radius: 999px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: visible;
+    pointer-events: none;
 }
-.domino-slot.next-d-right::after { width: var(--track-x); height: 12px; left: 50%; top: calc(50% - 6px); }
-.domino-slot.next-d-left::after  { width: var(--track-x); height: 12px; right: 50%; top: calc(50% - 6px); }
-.domino-slot.next-d-down::after  { width: 12px; height: var(--track-y); top: 50%; left: calc(50% - 6px); }
-.domino-slot.next-d-up::after    { width: 12px; height: var(--track-y); bottom: 50%; left: calc(50% - 6px); }
-.domino-slot.next-d-none::after  { display: none; }
+.domino-connectors polyline {
+    fill: none;
+    stroke: var(--hfle-orange);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.08));
+}
+.domino-connectors-mobile { display: none; }
 
 .domino-tile {
     background: white !important;
@@ -145,13 +152,9 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     .domino-slot > .domino-tile,
     .domino-slot > .drop-target { translate: var(--m-shift-x, 0px) var(--m-shift-y, 0px); }
 
-    .domino-slot.next-d-right::after, .domino-slot.next-d-left::after,
-    .domino-slot.next-d-down::after, .domino-slot.next-d-up::after { display: none; }
-    .domino-slot.next-m-right::after { display:block; width:var(--track-x); height:10px; left:50%; top:calc(50% - 5px); }
-    .domino-slot.next-m-left::after  { display:block; width:var(--track-x); height:10px; right:50%; top:calc(50% - 5px); }
-    .domino-slot.next-m-down::after  { display:block; width:10px; height:var(--track-y); top:50%; left:calc(50% - 5px); }
-    .domino-slot.next-m-up::after    { display:block; width:10px; height:var(--track-y); bottom:50%; left:calc(50% - 5px); }
-    .domino-slot.next-m-none::after  { display:none; }
+    .domino-connectors-desktop { display: none; }
+    .domino-connectors-mobile { display: block; }
+    .domino-connectors polyline { stroke-width: 10; }
 
     .orient-m-h .domino-tile, .orient-m-h .drop-target { width: 140px !important; height: 76px !important; }
     .orient-m-h .domino-tile { flex-direction: row !important; }
@@ -199,36 +202,26 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 }
 .shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
 .shake-error > div { background-color: #fee2e2 !important; }
-/* Direzione interna del domino: l'immagine deve toccare il lato da cui arriva la catena. */
-/* Desktop/tablet - orizzontale */
-.domino-slot.orient-d-h.entry-d-left .domino-tile { flex-direction: row !important; }
-.domino-slot.orient-d-h.entry-d-left .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; }
-.domino-slot.orient-d-h.entry-d-left .tile-text { border: 0; }
+/* Direzione interna del domino: segue il verso della catena, non il semplice
+   lato di ingresso. Questo mantiene IMG e WORD coerenti anche alle quattro curve. */
+.domino-slot.orient-d-h.flow-d-right .domino-tile { flex-direction: row !important; }
+.domino-slot.orient-d-h.flow-d-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-top: 0; border-bottom: 0; }
+.domino-slot.orient-d-h.flow-d-left .domino-tile { flex-direction: row-reverse !important; }
+.domino-slot.orient-d-h.flow-d-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-top: 0; border-bottom: 0; }
 
-.domino-slot.orient-d-h.entry-d-right .domino-tile { flex-direction: row-reverse !important; }
-.domino-slot.orient-d-h.entry-d-right .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); }
-.domino-slot.orient-d-h.entry-d-right .tile-text { border: 0; }
-
-/* Desktop/tablet - verticale */
-.domino-slot.orient-d-v.entry-d-top .domino-tile { flex-direction: column !important; }
-.domino-slot.orient-d-v.entry-d-top .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; }
-.domino-slot.orient-d-v.entry-d-top .tile-text { border: 0; }
-
-.domino-slot.orient-d-v.entry-d-bottom .domino-tile { flex-direction: column-reverse !important; }
-.domino-slot.orient-d-v.entry-d-bottom .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); }
-.domino-slot.orient-d-v.entry-d-bottom .tile-text { border: 0; }
+.domino-slot.orient-d-v.flow-d-down .domino-tile { flex-direction: column !important; }
+.domino-slot.orient-d-v.flow-d-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
+.domino-slot.orient-d-v.flow-d-up .domino-tile { flex-direction: column-reverse !important; }
+.domino-slot.orient-d-v.flow-d-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
 
 @media (max-width: 700px) {
-    /* Sul mobile prevale la direzione calcolata sul percorso mobile, non quella desktop. */
-    .domino-slot.orient-m-h.entry-m-left .domino-tile { flex-direction: row !important; }
-    .domino-slot.orient-m-h.entry-m-left .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
+    .domino-slot.orient-m-h.flow-m-right .domino-tile { flex-direction: row !important; }
+    .domino-slot.orient-m-h.flow-m-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
+    .domino-slot.orient-m-h.flow-m-left .domino-tile { flex-direction: row-reverse !important; }
+    .domino-slot.orient-m-h.flow-m-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
 
-    .domino-slot.orient-m-h.entry-m-right .domino-tile { flex-direction: row-reverse !important; }
-    .domino-slot.orient-m-h.entry-m-right .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
-
-    .domino-slot.orient-m-v.entry-m-top .domino-tile { flex-direction: column !important; }
-    .domino-slot.orient-m-v.entry-m-top .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
-
-    .domino-slot.orient-m-v.entry-m-bottom .domino-tile { flex-direction: column-reverse !important; }
-    .domino-slot.orient-m-v.entry-m-bottom .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
+    .domino-slot.orient-m-v.flow-m-down .domino-tile { flex-direction: column !important; }
+    .domino-slot.orient-m-v.flow-m-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
+    .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction: column-reverse !important; }
+    .domino-slot.orient-m-v.flow-m-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
 }
