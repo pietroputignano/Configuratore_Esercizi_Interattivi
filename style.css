@@ -22,45 +22,30 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 
 /* STILE DOMINO PUZZLE 3D - circuito responsive */
 .domino-chain {
-    --track-x: 220px;
-    --track-y: 150px;
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(var(--d-cols), var(--track-x));
-    grid-template-rows: repeat(var(--d-rows), var(--track-y));
-    justify-content: center;
-    align-items: center;
-    padding: 1.25rem;
-    width: min(100%, calc(var(--d-cols) * var(--track-x) + 2.5rem));
-    min-height: calc(var(--d-rows) * var(--track-y) + 2.5rem);
+    display: block;
+    width: var(--d-board-w);
+    height: var(--d-board-h);
+    max-width: 100%;
     border-radius: 20px;
     background: rgba(255,255,255,0.72);
     border: 2px dashed #cbd5e1;
     overflow: visible;
+    flex: 0 0 auto;
 }
 
 .domino-slot {
-    grid-column: var(--d-col);
-    grid-row: var(--d-row);
-    width: var(--track-x);
-    height: var(--track-y);
+    position: absolute;
+    left: var(--d-left);
+    top: var(--d-top);
+    width: var(--d-w);
+    height: var(--d-h);
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
     z-index: 2;
 }
 
-/* Le tessere vengono traslate nel punto di curva affinche' la meta' PAROLA
-   della tessera precedente sia realmente in asse con la meta' IMMAGINE
-   della successiva (non solo i centri delle tessere). */
-.domino-slot > .domino-tile,
-.domino-slot > .drop-target {
-    translate: var(--d-shift-x, 0px) var(--d-shift-y, 0px);
-}
-
-/* Traiettoria del domino: disegnata su un layer SVG usando i centri reali
-   delle meta' PAROLA -> IMMAGINE. In questo modo le curve restano allineate. */
 .domino-connectors {
     position: absolute;
     inset: 0;
@@ -99,16 +84,11 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 .domino-starter { opacity: 0.96; box-shadow: 0 4px 0 var(--hfle-blue), 0 8px 14px rgba(0,0,0,0.10) !important; }
 .domino-pool-tile:hover { transform: translateY(-3px) !important; }
 
-/* Orizzontale: immagine a sinistra, testo a destra. */
 .orient-d-h .domino-tile, .orient-d-h .drop-target { width: 205px !important; height: 94px !important; }
-.orient-d-h .domino-tile { flex-direction: row !important; }
-.orient-d-h .tile-img { width: 48%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-bottom: 0; }
+.orient-d-h .tile-img { width: 48%; height: 100%; }
 .orient-d-h .tile-text { width: 52%; height: 100%; }
-
-/* Verticale: contenuti sempre dritti, immagine sopra e parola sotto. */
 .orient-d-v .domino-tile, .orient-d-v .drop-target { width: 108px !important; height: 140px !important; }
-.orient-d-v .domino-tile { flex-direction: column !important; }
-.orient-d-v .tile-img { width: 100%; height: 55%; border-right: 0; border-bottom: 2px dashed var(--hfle-blue); }
+.orient-d-v .tile-img { width: 100%; height: 55%; }
 .orient-d-v .tile-text { width: 100%; height: 45%; }
 
 .tile-img { display: flex; align-items: center; justify-content: center; position: relative; padding: 5px; background: #fff; }
@@ -132,39 +112,53 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 }
 .drop-target:empty::before { content: '?'; font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; opacity: 0.45; }
 
-/* Nel pool tutte le tessere restano orizzontali, più facili da leggere e trascinare. */
+/* Direzione interna: la meta' immagine e' sempre quella che riceve la parola precedente. */
+.domino-slot.orient-d-h.flow-d-right .domino-tile { flex-direction: row !important; }
+.domino-slot.orient-d-h.flow-d-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-top: 0; border-bottom: 0; }
+.domino-slot.orient-d-h.flow-d-left .domino-tile { flex-direction: row-reverse !important; }
+.domino-slot.orient-d-h.flow-d-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-top: 0; border-bottom: 0; }
+.domino-slot.orient-d-v.flow-d-down .domino-tile { flex-direction: column !important; }
+.domino-slot.orient-d-v.flow-d-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
+.domino-slot.orient-d-v.flow-d-up .domino-tile { flex-direction: column-reverse !important; }
+.domino-slot.orient-d-v.flow-d-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
+
+/* Nel pool le tessere restano orizzontali per essere leggibili e facili da trascinare. */
 #pool .domino-tile { width: 205px !important; height: 94px !important; flex-direction: row !important; }
-#pool .domino-tile .tile-img { width: 48%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-bottom: 0; }
+#pool .domino-tile .tile-img { width: 48%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-left:0; border-top:0; border-bottom:0; }
 #pool .domino-tile .tile-text { width: 52%; height: 100%; }
 
 @media (max-width: 700px) {
     .domino-chain {
-        --track-x: 148px;
-        --track-y: 132px;
-        grid-template-columns: repeat(var(--m-cols), var(--track-x));
-        grid-template-rows: repeat(var(--m-rows), var(--track-y));
-        width: min(100%, calc(var(--m-cols) * var(--track-x) + 1rem));
-        min-height: calc(var(--m-rows) * var(--track-y) + 1rem);
-        padding: 0.5rem;
+        width: var(--m-board-w);
+        height: var(--m-board-h);
+        max-width: 100%;
         border-radius: 16px;
     }
-    .domino-slot { grid-column: var(--m-col); grid-row: var(--m-row); width: var(--track-x); height: var(--track-y); }
-    .domino-slot > .domino-tile,
-    .domino-slot > .drop-target { translate: var(--m-shift-x, 0px) var(--m-shift-y, 0px); }
-
+    .domino-slot {
+        left: var(--m-left);
+        top: var(--m-top);
+        width: var(--m-w);
+        height: var(--m-h);
+    }
     .domino-connectors-desktop { display: none; }
     .domino-connectors-mobile { display: block; }
     .domino-connectors polyline { stroke-width: 10; }
 
     .orient-m-h .domino-tile, .orient-m-h .drop-target { width: 140px !important; height: 76px !important; }
-    .orient-m-h .domino-tile { flex-direction: row !important; }
-    .orient-m-h .tile-img { width: 46%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-bottom: 0; }
+    .orient-m-h .tile-img { width: 46%; height: 100%; }
     .orient-m-h .tile-text { width: 54%; height: 100%; }
-
     .orient-m-v .domino-tile, .orient-m-v .drop-target { width: 88px !important; height: 122px !important; }
-    .orient-m-v .domino-tile { flex-direction: column !important; }
-    .orient-m-v .tile-img { width: 100%; height: 54%; border-right: 0; border-bottom: 2px dashed var(--hfle-blue); }
+    .orient-m-v .tile-img { width: 100%; height: 54%; }
     .orient-m-v .tile-text { width: 100%; height: 46%; }
+
+    .domino-slot.orient-m-h.flow-m-right .domino-tile { flex-direction: row !important; }
+    .domino-slot.orient-m-h.flow-m-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
+    .domino-slot.orient-m-h.flow-m-left .domino-tile { flex-direction: row-reverse !important; }
+    .domino-slot.orient-m-h.flow-m-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
+    .domino-slot.orient-m-v.flow-m-down .domino-tile { flex-direction: column !important; }
+    .domino-slot.orient-m-v.flow-m-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
+    .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction: column-reverse !important; }
+    .domino-slot.orient-m-v.flow-m-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
 
     .tile-text { font-size: 13px; padding: 4px; }
     #pool { gap: 10px !important; }
