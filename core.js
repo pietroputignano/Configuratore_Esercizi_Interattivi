@@ -497,26 +497,15 @@ function loadStep(idx) {
     else if(type === 'domino') {
         const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
 
-        // Layout deterministico a circuito: le quattro fasce (alto, destra,
-        // basso, sinistra) hanno coordinate proprie. Le curve non vengono piu'
-        // ottenute accumulando offset: questo evita derive geometriche.
-        function distributeDominoSides(count, topMax) {
-            const top = Math.min(topMax, count);
-            let remaining = count - top;
-            if (remaining <= 0) return {top, right:0, bottom:0, left:0};
-            const right = Math.ceil(remaining / 3);
-            const bottom = Math.floor(remaining / 3);
-            const left = remaining - right - bottom;
-            return {top, right, bottom, left};
-        }
-
+        // Serpentina APERTA: niente chiusura forzata verso la prima tessera.
+        // Ogni nuova tessera viene posizionata a partire dal punto WORD della precedente
+        // e dal punto IMAGE della successiva. In questo modo allineamento e connettore
+        // usano esattamente la stessa geometria.
         function dominoTileSize(orientation, mobile = false) {
             if (mobile) return orientation === 'h' ? {w:140, h:76} : {w:88, h:122};
             return orientation === 'h' ? {w:205, h:94} : {w:108, h:140};
         }
 
-        // Centro delle due meta' interne. Serve per far terminare/partire le curve
-        // esattamente dalla meta' WORD e dalla meta' IMAGE corretta.
         function dominoHalfCenter(orientation, flow, kind, mobile = false) {
             if (mobile) {
                 if (orientation === 'h') {
@@ -534,88 +523,103 @@ function loadStep(idx) {
             return kind === 'image' ? {x:0,y:-31.5} : {x:0,y:38.5};
         }
 
-        function buildDominoCircuit(count, mobile = false) {
+        function portOffset(tile, kind, direction, mobile=false) {
+            const sz = dominoTileSize(tile.o, mobile);
+            const hc = dominoHalfCenter(tile.o, tile.flow, kind, mobile);
+            if (direction === 'right') return {x: sz.w/2, y: hc.y};
+            if (direction === 'left')  return {x:-sz.w/2, y: hc.y};
+            if (direction === 'down')  return {x: hc.x, y: sz.h/2};
+            return {x: hc.x, y:-sz.h/2};
+        }
+
+        function vecForDirection(direction, distance) {
+            if (direction === 'right') return {x:distance,y:0};
+            if (direction === 'left') return {x:-distance,y:0};
+            if (direction === 'down') return {x:0,y:distance};
+            return {x:0,y:-distance};
+        }
+
+        function oppositeDirection(dir) {
+            return {right:'left',left:'right',down:'up',up:'down'}[dir];
+        }
+
+        // Pattern: riga -> discesa -> riga inversa -> discesa -> ...
+        // Desktop: 3 tessere per riga e 2 nel tratto verticale.
+        // Mobile: 2 tessere per riga e 1 nel tratto verticale.
+        function buildDominoOpenSnake(count, mobile=false) {
             if (!count) return {path:[], positions:[], width:1, height:1};
-            const sideCounts = distributeDominoSides(count, mobile ? 2 : 3);
-            const h = dominoTileSize('h', mobile);
-            const v = dominoTileSize('v', mobile);
+            const horizontalRun = mobile ? 2 : 3;
+            const verticalRun = mobile ? 1 : 2;
             const gap = mobile ? 14 : 18;
             const pad = mobile ? 12 : 22;
             const path = [];
             const positions = [];
 
-            const topY = pad + h.h/2;
-            const topStep = h.w + gap;
-            const firstTopX = pad + h.w/2;
+            let horizontalFlow = 'right';
+            let phase = 'horizontal';
+            let phaseRemaining = horizontalRun;
 
-            // ALTO: da sinistra a destra.
-            for (let i=0; i<sideCounts.top; i++) {
-                path.push({side:'top', o:'h', flow:'right'});
-                positions.push({x:firstTopX + i*topStep, y:topY});
-            }
-
-            const topLastIndex = sideCounts.top - 1;
-            const topLast = positions[topLastIndex];
-            const topWord = dominoHalfCenter('h','right','word',mobile);
-            const firstImage = dominoHalfCenter('h','right','image',mobile);
-            const rightX = topLast.x + topWord.x;
-            const leftX = positions[0].x + firstImage.x;
-
-            // DESTRA: colonna verticale sotto la meta' WORD dell'ultima tessera alta.
-            let rightFirstY = topY + h.h/2 + gap + v.h/2;
-            for (let i=0; i<sideCounts.right; i++) {
-                path.push({side:'right', o:'v', flow:'down'});
-                positions.push({x:rightX, y:rightFirstY + i*(v.h+gap)});
-            }
-
-            const lastRightY = sideCounts.right
-                ? positions[sideCounts.top + sideCounts.right - 1].y
-                : topY;
-            const bottomY = lastRightY + (sideCounts.right ? v.h/2 : h.h/2) + gap + h.h/2;
-
-            // BASSO: da destra a sinistra. I centri vengono distribuiti tra le due
-            // colonne semantiche, cosi' il lato basso resta realmente allineato.
-            if (sideCounts.bottom > 0) {
-                const bottomImage = dominoHalfCenter('h','left','image',mobile);
-                const bottomWord = dominoHalfCenter('h','left','word',mobile);
-                const rightCenter = rightX - bottomImage.x;
-                const leftCenter = leftX - bottomWord.x;
-                for (let i=0; i<sideCounts.bottom; i++) {
-                    const t = sideCounts.bottom === 1 ? 0.5 : i/(sideCounts.bottom-1);
-                    path.push({side:'bottom', o:'h', flow:'left'});
-                    positions.push({x:rightCenter + (leftCenter-rightCenter)*t, y:bottomY});
+            for (let i=0; i<count; i++) {
+                let flow, o;
+                if (phase === 'horizontal') {
+                    flow = horizontalFlow;
+                    o = 'h';
+                } else {
+                    flow = 'down';
+                    o = 'v';
                 }
-            }
 
-            // SINISTRA: risale sulla verticale centrata sotto la meta' IMAGE della
-            // prima tessera. La colonna e' distribuita tra basso e alto senza drift.
-            if (sideCounts.left > 0) {
-                const upperY = topY + h.h/2 + gap + v.h/2;
-                const lowerY = bottomY - h.h/2 - gap - v.h/2;
-                for (let i=0; i<sideCounts.left; i++) {
-                    const t = sideCounts.left === 1 ? 0.5 : i/(sideCounts.left-1);
-                    path.push({side:'left', o:'v', flow:'up'});
-                    positions.push({x:leftX, y:lowerY + (upperY-lowerY)*t});
+                let entryDir = null;
+                if (i > 0) {
+                    const prev = path[i-1];
+                    if (prev.o === 'h' && o === 'v') entryDir = 'down';
+                    else if (prev.o === 'v' && o === 'h') entryDir = 'down';
+                    else entryDir = flow;
+                }
+                path.push({o, flow, entryDir});
+
+                if (i === 0) {
+                    const sz = dominoTileSize(o,mobile);
+                    positions.push({x:pad+sz.w/2, y:pad+sz.h/2});
+                } else {
+                    const prev = path[i-1];
+                    const prevPos = positions[i-1];
+                    const dir = entryDir;
+                    const prevPort = portOffset(prev,'word',dir,mobile);
+                    const currPort = portOffset(path[i],'image',oppositeDirection(dir),mobile);
+                    const dv = vecForDirection(dir,gap);
+                    positions.push({
+                        x: prevPos.x + prevPort.x + dv.x - currPort.x,
+                        y: prevPos.y + prevPort.y + dv.y - currPort.y
+                    });
+                }
+
+                phaseRemaining--;
+                if (phaseRemaining === 0 && i < count-1) {
+                    if (phase === 'horizontal') {
+                        phase = 'vertical';
+                        phaseRemaining = verticalRun;
+                    } else {
+                        phase = 'horizontal';
+                        horizontalFlow = horizontalFlow === 'right' ? 'left' : 'right';
+                        phaseRemaining = horizontalRun;
+                    }
                 }
             }
 
             let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-            path.forEach((p,i)=>{
-                const sz=dominoTileSize(p.o,mobile), c=positions[i];
+            path.forEach((tile,i)=>{
+                const sz=dominoTileSize(tile.o,mobile), c=positions[i];
                 minX=Math.min(minX,c.x-sz.w/2); minY=Math.min(minY,c.y-sz.h/2);
                 maxX=Math.max(maxX,c.x+sz.w/2); maxY=Math.max(maxY,c.y+sz.h/2);
             });
-            const shiftX = pad - minX, shiftY = pad - minY;
-            const shifted = positions.map(c=>({x:c.x+shiftX,y:c.y+shiftY}));
-            return {
-                path, positions:shifted,
-                width:Math.ceil(maxX-minX+pad*2),
-                height:Math.ceil(maxY-minY+pad*2)
-            };
+            const shiftX=pad-minX, shiftY=pad-minY;
+            const shifted=positions.map(c=>({x:c.x+shiftX,y:c.y+shiftY}));
+            return {path,positions:shifted,width:Math.ceil(maxX-minX+pad*2),height:Math.ceil(maxY-minY+pad*2)};
         }
 
-        const desktopCircuit = buildDominoCircuit(items.length, false);
-        const mobileCircuit = buildDominoCircuit(items.length, true);
+        const desktopCircuit = buildDominoOpenSnake(items.length, false);
+        const mobileCircuit = buildDominoOpenSnake(items.length, true);
         const desktopPath = desktopCircuit.path;
         const mobilePath = mobileCircuit.path;
         const desktopGeo = {positions:desktopCircuit.positions,width:desktopCircuit.width,height:desktopCircuit.height};
@@ -623,67 +627,27 @@ function loadStep(idx) {
         const desktopFlows = desktopPath.map(p=>p.flow);
         const mobileFlows = mobilePath.map(p=>p.flow);
 
-        function halfPoint(path, geo, index, kind, mobile=false) {
-            const p=path[index], c=geo.positions[index];
-            const o=dominoHalfCenter(p.o,p.flow,kind,mobile);
-            return {x:c.x+o.x,y:c.y+o.y};
+        function absolutePort(path, geo, index, kind, direction, mobile=false) {
+            const off=portOffset(path[index],kind,direction,mobile);
+            const c=geo.positions[index];
+            return {x:c.x+off.x,y:c.y+off.y};
         }
 
-        // Porta sul bordo esterno della tessera, mantenendo l'asse della meta'
-        // semantica. La linea arancione rimane quindi SOLO nello spazio fra tessere.
-        function edgePort(path, geo, index, kind, direction, mobile=false) {
-            const p=path[index], c=geo.positions[index], sz=dominoTileSize(p.o,mobile);
-            const hc=halfPoint(path,geo,index,kind,mobile);
-            if (direction==='right') return {x:c.x+sz.w/2,y:hc.y};
-            if (direction==='left')  return {x:c.x-sz.w/2,y:hc.y};
-            if (direction==='down')  return {x:hc.x,y:c.y+sz.h/2};
-            return {x:hc.x,y:c.y-sz.h/2};
-        }
-
-        function transitionDirection(a,b) {
-            if (!a || !b) return 'right';
-            if (a.side==='top' && b.side==='right') return 'down';
-            if (a.side==='right' && b.side==='bottom') return 'down';
-            if (a.side==='bottom' && b.side==='left') return 'left';
-            if (a.side==='left' && b.side==='top') return 'up';
-            if (a.side==='top') return 'right';
-            if (a.side==='right') return 'down';
-            if (a.side==='bottom') return 'left';
-            return 'up';
-        }
-
-        function oppositeDirection(dir) {
-            return {right:'left',left:'right',down:'up',up:'down'}[dir];
-        }
-
-        function orthogonalPolyline(a,b,dir) {
-            if (dir==='left' || dir==='right') {
-                const mx=(a.x+b.x)/2;
-                return `${a.x.toFixed(1)},${a.y.toFixed(1)} ${mx.toFixed(1)},${a.y.toFixed(1)} ${mx.toFixed(1)},${b.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
-            }
-            const my=(a.y+b.y)/2;
-            return `${a.x.toFixed(1)},${a.y.toFixed(1)} ${a.x.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
-        }
-
-        function buildConnectorSvg(path, geo, mobile=false, closeLoop=false) {
+        function buildConnectorSvg(path, geo, mobile=false) {
             if (path.length<2) return '';
             const klass=mobile ? 'domino-connectors domino-connectors-mobile' : 'domino-connectors domino-connectors-desktop';
             const segments=[];
-            const count=closeLoop ? path.length : path.length-1;
-            for (let i=0;i<count;i++) {
-                const j=(i+1)%path.length;
-                let dir;
-                if (j===0) dir='up';
-                else dir=transitionDirection(path[i],path[j]);
-                const a=edgePort(path,geo,i,'word',dir,mobile);
-                const b=edgePort(path,geo,j,'image',oppositeDirection(dir),mobile);
-                segments.push(`<polyline points="${orthogonalPolyline(a,b,dir)}" />`);
+            for (let i=0;i<path.length-1;i++) {
+                const dir=path[i+1].entryDir;
+                const a=absolutePort(path,geo,i,'word',dir,mobile);
+                const b=absolutePort(path,geo,i+1,'image',oppositeDirection(dir),mobile);
+                segments.push(`<polyline points="${a.x.toFixed(1)},${a.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}" />`);
             }
             return `<svg class="${klass}" viewBox="0 0 ${geo.width} ${geo.height}" aria-hidden="true">${segments.join('')}</svg>`;
         }
 
-        const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopGeo, false, desktopPath.some(p=>p.side==='left'));
-        const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileGeo, true, false);
+        const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopGeo, false);
+        const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileGeo, true);
         let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
 
         items.forEach((w, i) => {
