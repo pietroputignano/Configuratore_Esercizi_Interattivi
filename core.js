@@ -290,13 +290,21 @@ function showEndScreen() {
         const getSolutionImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
         let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
         items.forEach((word, i) => {
-            const imgNeeded = i === 0 ? items[items.length - 1] : items[i - 1];
+            if (i === 0) {
+                dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img domino-start-block"></div><div class="domino-solution-text">${word}</div></div>`;
+                return;
+            }
+            const imgNeeded = items[i - 1];
             const imgSrc = getSolutionImg(imgNeeded);
             const visual = imgSrc
                 ? `<img src="${imgSrc}" alt="" class="pointer-events-none">`
                 : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
             dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${word}</div></div>`;
         });
+        const lastWord = items[items.length - 1];
+        const lastImg = getSolutionImg(lastWord);
+        const lastVisual = lastImg ? `<img src="${lastImg}" alt="" class="pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${lastWord}</span>`;
+        dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${lastVisual}</div><div class="domino-solution-text domino-end-block"></div></div>`;
         dominoSolutions += '</div>';
         answersHtml += `<li class="list-none">${dominoSolutions}</li>`;
     } else if (type === 'sentence_ordering' || type === 'anagramme') {
@@ -629,8 +637,9 @@ function loadStep(idx) {
             return {path,positions:shifted,width:Math.ceil(maxX-minX+pad*2),height:Math.ceil(maxY-minY+pad*2)};
         }
 
-        const desktopCircuit = buildDominoOpenSnake(items.length, false);
-        const mobileCircuit = buildDominoOpenSnake(items.length, true);
+        const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
+        const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false);
+        const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true);
         const desktopPath = desktopCircuit.path;
         const mobilePath = mobileCircuit.path;
         const desktopGeo = {positions:desktopCircuit.positions,width:desktopCircuit.width,height:desktopCircuit.height};
@@ -661,7 +670,7 @@ function loadStep(idx) {
         const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileGeo, true);
         let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
 
-        items.forEach((w, i) => {
+        for (let i = 0; i < dominoTileCount; i++) {
             const d = desktopPath[i];
             const m = mobilePath[i];
             const dFlow = desktopFlows[i] || (d.o === 'v' ? 'down' : 'right');
@@ -672,28 +681,34 @@ function loadStep(idx) {
             const slotStyle = `--d-left:${(dp.x-ds.w/2).toFixed(1)}px; --d-top:${(dp.y-ds.h/2).toFixed(1)}px; --d-w:${ds.w}px; --d-h:${ds.h}px; --m-left:${(mp.x-ms.w/2).toFixed(1)}px; --m-top:${(mp.y-ms.h/2).toFixed(1)}px; --m-w:${ms.w}px; --m-h:${ms.h}px;`;
 
             if (i === 0) {
-                const imgNeeded = items[items.length - 1];
-                const imgSrc = getImg(imgNeeded);
-                const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
-                const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')"`;
-                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div class="domino-tile domino-starter cursor-default"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${w}</div></div></div>`;
+                // La catena e' lineare: il primo mezzo-domino e' un blocco START, non l'immagine dell'ultima parola.
+                const w = items[0];
+                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div class="domino-tile domino-starter cursor-default"><div class="tile-img domino-start-block" aria-label="Début"></div><div class="tile-text">${w}</div></div></div>`;
+            } else if (i === items.length) {
+                // Ultima posizione: immagine dell'ultima parola + blocco END.
+                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div id="target-__DOMINO_END__" class="drop-target" data-expected="__DOMINO_END__"></div></div>`;
             } else {
+                const w = items[i];
                 dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div id="target-${w}" class="drop-target" data-expected="${w.replace(/"/g, '&quot;')}"></div></div>`;
             }
-        });
+        }
 
         dominoChainHtml += `</div>`;
         stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
 
-        // La prima tessera e' gia' collocata sul tabellone; nel pool restano le altre.
-        const poolItems = items.slice(1).sort(()=>Math.random()-0.5);
-        pool.innerHTML = poolItems.map((it) => {
-            const i = items.indexOf(it);
-            const imgNeeded = items[i-1];
+        // Nel pool restano le tessere dalla seconda parola in poi, piu' la tessera terminale.
+        const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i]}));
+        poolEntries.push({kind:'end', word:'__DOMINO_END__', imageKey:items[items.length - 1]});
+        poolEntries.sort(()=>Math.random()-0.5);
+        pool.innerHTML = poolEntries.map((entry) => {
+            const imgNeeded = entry.imageKey;
             const imgSrc = getImg(imgNeeded);
             const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
             const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')"`;
-            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${it}</div></div>`;
+            if (entry.kind === 'end') {
+                return `<div class="domino-tile domino-pool-tile domino-finish-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="__DOMINO_END__"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text domino-end-block" aria-label="Fin"></div></div>`;
+            }
+            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${entry.word}</div></div>`;
         }).join('');
 
         document.getElementById('nav-step').innerHTML = '';
@@ -773,7 +788,7 @@ function setupSortable(mode, targetWord) {
         
         const itemArray = getCurrentItems();
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-        const targetWords = mode === 'domino' ? itemArray.slice(1) : (mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word));
+        const targetWords = mode === 'domino' ? itemArray.slice(1).concat('__DOMINO_END__') : (mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word));
 
         targetWords.forEach(w => {
             const tgt = document.getElementById('target-' + w);
