@@ -383,3 +383,22 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     text-transform: none;
     white-space: nowrap;
 }
+
+
+/* CROSSWORD v8.4: pronomi, focus sequenziale e soluzioni complete */
+.cw-board-wrap { width: 100%; overflow-x: auto; overflow-y: visible; padding: 42px 56px 24px; display: flex; justify-content: center; }
+.cw-play-grid { display: grid; grid-template-columns: repeat(12, 40px); gap: 4px; width: max-content; }
+.cw-empty-cell { width: 40px; height: 40px; }
+.cw-play-wrapper { position: relative; width: 40px; height: 40px; overflow: visible; }
+.cw-pronoun-label { position: absolute; z-index: 20; font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); white-space: nowrap; font-size: 16px; line-height: 1; }
+.cw-pronoun-h { right: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
+.cw-pronoun-v { bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); }
+.cw-solution-scroll { width: 100%; overflow-x: auto; padding: 4px 0 12px; }
+.cw-solution-board { padding-top: 48px; padding-bottom: 8px; }
+.cw-solution-cell { display: flex; align-items: center; justify-content: center; background: #ecfdf5; color: #166534; border-color: var(--hfle-success); pointer-events: none; }
+.cw-solution-conjugation { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 20px; text-align: left; color: var(--hfle-blue); font-family: 'Montserrat', sans-serif; font-size: 14px; }
+@media (max-width: 640px) {
+    .cw-board-wrap { justify-content: flex-start; padding: 38px 48px 20px; }
+    .cw-pronoun-label { font-size: 14px; }
+    .cw-solution-conjugation { grid-template-columns: 1fr; }
+}
