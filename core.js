@@ -548,6 +548,17 @@ function loadStep(idx) {
             return '';
         }
 
+        // L'immagine di ogni tessera rappresenta la parola della tessera precedente.
+        // Per questo deve stare sul lato da cui arriva la catena: sinistra/destra/sopra/sotto.
+        function entrySide(prev, current, fallbackOrientation) {
+            const dir = pathDirection(prev, current);
+            if (dir === 'right') return 'left';
+            if (dir === 'left') return 'right';
+            if (dir === 'down') return 'top';
+            if (dir === 'up') return 'bottom';
+            return fallbackOrientation === 'v' ? 'top' : 'left';
+        }
+
         const desktopPath = buildDesktopDominoPath(items.length);
         const mobilePath = buildMobileDominoPath(items.length);
         const dCols = desktopPath.length ? Math.max(...desktopPath.map(p => p.x)) + 1 : 1;
@@ -562,8 +573,14 @@ function loadStep(idx) {
             const m = mobilePath[i];
             const dNext = i < items.length - 1 ? pathDirection(d, desktopPath[i+1]) : pathDirection(d, desktopPath[0]);
             const mNext = i < items.length - 1 ? pathDirection(m, mobilePath[i+1]) : '';
+
+            const dPrev = i > 0 ? desktopPath[i-1] : (pathDirection(desktopPath[desktopPath.length - 1], d) ? desktopPath[desktopPath.length - 1] : null);
+            const mPrev = i > 0 ? mobilePath[i-1] : null;
+            const dEntry = entrySide(dPrev, d, d.o);
+            const mEntry = entrySide(mPrev, m, m.o);
+
             const dClose = i === items.length - 1 && dNext ? ' domino-closes-loop' : '';
-            const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} next-d-${dNext || 'none'} next-m-${mNext || 'none'}${dClose}`;
+            const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} entry-d-${dEntry} entry-m-${mEntry} next-d-${dNext || 'none'} next-m-${mNext || 'none'}${dClose}`;
             const slotStyle = `--d-col:${d.x+1}; --d-row:${d.y+1}; --m-col:${m.x+1}; --m-row:${m.y+1};`;
 
             if (i === 0) {
