@@ -616,3 +616,27 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     content-visibility: auto;
     contain-intrinsic-size: 180px 100px;
 }
+
+
+/* v8.9 - immagini Anagramme nelle soluzioni: box standard compatto */
+.anagram-solution-image {
+    height: 82px !important;
+    padding: 8px !important;
+    overflow: hidden;
+}
+.anagram-solution-image .solution-image-standard {
+    width: auto !important;
+    height: auto !important;
+    max-width: 72px !important;
+    max-height: 60px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    margin: 0 auto;
+}
+@media (max-width: 700px) {
+    .anagram-solution-image { height: 76px !important; }
+    .anagram-solution-image .solution-image-standard {
+        max-width: 66px !important;
+        max-height: 54px !important;
+    }
+}
