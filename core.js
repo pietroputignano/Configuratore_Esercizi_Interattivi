@@ -213,8 +213,20 @@ function findCWWords() {
     let starts = {}; words.forEach(w => { let key = `${w.x}-${w.y}`; if(!starts[key]) starts[key] = counter++; w.num = starts[key]; });
     document.querySelectorAll('.cw-number').forEach(e => e.remove());
     Object.keys(starts).forEach(key => { let [x,y] = key.split('-'); let cellWrap = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).parentElement; let span = document.createElement('span'); span.className = 'cw-number'; span.innerText = starts[key]; cellWrap.appendChild(span); });
-    let cluesHtml = `<h4 class="font-bold text-blue-900 border-b pb-2 mb-3">Definizioni</h4><div class="grid grid-cols-2 gap-4">`;
-    words.sort((a,b) => a.num - b.num).forEach(w => { let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale'; let prevClue = cwClues.find(c => c.word === w.word && c.dir === w.dir)?.clue || ""; cluesHtml += `<div><label class="text-xs font-bold text-gray-700 block">${w.num}. ${label} (${w.word})</label><input type="text" class="cw-clue-input w-full border border-gray-300 rounded p-2 text-xs" data-word="${w.word.replace(/"/g, '&quot;')}" data-num="${w.num}" data-dir="${w.dir}" value="${prevClue.replace(/"/g, '&quot;')}"></div>`; });
+    let cluesHtml = `<h4 class="font-bold text-blue-900 border-b pb-2 mb-3">Definizioni e pronomi</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+    words.sort((a,b) => a.num - b.num).forEach(w => {
+        let label = w.dir === 'h' ? 'Orizzontale' : 'Verticale';
+        let prev = cwClues.find(c => c.word === w.word && c.dir === w.dir) || {};
+        let prevClue = prev.clue || "";
+        let prevPronoun = prev.pronoun || "";
+        cluesHtml += `<div class="bg-slate-50 border border-gray-200 rounded-lg p-3">
+            <label class="text-xs font-bold text-gray-700 block mb-2">${w.num}. ${label} (${w.word})</label>
+            <div class="grid grid-cols-[110px_1fr] gap-2">
+                <input type="text" class="cw-pronoun-input w-full border border-gray-300 rounded p-2 text-xs font-bold text-blue-900" data-word="${w.word.replace(/"/g, '&quot;')}" data-num="${w.num}" data-dir="${w.dir}" data-x="${w.x}" data-y="${w.y}" placeholder="Pronom (Je, Tu...)" value="${prevPronoun.replace(/"/g, '&quot;')}">
+                <input type="text" class="cw-clue-input w-full border border-gray-300 rounded p-2 text-xs" data-word="${w.word.replace(/"/g, '&quot;')}" data-num="${w.num}" data-dir="${w.dir}" data-x="${w.x}" data-y="${w.y}" placeholder="Définition" value="${prevClue.replace(/"/g, '&quot;')}">
+            </div>
+        </div>`;
+    });
     cluesHtml += `</div>`; document.getElementById('cw-clues-container').innerHTML = cluesHtml; document.getElementById('cw-clues-container').classList.remove('hidden');
 }
 function closeCWBuilder() {
@@ -222,7 +234,15 @@ function closeCWBuilder() {
     cwVerbLabel = document.getElementById('cw-in-verb') ? document.getElementById('cw-in-verb').value : "";
     cwShowClues = document.getElementById('cw-in-show-clues') ? document.getElementById('cw-in-show-clues').checked : true;
     document.querySelectorAll('.cw-cell').forEach(inp => { if(inp.value.trim() !== '') { let numSpan = inp.parentElement.querySelector('.cw-number'); cwData.push({ x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y), char: inp.value.toUpperCase(), num: numSpan ? parseInt(numSpan.innerText) : null }); } });
-    document.querySelectorAll('.cw-clue-input').forEach(inp => { cwClues.push({ num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word, clue: inp.value || inp.dataset.word }); });
+    document.querySelectorAll('.cw-clue-input').forEach(inp => {
+        const pronounInp = document.querySelector(`.cw-pronoun-input[data-word="${CSS.escape(inp.dataset.word)}"][data-dir="${inp.dataset.dir}"]`);
+        cwClues.push({
+            num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word,
+            x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y),
+            clue: inp.value || inp.dataset.word,
+            pronoun: pronounInp ? pronounInp.value.trim() : ''
+        });
+    });
     document.getElementById('cw-modal').classList.add('hidden'); startGame();
 }
 
@@ -276,6 +296,82 @@ function startGame() {
     loadStep(0);
 }
 
+
+// --- CROSSWORD HELPERS ---
+function getCWClueStart(clue) {
+    if (Number.isFinite(clue?.x) && Number.isFinite(clue?.y)) return { x: clue.x, y: clue.y };
+    const candidates = cwData.filter(c => c.num === clue?.num);
+    if (candidates.length) return { x: candidates[0].x, y: candidates[0].y };
+    return null;
+}
+
+function getCWCellMeta() {
+    const meta = new Map();
+    cwClues.forEach(clue => {
+        const start = getCWClueStart(clue);
+        if (!start || !clue.word) return;
+        const chars = String(clue.word).toUpperCase().split('');
+        chars.forEach((_, i) => {
+            const x = start.x + (clue.dir === 'h' ? i : 0);
+            const y = start.y + (clue.dir === 'v' ? i : 0);
+            const key = `${x}-${y}`;
+            if (!meta.has(key)) meta.set(key, { entries: [] });
+            meta.get(key).entries.push({ clue, index: i });
+        });
+    });
+    return meta;
+}
+
+function getCWNextCellId(x, y) {
+    const meta = getCWCellMeta().get(`${x}-${y}`);
+    if (!meta || !meta.entries.length) return '';
+    // Prefer horizontal when an intersection belongs to two words; otherwise use the only direction.
+    const entry = meta.entries.find(e => e.clue.dir === 'h') || meta.entries[0];
+    const nextIndex = entry.index + 1;
+    if (nextIndex >= String(entry.clue.word).length) return '';
+    const start = getCWClueStart(entry.clue);
+    if (!start) return '';
+    const nx = start.x + (entry.clue.dir === 'h' ? nextIndex : 0);
+    const ny = start.y + (entry.clue.dir === 'v' ? nextIndex : 0);
+    return `cw-${nx}-${ny}`;
+}
+
+function buildCrosswordGridHtml(solutionMode = false) {
+    const clueStarts = new Map();
+    cwClues.forEach(c => {
+        const start = getCWClueStart(c);
+        if (!start || !c.pronoun) return;
+        const key = `${start.x}-${start.y}`;
+        if (!clueStarts.has(key)) clueStarts.set(key, []);
+        clueStarts.get(key).push(c);
+    });
+
+    let gridHtml = `<div class="cw-board-wrap ${solutionMode ? 'cw-solution-board' : ''}"><div class="cw-play-grid">`;
+    for(let y=0; y<12; y++) {
+        for(let x=0; x<12; x++) {
+            const cell = cwData.find(c => c.x === x && c.y === y);
+            const labels = clueStarts.get(`${x}-${y}`) || [];
+            let labelHtml = '';
+            labels.forEach(c => {
+                if (c.dir === 'h') labelHtml += `<span class="cw-pronoun-label cw-pronoun-h">${c.pronoun}</span>`;
+                else labelHtml += `<span class="cw-pronoun-label cw-pronoun-v">${c.pronoun}</span>`;
+            });
+            if(cell) {
+                if (solutionMode) {
+                    gridHtml += `<div class="cw-play-wrapper">${labelHtml}<span class="cw-number">${cell.num || ''}</span><div class="cw-play-cell cw-solution-cell font-mont">${cell.char}</div></div>`;
+                } else {
+                    const nextId = getCWNextCellId(x, y);
+                    gridHtml += `<div class="cw-play-wrapper">${labelHtml}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" data-next="${nextId}" oninput="checkCrossword(this)"></div>`;
+                }
+            } else {
+                gridHtml += `<div class="cw-empty-cell"></div>`;
+            }
+        }
+    }
+    gridHtml += `</div></div>`;
+    return gridHtml;
+}
+
 function showEndScreen() {
     document.getElementById('end-screen').classList.remove('hidden');
     const type = getCurrentType();
@@ -285,7 +381,13 @@ function showEndScreen() {
 
     let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
     if (type === 'crossword') {
-        cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; });
+        answersHtml += `<li class="list-none"><div class="cw-solution-scroll custom-scrollbar">${buildCrosswordGridHtml(true)}</div></li>`;
+        if (cwClues.length) {
+            answersHtml += `<li class="list-none mt-3"><div class="cw-solution-conjugation">` + cwClues.map(c => {
+                const full = `${c.pronoun ? c.pronoun + ' ' : ''}${c.word}`.trim();
+                return `<div><b>${c.num}.</b> ${full}</div>`;
+            }).join('') + `</div></li>`;
+        }
     } else if (type === 'domino') {
         const getSolutionImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
         let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
@@ -386,10 +488,17 @@ function checkCrossword(inputEl) {
             setTimeout(() => {
                 inputEl.classList.remove('shake-error', 'text-red-500');
                 inputEl.value = '';
+                inputEl.focus();
             }, 500);
         } else {
+            inputEl.value = inputEl.dataset.ans;
             inputEl.classList.add('correct');
             playSound('drop');
+            const nextId = inputEl.dataset.next;
+            if (nextId) {
+                const next = document.getElementById(nextId);
+                if (next && !next.classList.contains('correct')) setTimeout(() => next.focus(), 80);
+            }
         }
     }
 
@@ -478,26 +587,15 @@ function loadStep(idx) {
     
     stage.innerHTML = '';
     pool.innerHTML = '';
-    
    if(type === 'crossword') {
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
-        
         let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
-        
-        let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
-        for(let y=0; y<12; y++) {
-            for(let x=0; x<12; x++) {
-                let cell = cwData.find(c => c.x === x && c.y === y);
-                if(cell) gridHtml += `<div class="cw-play-wrapper"><span class="cw-number">${cell.num || ''}</span><input type="text" maxlength="1" class="cw-play-cell font-mont" data-ans="${cell.char}" oninput="checkCrossword(this)"></div>`;
-                else gridHtml += `<div class="w-10 h-10"></div>`;
-            }
-        }
-        gridHtml += '</div>';
-        
-        let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
-        
+        const gridHtml = buildCrosswordGridHtml(false);
+        let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.pronoun ? c.pronoun + ' — ' : ''}${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
         stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`;
-        document.getElementById('nav-step').innerHTML = ''; return;
+        document.getElementById('nav-step').innerHTML = '';
+        setTimeout(() => { const first = stage.querySelector('.cw-play-cell'); if (first) first.focus(); }, 0);
+        return;
     }
 
     if(items.length === 0) return;
@@ -1102,7 +1200,7 @@ async function exportToZIP() {
                 </div>
             </div>
         </div>
-        <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
+        <div id="end-score" class="w-full max-w-4xl flex flex-col items-center hidden mt-2"></div>
     </div>
     <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
         <div class="flex flex-col items-center md:items-start z-10 shrink-0">
