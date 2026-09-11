@@ -561,6 +561,66 @@ function loadStep(idx) {
 
         const desktopPath = buildDesktopDominoPath(items.length);
         const mobilePath = buildMobileDominoPath(items.length);
+
+        // Oltre all'orientamento, allineiamo geometricamente le due META' che devono
+        // combaciare quando il percorso gira: la parola della tessera precedente e
+        // l'immagine della tessera successiva. Lo shift viene propagato lungo il lato
+        // del circuito, cosi' non si perde l'allineamento dopo una curva.
+        function dominoAnchorOffsets(orientation, entry, mobile = false) {
+            if (mobile) {
+                if (orientation === 'h') {
+                    // 140px: immagine 46%, testo 54%
+                    return entry === 'right'
+                        ? {entry:{x: 37.8, y:0}, exit:{x:-32.2, y:0}}
+                        : {entry:{x:-37.8, y:0}, exit:{x: 32.2, y:0}};
+                }
+                // 122px: immagine 54%, testo 46%
+                return entry === 'bottom'
+                    ? {entry:{x:0, y: 28.1}, exit:{x:0, y:-32.9}}
+                    : {entry:{x:0, y:-28.1}, exit:{x:0, y: 32.9}};
+            }
+
+            if (orientation === 'h') {
+                // 205px: immagine 48%, testo 52%
+                return entry === 'right'
+                    ? {entry:{x: 53.3, y:0}, exit:{x:-49.2, y:0}}
+                    : {entry:{x:-53.3, y:0}, exit:{x: 49.2, y:0}};
+            }
+            // 140px: immagine 55%, testo 45%
+            return entry === 'bottom'
+                ? {entry:{x:0, y: 31.5}, exit:{x:0, y:-38.5}}
+                : {entry:{x:0, y:-31.5}, exit:{x:0, y: 38.5}};
+        }
+
+        function computeDominoShifts(path, mobile = false) {
+            if (!path.length) return [];
+            const entries = path.map((p, i) => {
+                const prev = i > 0 ? path[i-1] : null;
+                return entrySide(prev, p, p.o);
+            });
+            const shifts = [{x:0, y:0}];
+            for (let i = 1; i < path.length; i++) {
+                const prev = path[i-1], curr = path[i];
+                const dir = pathDirection(prev, curr);
+                const prevA = dominoAnchorOffsets(prev.o, entries[i-1], mobile);
+                const currA = dominoAnchorOffsets(curr.o, entries[i], mobile);
+                const s = {x: shifts[i-1].x, y: shifts[i-1].y};
+
+                // In un movimento verticale deve coincidere la X delle due meta'.
+                if (dir === 'down' || dir === 'up') {
+                    s.x = shifts[i-1].x + prevA.exit.x - currA.entry.x;
+                }
+                // In un movimento orizzontale deve coincidere la Y delle due meta'.
+                if (dir === 'right' || dir === 'left') {
+                    s.y = shifts[i-1].y + prevA.exit.y - currA.entry.y;
+                }
+                shifts.push(s);
+            }
+            return shifts;
+        }
+
+        const desktopShifts = computeDominoShifts(desktopPath, false);
+        const mobileShifts = computeDominoShifts(mobilePath, true);
         const dCols = desktopPath.length ? Math.max(...desktopPath.map(p => p.x)) + 1 : 1;
         const dRows = desktopPath.length ? Math.max(...desktopPath.map(p => p.y)) + 1 : 1;
         const mCols = mobilePath.length ? Math.max(...mobilePath.map(p => p.x)) + 1 : 1;
@@ -581,7 +641,9 @@ function loadStep(idx) {
 
             const dClose = i === items.length - 1 && dNext ? ' domino-closes-loop' : '';
             const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} entry-d-${dEntry} entry-m-${mEntry} next-d-${dNext || 'none'} next-m-${mNext || 'none'}${dClose}`;
-            const slotStyle = `--d-col:${d.x+1}; --d-row:${d.y+1}; --m-col:${m.x+1}; --m-row:${m.y+1};`;
+            const ds = desktopShifts[i] || {x:0,y:0};
+            const ms = mobileShifts[i] || {x:0,y:0};
+            const slotStyle = `--d-col:${d.x+1}; --d-row:${d.y+1}; --m-col:${m.x+1}; --m-row:${m.y+1}; --d-shift-x:${ds.x.toFixed(1)}px; --d-shift-y:${ds.y.toFixed(1)}px; --m-shift-x:${ms.x.toFixed(1)}px; --m-shift-y:${ms.y.toFixed(1)}px;`;
 
             if (i === 0) {
                 // La prima tessera è già data: è una vera tessera del domino, non un segnaposto.
