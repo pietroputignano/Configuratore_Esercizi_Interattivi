@@ -584,13 +584,30 @@ function buildCrosswordSolutionHtml() {
     return html + '</div></div>';
 }
 
+function calculateScore(type) {
+    const errs = errorTracker.reduce((a, b) => a + b, 0);
+    const stepBasedTypes = ['sentence_ordering', 'anagramme', 'rebus'];
+
+    if (stepBasedTypes.includes(type)) {
+        const total = Math.max(1, getCurrentItems().length);
+        const completed = status.filter(s => s === 'completed').length;
+        const completionScore = (completed / total) * 100;
+        // Prima conta quanto e' stato realmente completato; poi penalizza gli errori.
+        // 5 punti per tentativo errato mantiene il feedback sensibile senza sovrastare
+        // il peso principale degli step lasciati incompleti.
+        return Math.max(0, Math.round(completionScore - (errs * 5)));
+    }
+
+    // I giochi a schermata unica arrivano al report solo quando sono completati.
+    // In questi casi manteniamo una penalita' sui tentativi errati.
+    return Math.max(0, Math.round(100 - (errs * 5)));
+}
+
 function showEndScreen() {
     destroyActiveSortables();
     document.getElementById('end-screen').classList.remove('hidden');
     const type = getCurrentType();
-    
-    let errs = errorTracker.reduce((a, b) => a + b, 0);
-    let scorePerc = Math.max(0, 100 - (errs * 10));
+    const scorePerc = calculateScore(type);
 
     let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
     if (type === 'crossword') {
