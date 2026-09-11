@@ -53,7 +53,7 @@
             </div>
             <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-4 items-center">
                 <label class="flex items-center gap-2 text-xs font-bold text-blue-900">
-                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra Definizioni
+                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra definizioni sotto la griglia <span class="font-normal text-gray-500">(i pronomi restano visibili)</span>
                 </label>
                 <input id="cw-in-verb" type="text" class="border border-gray-300 p-2 rounded text-xs w-64 shadow-inner" placeholder="Etichetta / Verbo (es: HABITER)">
             </div>
@@ -72,6 +72,32 @@
                 <button onclick="closeRebusBuilder()" class="bg-green-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Frasi</button>
             </div>
             <div class="flex-grow overflow-auto p-6 bg-slate-100 flex flex-col gap-4" id="rebus-sentences-container"></div>
+        </div>
+    </div>
+
+    <!-- MODAL AUTOCOLLANTES -->
+    <div id="auto-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-7xl flex flex-col h-[94vh]">
+            <div class="p-4 border-b flex flex-wrap justify-between items-center gap-3 bg-pink-50">
+                <div><h3 class="font-black text-pink-800 text-lg">✂️ Costruttore Autocollantes</h3><p class="text-xs text-gray-500">Livello <b id="auto-builder-level-label"></b></p></div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="auto-board-select" class="border rounded px-3 py-2 text-sm font-bold" onchange="selectAutoActivity(this.value)"></select>
+                    <button onclick="closeAutocollantesBuilder()" class="bg-pink-600 text-white px-5 py-2 rounded-full font-bold text-sm">Salva e Chiudi</button>
+                </div>
+            </div>
+            <div class="p-3 border-b bg-gray-50 flex flex-wrap gap-2 items-center">
+                <button onclick="pickAutoFile('base')" class="bg-white border-2 border-blue-200 px-3 py-2 rounded font-bold text-xs">1. Carica Base</button>
+                <button onclick="pickAutoFile('sheet')" class="bg-white border-2 border-orange-200 px-3 py-2 rounded font-bold text-xs">2. Carica Tavola Autocollantes</button>
+                <button onclick="startAutoStickerPair()" class="bg-emerald-600 text-white px-4 py-2 rounded font-bold text-xs">+ Nuovo Sticker → Zona</button>
+                <button onclick="cancelAutoDrawing()" class="bg-white border px-3 py-2 rounded font-bold text-xs">Annulla disegno</button>
+                <button onclick="clearAutoStickers()" class="bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded font-bold text-xs">Cancella coppie</button>
+                <span id="auto-draw-status" class="text-xs font-bold text-gray-600 ml-2"></span>
+            </div>
+            <div class="flex-grow overflow-auto p-4 bg-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl p-3 shadow-sm"><h4 class="font-black text-blue-900 mb-2">BASE — disegna qui la zona di destinazione</h4><div id="auto-base-wrap" class="auto-builder-preview"></div></div>
+                <div class="bg-white rounded-xl p-3 shadow-sm"><h4 class="font-black text-orange-800 mb-2">AUTOCOLLANTES — ritaglia qui il singolo sticker</h4><div id="auto-sheet-wrap" class="auto-builder-preview"></div></div>
+            </div>
+            <div class="p-4 border-t bg-white"><div id="auto-pairs-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs"></div></div>
         </div>
     </div>
 
@@ -108,6 +134,7 @@
                         <button id="btn-map-f" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
                         <button id="btn-cw-f" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
                         <button id="btn-rebus-f" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
+                        <button id="btn-auto-f" onclick="openAutocollantesBuilder('facile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden">✂️ Autocollantes</button>
                     </div>
                     <div class="mt-3 pt-3 border-t border-blue-200">
                         <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Testo Lettura Completa (Opzionale)</p>
@@ -128,6 +155,7 @@
                         <button id="btn-map-d" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
                         <button id="btn-cw-d" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
                         <button id="btn-rebus-d" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
+                        <button id="btn-auto-d" onclick="openAutocollantesBuilder('difficile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">✂️ Autocollantes</button>
                     </div>
                     <div class="mt-3 pt-3 border-t border-blue-800">
                         <p class="font-bold uppercase mb-1 text-white text-[10px]">Testo Lettura Completa (Opzionale)</p>
@@ -248,8 +276,10 @@
     <!-- HIDDEN INPUTS -->
     <input type="file" id="imgInp" class="hidden" accept="image/*" onchange="handleImg(event)">
     <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
+    <input type="file" id="autoBaseInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'base')">
+    <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=8.4.3-tuviens"></script>
+    <script src="core.js?v=8.5-autocollantes"></script>
 </body>
 </html>
