@@ -51,6 +51,14 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     z-index: 2;
 }
 
+/* Le tessere vengono traslate nel punto di curva affinche' la meta' PAROLA
+   della tessera precedente sia realmente in asse con la meta' IMMAGINE
+   della successiva (non solo i centri delle tessere). */
+.domino-slot > .domino-tile,
+.domino-slot > .drop-target {
+    translate: var(--d-shift-x, 0px) var(--d-shift-y, 0px);
+}
+
 /* Il connettore parte dal centro della tessera e resta dietro alle tessere. */
 .domino-slot::after {
     content: '';
@@ -134,6 +142,8 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
         border-radius: 16px;
     }
     .domino-slot { grid-column: var(--m-col); grid-row: var(--m-row); width: var(--track-x); height: var(--track-y); }
+    .domino-slot > .domino-tile,
+    .domino-slot > .drop-target { translate: var(--m-shift-x, 0px) var(--m-shift-y, 0px); }
 
     .domino-slot.next-d-right::after, .domino-slot.next-d-left::after,
     .domino-slot.next-d-down::after, .domino-slot.next-d-up::after { display: none; }
