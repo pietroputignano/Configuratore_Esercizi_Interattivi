@@ -324,6 +324,19 @@ function showEndScreen() {
             answersHtml += `<div class="anagram-solution-card"><div class="anagram-solution-image">${visual}</div><div class="anagram-solution-label">${label}</div></div>`;
         });
         answersHtml += '</div></li>';
+    } else if (type === 'dressing') {
+        const zoneList = (typeof GAME_CONFIG !== 'undefined') ? (GAME_CONFIG.mappedZones || []) : mappedZones;
+        const completionZones = zoneList.filter(z => z.label && z.label.includes('...'));
+        if (completionZones.length > 0) {
+            completionZones.forEach(z => {
+                const completed = z.label.split('...').join(z.word || '');
+                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-lg font-black font-mont">${completed}</li>`;
+            });
+        } else {
+            items.forEach(it => {
+                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`;
+            });
+        }
     } else if (type === 'rebus') {
         items.forEach(it => {
             let sentence = rebusData[it] || `{${it}}`;
@@ -525,15 +538,20 @@ function loadStep(idx) {
         
         zoneList.forEach(z => {
             const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
-            let targetDiv = `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
+            const isInlineCompletion = !!(z.label && z.label.includes('...'));
+            let targetDiv = isInlineCompletion
+                ? `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="dressing-inline-target rounded-md inline-flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`
+                : `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
             let labelHtml = '';
+            let wrapperClass = 'absolute flex items-center gap-3';
 
             if (z.label) {
-                if (z.label.includes('...')) {
+                if (isInlineCompletion) {
                     const parts = z.label.split('...');
-                    labelHtml = `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${parts[0].trim()}</span>` + 
+                    wrapperClass = 'absolute flex items-center gap-0';
+                    labelHtml = `<span class="dressing-inline-text">${parts[0]}</span>` + 
                                 targetDiv + 
-                                `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${parts[1].trim()}</span>`;
+                                `<span class="dressing-inline-text">${parts.slice(1).join('...')}</span>`;
                 } else {
                     labelHtml = `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label.trim()}</span>` + targetDiv;
                 }
@@ -541,7 +559,7 @@ function loadStep(idx) {
                 labelHtml = targetDiv;
             }
 
-            zonesHtml += `<div class="absolute flex items-center gap-3" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">${labelHtml}</div>`;
+            zonesHtml += `<div class="${wrapperClass}" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">${labelHtml}</div>`;
         });
 
         stage.insertAdjacentHTML('beforeend', `<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
@@ -858,7 +876,12 @@ function setupSortable(mode, targetWord) {
                         const expectedWord = e.target.getAttribute('data-expected');
                         if(dropped.toLowerCase() === expectedWord.toLowerCase()) {
                             if (mode === 'dressing') {
-                                e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase";
+                                if (e.target.classList.contains('dressing-inline-target')) {
+                                    e.item.className = "dressing-inline-answer";
+                                    e.target.classList.add('dressing-inline-target-solved');
+                                } else {
+                                    e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase";
+                                }
                             } else if (mode === 'domino') {
                                 e.item.className = "domino-tile shadow-sm"; 
                                 e.item.style.setProperty('box-shadow', '0 4px 0 var(--hfle-blue)', 'important');
