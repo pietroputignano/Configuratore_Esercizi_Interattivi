@@ -60,28 +60,58 @@ function toggleMute() {
 function playSound(type) {
     if (isMuted) return;
     const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[type] : dbAud[type];
-    if (audioSrc) { let a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
-    
-    if (!window.audioCtx) { const AudioContext = window.AudioContext || window.webkitAudioContext; if(!AudioContext) return; window.audioCtx = new AudioContext(); }
+    if (audioSrc) { const a = new Audio(audioSrc); a.play().catch(e => console.warn(e)); return; }
+
+    if (!window.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        window.audioCtx = new AudioContext();
+    }
     if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
-    const now = window.audioCtx.currentTime;
-    
-    const playTone = (freq, wave, time, dur, vol) => {
-        const osc = window.audioCtx.createOscillator(); const gain = window.audioCtx.createGain();
-        osc.type = wave; osc.frequency.setValueAtTime(freq, time);
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(vol, time + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
-        osc.connect(gain); gain.connect(window.audioCtx.destination);
-        osc.start(time); osc.stop(time + dur);
+    const ctx = window.audioCtx;
+    const now = ctx.currentTime;
+
+    const tone = (freq, start, dur, vol = 0.08, wave = 'sine', endFreq = null) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = wave;
+        osc.frequency.setValueAtTime(freq, start);
+        if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + dur);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(vol, start + Math.min(0.025, dur / 3));
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(start); osc.stop(start + dur + 0.02);
     };
 
-    if (type === 'drag') { playTone(600, 'sine', now, 0.15, 0.1); } 
-    else if (type === 'drop') { playTone(400, 'sine', now, 0.15, 0.1); } 
-    else if (type === 'global_ok') { playTone(523.25, 'sine', now, 0.3, 0.15); playTone(659.25, 'sine', now + 0.1, 0.4, 0.15); } 
-    else if (type === 'global_ko') { playTone(200, 'triangle', now, 0.4, 0.15); } 
-    else if (type === 'report_high') { playTone(523.25, 'sine', now, 0.2, 0.15); playTone(659.25, 'sine', now + 0.15, 0.2, 0.15); playTone(783.99, 'sine', now + 0.3, 0.6, 0.15); } 
-    else if (type === 'report_low') { playTone(329.63, 'triangle', now, 0.3, 0.15); playTone(311.13, 'triangle', now + 0.3, 0.3, 0.15); playTone(293.66, 'triangle', now + 0.6, 0.6, 0.15); }
+    // Fallback sonori piu' morbidi e giocosi per la scuola primaria.
+    // Un file personalizzato, se caricato nel configuratore, continua ad avere priorita'.
+    if (type === 'drag') {
+        tone(520, now, 0.075, 0.045, 'sine', 700); // piccolo pop di presa
+    } else if (type === 'drop') {
+        tone(330, now, 0.07, 0.04, 'sine', 270); // toc morbido
+        tone(520, now + 0.045, 0.075, 0.025, 'sine');
+    } else if (type === 'global_ok') {
+        tone(523.25, now, 0.16, 0.075, 'sine');
+        tone(659.25, now + 0.105, 0.18, 0.075, 'sine');
+        tone(783.99, now + 0.215, 0.24, 0.065, 'sine');
+    } else if (type === 'global_ko') {
+        tone(330, now, 0.17, 0.055, 'triangle', 285);
+        tone(285, now + 0.12, 0.20, 0.045, 'sine', 310); // errore non punitivo
+    } else if (type === 'report_high') {
+        tone(523.25, now, 0.16, 0.07, 'sine');
+        tone(659.25, now + 0.10, 0.16, 0.07, 'sine');
+        tone(783.99, now + 0.20, 0.18, 0.07, 'sine');
+        tone(1046.50, now + 0.32, 0.36, 0.06, 'sine');
+    } else if (type === 'report_medium') {
+        tone(440, now, 0.17, 0.055, 'sine');
+        tone(554.37, now + 0.13, 0.20, 0.055, 'sine');
+        tone(659.25, now + 0.27, 0.27, 0.05, 'sine');
+    } else if (type === 'report_low') {
+        tone(392, now, 0.18, 0.045, 'sine');
+        tone(440, now + 0.15, 0.20, 0.045, 'sine');
+        tone(493.88, now + 0.31, 0.28, 0.04, 'sine'); // finale incoraggiante, sempre ascendente
+    }
 }
 
 window.onload = () => {
@@ -333,29 +363,46 @@ function renderAutocollantesBuilder() {
     const list=document.getElementById('auto-pairs-list');
     list.innerHTML = cfg.stickers.length ? cfg.stickers.map((s,i)=>`<div class="auto-pair-row"><b>Sticker ${i+1}</b><span>ritaglio + zona associata</span><button onclick="deleteAutoSticker(${i})">Elimina</button></div>`).join('') : '<div class="text-gray-400 italic">Nessuna coppia definita.</div>';
 }
-function autoCropSvg(sheetSrc, crop, cfg) {
+function autoCropSvg(sheetSrc, crop, cfg, fitMode = 'preview') {
     const sw=cfg.sheetWidth||1000, sh=cfg.sheetHeight||1000;
     const x=crop.x/100*sw, y=crop.y/100*sh, w=crop.w/100*sw, h=crop.h/100*sh;
-    return `<svg class="auto-crop-svg" viewBox="${x} ${y} ${w} ${h}" preserveAspectRatio="xMidYMid meet"><image href="${sheetSrc}" x="0" y="0" width="${sw}" height="${sh}" preserveAspectRatio="none"></image></svg>`;
+    // Nel pool manteniamo le proporzioni originali; una volta posizionato lo sticker
+    // viene adattato esattamente al rettangolo target per aderire alla base.
+    const preserve = fitMode === 'target' ? 'none' : 'xMidYMid meet';
+    return `<svg class="auto-crop-svg ${fitMode === 'target' ? 'auto-crop-target' : ''}" viewBox="${x} ${y} ${w} ${h}" preserveAspectRatio="${preserve}"><image href="${sheetSrc}" x="0" y="0" width="${sw}" height="${sh}" preserveAspectRatio="none"></image></svg>`;
 }
-function setupAutocollantesBoard(cfg) {
+function setupAutocollantesBoard(boardConfigs) {
     const pool=document.getElementById('pool'); if(!pool) return;
     new Sortable(pool,{group:'autocollantes-game',sort:false,animation:150,onStart:()=>playSound('drag'),onEnd:()=>playSound('drop')});
-    cfg.stickers.forEach(s=>{
-        const tgt=document.getElementById('auto-target-'+s.id); if(!tgt) return;
-        new Sortable(tgt,{group:'autocollantes-game',animation:150,onAdd:e=>{
-            const ok=e.item.dataset.stickerId===s.id;
-            if(ok){
-                e.target.innerHTML=''; e.target.appendChild(e.item); e.target.classList.add('auto-target-solved');
-                e.item.className='auto-sticker-piece auto-sticker-placed'; e.item.style.width='100%'; e.item.style.height='100%'; e.item.style.aspectRatio='auto'; e.item.style.cursor='default';
-                playSound('global_ok');
-                const left=Array.from(pool.children).filter(ch=>!ch.classList.contains('sortable-ghost'));
-                if(!left.length){ status[curStep]='completed'; renderNav(); setTimeout(()=>{ if(curStep < getCurrentItems().length-1) loadStep(curStep+1); else showEndScreen(); },900); }
-            } else {
-                if(!errorTracker[curStep] && errorTracker[curStep]!==0) errorTracker[curStep]=0; errorTracker[curStep]++; playSound('global_ko');
-                e.item.classList.add('shake-error'); setTimeout(()=>{ e.item.classList.remove('shake-error'); pool.appendChild(e.item); },450);
-            }
-        }});
+
+    boardConfigs.forEach(({boardKey,cfg})=>{
+        cfg.stickers.forEach(s=>{
+            const targetId='auto-target-'+autoSafeKey(boardKey)+'-'+s.id;
+            const tgt=document.getElementById(targetId); if(!tgt) return;
+            new Sortable(tgt,{group:'autocollantes-game',animation:150,onAdd:e=>{
+                const ok=e.item.dataset.stickerId===s.id && e.item.dataset.boardKey===boardKey;
+                if(ok){
+                    const sheetSrc=autoImgSrc(cfg.sheetImageKey);
+                    // Ricreiamo il ritaglio in modalita' target: riempie precisamente la zona
+                    // definita nel builder invece di conservare un rapporto d'aspetto diverso.
+                    e.item.innerHTML=autoCropSvg(sheetSrc,s.crop,cfg,'target');
+                    e.target.innerHTML=''; e.target.appendChild(e.item); e.target.classList.add('auto-target-solved');
+                    e.item.className='auto-sticker-piece auto-sticker-placed';
+                    e.item.style.width='100%'; e.item.style.height='100%'; e.item.style.aspectRatio='auto'; e.item.style.cursor='default';
+                    e.item.removeAttribute('draggable');
+                    playSound('global_ok');
+                    const left=Array.from(pool.children).filter(ch=>!ch.classList.contains('sortable-ghost'));
+                    if(!left.length){
+                        status = new Array(getCurrentItems().length).fill('completed');
+                        renderNav();
+                        setTimeout(()=>showEndScreen(),900);
+                    }
+                } else {
+                    errorTracker[0]=(errorTracker[0]||0)+1; playSound('global_ko');
+                    e.item.classList.add('shake-error'); setTimeout(()=>{ e.item.classList.remove('shake-error'); pool.appendChild(e.item); },450);
+                }
+            }});
+        });
     });
 }
 
@@ -609,20 +656,26 @@ function showEndScreen() {
     const imgHigh = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_high'] : dbImg['score_high'];
     const imgLow = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images['score_low'] : dbImg['score_low'];
     const visualContainer = document.getElementById('visual-container');
-    
+    const scoreLevel = scorePerc >= 80 ? 'high' : (scorePerc >= 50 ? 'medium' : 'low');
+
     if (visualContainer) {
-        if (scorePerc >= 50 && imgHigh) {
-            visualContainer.innerHTML = `<img src="${imgHigh}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
-        } else if (scorePerc < 50 && imgLow) {
-            visualContainer.innerHTML = `<img src="${imgLow}" class="w-full h-full object-contain drop-shadow-xl scale-125">`;
+        // Le grafiche personalizzate restano prioritarie per risultato alto e basso.
+        // Il livello intermedio usa sempre il nuovo fallback grafico del tool.
+        if (scoreLevel === 'high' && imgHigh) {
+            visualContainer.innerHTML = `<img src="${imgHigh}" class="score-custom-image" alt="">`;
+        } else if (scoreLevel === 'low' && imgLow) {
+            visualContainer.innerHTML = `<img src="${imgLow}" class="score-custom-image" alt="">`;
         } else {
-            let mascotFace = scorePerc >= 80 ? '🤩' : (scorePerc >= 50 ? '😊' : '👦🏼');
-            let mascotText = scorePerc >= 80 ? 'Bravo !' : (scorePerc >= 50 ? 'Bien<br>joué !' : 'Essaie<br>encore !');
-            visualContainer.innerHTML = `<div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">${mascotText}</div><div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">${mascotFace}</div>`;
+            const text = scoreLevel === 'high' ? 'Bravo !' : (scoreLevel === 'medium' ? 'Bien joué !' : 'Essaie encore !');
+            const sub = scoreLevel === 'high' ? 'Super travail !' : (scoreLevel === 'medium' ? 'Tu progresses !' : 'Tu peux y arriver !');
+            const confetti = scoreLevel === 'high' ? `<span class="score-confetti c1"></span><span class="score-confetti c2"></span><span class="score-confetti c3"></span><span class="score-confetti c4"></span><span class="score-confetti c5"></span><span class="score-confetti c6"></span>` : '';
+            visualContainer.innerHTML = `<div class="score-celebration score-${scoreLevel}">${confetti}<div class="score-rays"></div><div class="score-medal"><div class="score-star"></div></div><div class="score-message"><strong>${text}</strong><span>${sub}</span></div></div>`;
         }
     }
-    
-    if (scorePerc >= 50) playSound('report_high'); else playSound('report_low');
+
+    if (scoreLevel === 'high') playSound('report_high');
+    else if (scoreLevel === 'medium') playSound('report_medium');
+    else playSound('report_low');
     document.getElementById('end-score').innerHTML = answersHtml;
 }
 
@@ -767,23 +820,38 @@ function loadStep(idx) {
     }
 
     if(type === 'autocollantes') {
+        // AUTOCOLLANTES e' un unico step: tutte le basi del livello vengono mostrate
+        // contemporaneamente e tutti gli sticker condividono un solo pool.
+        curStep = 0;
         const levelData = (isPlayerMode() ? (GAME_CONFIG.autocollantesData?.[curLvl] || {}) : (autocollantesData[curLvl] || {}));
-        const boardKey = items[idx];
-        const cfg = levelData[boardKey];
-        if (!cfg || !cfg.baseImageKey || !cfg.sheetImageKey || !cfg.stickers?.length) {
-            stage.innerHTML = `<div class="auto-missing-config">Configura la base <b>${boardKey || ''}</b> con il Costruttore Autocollantes.</div>`;
-            pool.innerHTML = '';
-            return;
+        const boardConfigs = items.map(boardKey=>({boardKey,cfg:levelData[boardKey]}));
+        const missing = boardConfigs.filter(({cfg})=>!cfg || !cfg.baseImageKey || !cfg.sheetImageKey || !cfg.stickers?.length);
+        const ready = boardConfigs.filter(({cfg})=>cfg && cfg.baseImageKey && cfg.sheetImageKey && cfg.stickers?.length);
+
+        let boardsHtml = '<div class="auto-activity-all">';
+        ready.forEach(({boardKey,cfg})=>{
+            const baseSrc=autoImgSrc(cfg.baseImageKey);
+            const zones=cfg.stickers.map((s,i)=>`<div id="auto-target-${autoSafeKey(boardKey)}-${s.id}" class="auto-drop-zone" data-board-key="${boardKey.replace(/"/g,'&quot;')}" data-sticker-id="${s.id}" style="left:${s.zone.x}%;top:${s.zone.y}%;width:${s.zone.w}%;height:${s.zone.h}%"><span>${i+1}</span></div>`).join('');
+            boardsHtml += `<div class="auto-game-card"><div class="auto-game-board"><img src="${baseSrc}" draggable="false">${zones}</div></div>`;
+        });
+        boardsHtml += '</div>';
+        if(missing.length){
+            boardsHtml += `<div class="auto-missing-config">Da configurare: ${missing.map(x=>x.boardKey).join(', ')}</div>`;
         }
-        const baseSrc = autoImgSrc(cfg.baseImageKey), sheetSrc = autoImgSrc(cfg.sheetImageKey);
-        const zones = cfg.stickers.map((s,i)=>`<div id="auto-target-${s.id}" class="auto-drop-zone" data-sticker-id="${s.id}" style="left:${s.zone.x}%;top:${s.zone.y}%;width:${s.zone.w}%;height:${s.zone.h}%"><span>${i+1}</span></div>`).join('');
-        stage.insertAdjacentHTML('beforeend', `<div class="auto-game-board"><img src="${baseSrc}" draggable="false">${zones}</div>`);
-        const shuffled=[...cfg.stickers].sort(()=>Math.random()-0.5);
-        pool.innerHTML=shuffled.map((s,i)=>{
+        stage.innerHTML = boardsHtml;
+
+        const allStickers=[];
+        ready.forEach(({boardKey,cfg})=>{
+            const sheetSrc=autoImgSrc(cfg.sheetImageKey);
+            cfg.stickers.forEach(s=>allStickers.push({boardKey,cfg,s,sheetSrc}));
+        });
+        allStickers.sort(()=>Math.random()-0.5);
+        pool.innerHTML=allStickers.map(({boardKey,cfg,s,sheetSrc})=>{
             const ratio=((s.crop.w*(cfg.sheetWidth||1))/(s.crop.h*(cfg.sheetHeight||1))) || 1;
-            return `<div class="auto-sticker-piece" data-sticker-id="${s.id}" style="aspect-ratio:${ratio};">${autoCropSvg(sheetSrc,s.crop,cfg)}</div>`;
+            return `<div class="auto-sticker-piece" data-board-key="${boardKey.replace(/"/g,'&quot;')}" data-sticker-id="${s.id}" style="aspect-ratio:${ratio};">${autoCropSvg(sheetSrc,s.crop,cfg,'preview')}</div>`;
         }).join('');
-        setupAutocollantesBoard(cfg);
+        document.getElementById('nav-step').innerHTML='';
+        setupAutocollantesBoard(ready);
     }
     else if(type === 'dressing') {
         const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
