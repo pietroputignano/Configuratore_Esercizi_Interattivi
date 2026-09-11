@@ -307,11 +307,23 @@ function showEndScreen() {
         dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${lastVisual}</div><div class="domino-solution-text domino-end-block"></div></div>`;
         dominoSolutions += '</div>';
         answersHtml += `<li class="list-none">${dominoSolutions}</li>`;
-    } else if (type === 'sentence_ordering' || type === 'anagramme') {
+    } else if (type === 'sentence_ordering') {
         items.forEach(it => {
-            let correctSentence = type === 'sentence_ordering' ? it.split('/').map(w => w.trim()).join(' ') : it;
+            const correctSentence = it.split('/').map(w => w.trim()).join(' ');
             answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
         });
+    } else if (type === 'anagramme') {
+        answersHtml += '<li class="list-none"><div class="anagram-solutions custom-scrollbar">';
+        items.forEach(it => {
+            const parsed = parseAnagramItem(it);
+            const imgSrc = getAnagramImage(it);
+            const visual = imgSrc
+                ? `<img src="${imgSrc}" alt="" class="pointer-events-none">`
+                : `<span class="anagram-solution-placeholder">📷</span>`;
+            const label = `${parsed.determiner ? parsed.determiner + ' ' : ''}${parsed.lexical}`.trim();
+            answersHtml += `<div class="anagram-solution-card"><div class="anagram-solution-image">${visual}</div><div class="anagram-solution-label">${label}</div></div>`;
+        });
+        answersHtml += '</div></li>';
     } else if (type === 'rebus') {
         items.forEach(it => {
             let sentence = rebusData[it] || `{${it}}`;
@@ -379,14 +391,42 @@ function checkCrossword(inputEl) {
     }
 }
 
+// ANAGRAMME: parsing isolato. Permette dati come "La poule", "Le cheval", "L\'ours".
+// Il determinante resta gia' visibile; il bambino riordina solo le lettere del nome.
+function parseAnagramItem(rawItem) {
+    const raw = String(rawItem || '').trim();
+    let determiner = '';
+    let lexical = raw;
+
+    const apostropheMatch = raw.match(/^(l['’])\s*(.+)$/i);
+    const spacedMatch = raw.match(/^(le|la|les|un|une|des)\s+(.+)$/i);
+    const match = apostropheMatch || spacedMatch;
+    if (match) {
+        determiner = match[1];
+        lexical = match[2].trim();
+    }
+
+    return {
+        raw,
+        determiner,
+        lexical,
+        answer: lexical.replace(/\s+/g, '')
+    };
+}
+
+function getAnagramImage(key) {
+    return (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+}
+
 function checkOrder(mode) {
     const target = document.getElementById('target');
     const targetWord = items[curStep];
     let isCorrect = false;
 
     if (mode === 'anagramme') {
+        const parsed = parseAnagramItem(targetWord);
         const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
-        isCorrect = (current === targetWord);
+        isCorrect = (current.toLowerCase() === parsed.answer.toLowerCase());
     } else if (mode === 'sentence_ordering') {
         const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
         const currentStr = Array.from(target.children).map(el=>el.getAttribute('data-chunk')).join('');
@@ -395,10 +435,11 @@ function checkOrder(mode) {
 
     if (isCorrect) {
         Array.from(target.children).forEach(el => {
-            if(mode === 'anagramme') el.className = "w-10 h-10 flex items-center justify-center text-2xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 p-0 font-mont";
+            if(mode === 'anagramme') el.className = "anagram-solved-letter";
             else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont";
         });
         target.style.border = "none"; target.style.background = "transparent";
+        if (mode === 'anagramme') target.classList.add('anagram-target-solved');
         document.getElementById('check-btn').classList.add('hidden');
         validate(true);
     } else {
@@ -715,17 +756,34 @@ function loadStep(idx) {
         setupSortable('domino', null);
     }
     else if(type === 'anagramme') {
-        const shuffled = word.split('').sort(()=>Math.random()-0.5);
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8">
-            <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
-            <div id="target" class="flex gap-2 min-h-[60px] min-w-[300px] items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l.replace(/"/g, '&quot;')}">${l.toLowerCase()}</div>`).join('') + 
-            `</div>
+        // Consigne editoriale richiesta per l'Anagramme, usata solo se non e' stata compilata una consigne custom.
+        const anagramDefaultConsigne = 'Regarde les dessins et mets les lettres dans le bon ordre.';
+        if (resConsigne) {
+            const configured = isPlayerMode()
+                ? (GAME_CONFIG.levels?.[curLvl]?.consigne || '').trim()
+                : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d')?.value || '').trim();
+            if (!configured) resConsigne.innerText = anagramDefaultConsigne;
+        }
+
+        const parsed = parseAnagramItem(word);
+        const shuffled = Array.from(parsed.answer).sort(()=>Math.random()-0.5);
+        const imgSrc = getAnagramImage(word);
+        const imgContent = imgSrc ? `<img src="${imgSrc}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
+        const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${word.replace(/'/g, "\\'")}')"`;
+        const determinerHtml = parsed.determiner ? `<div class="anagram-determiner">${parsed.determiner}</div>` : '';
+
+        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-6 w-full">
+            <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer"${imgClick}>${imgContent}</div>
+            <div class="anagram-answer-wrap">
+                ${determinerHtml}
+                <div id="target" class="anagram-target">`
+                    + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l.replace(/"/g, '&quot;')}">${l.toLowerCase()}</div>`).join('') +
+                `</div>
+            </div>
             <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
         </div>`);
         pool.innerHTML = '';
-        setupSortable('anagramme', word);
+        setupSortable('anagramme', parsed.answer);
     }
     else if(type === 'sentence_ordering') {
         const chunks = word.split('/').map(c => c.trim());
