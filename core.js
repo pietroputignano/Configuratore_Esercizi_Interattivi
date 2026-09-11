@@ -283,28 +283,45 @@ function showEndScreen() {
     let errs = errorTracker.reduce((a, b) => a + b, 0);
     let scorePerc = Math.max(0, 100 - (errs * 10));
 
-    let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+    let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3>';
     if (type === 'crossword') {
+        answersHtml += '<ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
         cwClues.forEach(c => { let dirLabel = c.dir === 'h' ? 'Horizontal' : 'Vertical'; answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm"><b>${c.num}. ${dirLabel} :</b> ${c.word}</li>`; });
+        answersHtml += '</ul>';
     } else if (type === 'domino') {
-        answersHtml += `<li class="text-blue-800 font-bold text-sm leading-relaxed">${items.join(' <span class="text-orange-500">➔</span> ')}</li>`;
-    } else if (type === 'sentence_ordering' || type === 'anagramme') {
+        const getSolutionImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+        let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
+        items.forEach((word, i) => {
+            const imgNeeded = i === 0 ? items[items.length - 1] : items[i - 1];
+            const imgSrc = getSolutionImg(imgNeeded);
+            const visual = imgSrc
+                ? `<img src="${imgSrc}" alt="" class="pointer-events-none">`
+                : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
+            dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${word}</div></div>`;
+        });
+        dominoSolutions += '</div>';
+        answersHtml += dominoSolutions;
+    } else {
+        answersHtml += '<ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+        if (type === 'sentence_ordering' || type === 'anagramme') {
         items.forEach(it => {
             let correctSentence = type === 'sentence_ordering' ? it.split('/').map(w => w.trim()).join(' ') : it;
             answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
         });
-    } else if (type === 'rebus') {
-        items.forEach(it => {
-            let sentence = rebusData[it] || `{${it}}`;
-            let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>');
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`;
-        });
-    } else {
-        items.forEach(it => {
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`;
-        });
+        } else if (type === 'rebus') {
+            items.forEach(it => {
+                let sentence = rebusData[it] || `{${it}}`;
+                let solved = sentence.replace(/{([^}]+)}/g, '<span class="text-orange-500 font-bold">$1</span>');
+                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${solved}</li>`;
+            });
+        } else {
+            items.forEach(it => {
+                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 font-bold">${it}</li>`;
+            });
+        }
+        answersHtml += '</ul>';
     }
-    answersHtml += '</ul></div>';
+    answersHtml += '</div>';
 
     setTimeout(() => {
         const scoreBar = document.getElementById('score-bar');
@@ -995,7 +1012,7 @@ async function exportToZIP() {
                 </div>
             </div>
         </div>
-        <div id="end-score" class="w-full max-w-md flex flex-col items-center hidden mt-2"></div>
+        <div id="end-score" class="w-full max-w-4xl flex flex-col items-center hidden mt-2"></div>
     </div>
     <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
         <div class="flex flex-col items-center md:items-start z-10 shrink-0">
