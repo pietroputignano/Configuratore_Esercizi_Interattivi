@@ -495,29 +495,103 @@ function loadStep(idx) {
         document.getElementById('nav-step').innerHTML = ''; setupSortable('dressing', null);
     }
     else if(type === 'domino') {
-        let targetSequence = [];
-        for(let i = 1; i < items.length; i++) targetSequence.push(items[i]);
-        if(items.length > 0) targetSequence.push(items[0]);
+        const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
 
-        let dominoChainHtml = `<div class="domino-chain" id="domino-board">
-            <div class="domino-tile opacity-90 cursor-default" style="box-shadow: 0 4px 0 var(--hfle-blue) !important; transform: none !important;">
-                <div class="tile-img text-blue-300 text-3xl font-black border-r-0">▶</div>
-                <div class="tile-text border-l-2 border-dashed border-blue-200">${items[0]}</div>
-            </div>`;
-        targetSequence.forEach(w => {
-            dominoChainHtml += `<div class="domino-connector">➔</div>`;
-            dominoChainHtml += `<div id="target-${w}" class="drop-target" data-expected="${w.replace(/"/g, '&quot;')}"></div>`;
+        // Desktop/tablet: percorso ad anello sul perimetro di una griglia a 3 colonne.
+        // Mobile: serpentina compatta a 2 colonne, per mantenere le tessere leggibili.
+        function buildDesktopDominoPath(count) {
+            if (count <= 0) return [];
+            const cols = Math.min(3, Math.max(1, count));
+            if (count <= cols) return Array.from({length: count}, (_, i) => ({x:i, y:0, o:'h'}));
+
+            const rows = Math.max(3, Math.ceil((count - 2) / 2));
+            const path = [];
+            for (let x = 0; x < cols; x++) path.push({x, y:0, o:'h'});
+            for (let y = 1; y < rows; y++) path.push({x:cols-1, y, o:'v'});
+            for (let x = cols - 2; x >= 0; x--) path.push({x, y:rows-1, o:x === 0 ? 'v' : 'h'});
+            for (let y = rows - 2; y >= 1; y--) path.push({x:0, y, o:'v'});
+            return path.slice(0, count);
+        }
+
+        function buildMobileDominoPath(count) {
+            if (count <= 0) return [];
+            const path = [];
+            let x = 0, y = 0, dir = 1;
+            while (path.length < count) {
+                // Coppia orizzontale.
+                path.push({x, y, o:'h'});
+                if (path.length >= count) break;
+                x = dir > 0 ? 1 : 0;
+                path.push({x, y, o:'h'});
+                if (path.length >= count) break;
+
+                // Due passi verticali prima della prossima coppia orizzontale.
+                y += 1;
+                path.push({x, y, o:'v'});
+                if (path.length >= count) break;
+                y += 1;
+                path.push({x, y, o:'v'});
+                if (path.length >= count) break;
+
+                dir *= -1;
+                x = dir > 0 ? 0 : 1;
+            }
+            return path.slice(0, count);
+        }
+
+        function pathDirection(a, b) {
+            if (!a || !b) return '';
+            if (b.x === a.x + 1 && b.y === a.y) return 'right';
+            if (b.x === a.x - 1 && b.y === a.y) return 'left';
+            if (b.y === a.y + 1 && b.x === a.x) return 'down';
+            if (b.y === a.y - 1 && b.x === a.x) return 'up';
+            return '';
+        }
+
+        const desktopPath = buildDesktopDominoPath(items.length);
+        const mobilePath = buildMobileDominoPath(items.length);
+        const dCols = desktopPath.length ? Math.max(...desktopPath.map(p => p.x)) + 1 : 1;
+        const dRows = desktopPath.length ? Math.max(...desktopPath.map(p => p.y)) + 1 : 1;
+        const mCols = mobilePath.length ? Math.max(...mobilePath.map(p => p.x)) + 1 : 1;
+        const mRows = mobilePath.length ? Math.max(...mobilePath.map(p => p.y)) + 1 : 1;
+
+        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-cols:${dCols}; --d-rows:${dRows}; --m-cols:${mCols}; --m-rows:${mRows};">`;
+
+        items.forEach((w, i) => {
+            const d = desktopPath[i];
+            const m = mobilePath[i];
+            const dNext = i < items.length - 1 ? pathDirection(d, desktopPath[i+1]) : pathDirection(d, desktopPath[0]);
+            const mNext = i < items.length - 1 ? pathDirection(m, mobilePath[i+1]) : '';
+            const dClose = i === items.length - 1 && dNext ? ' domino-closes-loop' : '';
+            const slotClasses = `domino-slot orient-d-${d.o} orient-m-${m.o} next-d-${dNext || 'none'} next-m-${mNext || 'none'}${dClose}`;
+            const slotStyle = `--d-col:${d.x+1}; --d-row:${d.y+1}; --m-col:${m.x+1}; --m-row:${m.y+1};`;
+
+            if (i === 0) {
+                // La prima tessera è già data: è una vera tessera del domino, non un segnaposto.
+                const imgNeeded = items[items.length - 1];
+                const imgSrc = getImg(imgNeeded);
+                const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
+                const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')"`;
+                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div class="domino-tile domino-starter cursor-default"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${w}</div></div></div>`;
+            } else {
+                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div id="target-${w}" class="drop-target" data-expected="${w.replace(/"/g, '&quot;')}"></div></div>`;
+            }
         });
+
         dominoChainHtml += `</div>`;
-        stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-4">${dominoChainHtml}</div>`);
-        
-        const poolItems = [...items].sort(()=>Math.random()-0.5);
+        stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
+
+        // La prima tessera è già collocata sul tabellone; nel pool restano le altre.
+        const poolItems = items.slice(1).sort(()=>Math.random()-0.5);
         pool.innerHTML = poolItems.map((it) => {
-            let i = items.indexOf(it);
-            const imgNeeded = i === 0 ? items[items.length-1] : items[i-1];
-            const imgContent = dbImg[imgNeeded] ? `<img src="${dbImg[imgNeeded]}" class="object-contain w-full h-full pointer-events-none">` : `<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷<br>${imgNeeded}</span>`;
-            return `<div class="domino-tile shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img" onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')">${imgContent}</div><div class="tile-text">${it}</div></div>`;
+            const i = items.indexOf(it);
+            const imgNeeded = items[i-1];
+            const imgSrc = getImg(imgNeeded);
+            const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
+            const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')"`;
+            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${it.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${it}</div></div>`;
         }).join('');
+
         document.getElementById('nav-step').innerHTML = '';
         setupSortable('domino', null);
     }
@@ -595,7 +669,7 @@ function setupSortable(mode, targetWord) {
         
         const itemArray = getCurrentItems();
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-        const targetWords = (mode === 'autocollantes' || mode === 'domino') ? itemArray : zoneList.map(z => z.word);
+        const targetWords = mode === 'domino' ? itemArray.slice(1) : (mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word));
 
         targetWords.forEach(w => {
             const tgt = document.getElementById('target-' + w);
