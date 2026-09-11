@@ -17,6 +17,22 @@ let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoD
 
 let isMuted = false;
 
+// Mantiene una sola serie di istanze Sortable attive per schermata.
+// Evita listener duplicati e rallentamenti quando l'anteprima viene ricaricata più volte.
+let activeSortables = [];
+function destroyActiveSortables() {
+    activeSortables.forEach(instance => {
+        try { instance.destroy(); } catch (_) {}
+    });
+    activeSortables = [];
+}
+function createSortable(el, options) {
+    if (!el || typeof Sortable === 'undefined') return null;
+    const instance = new Sortable(el, options);
+    activeSortables.push(instance);
+    return instance;
+}
+
 function isPlayerMode() { return typeof GAME_CONFIG !== 'undefined'; }
 function getCurrentType() {
     if (isPlayerMode()) return GAME_CONFIG.levels?.[curLvl]?.type || 'sentence_ordering';
@@ -373,13 +389,13 @@ function autoCropSvg(sheetSrc, crop, cfg, fitMode = 'preview') {
 }
 function setupAutocollantesBoard(boardConfigs) {
     const pool=document.getElementById('pool'); if(!pool) return;
-    new Sortable(pool,{group:'autocollantes-game',sort:false,animation:150,onStart:()=>playSound('drag'),onEnd:()=>playSound('drop')});
+    createSortable(pool,{group:'autocollantes-game',sort:false,animation:150,onStart:()=>playSound('drag'),onEnd:()=>playSound('drop')});
 
     boardConfigs.forEach(({boardKey,cfg})=>{
         cfg.stickers.forEach(s=>{
             const targetId='auto-target-'+autoSafeKey(boardKey)+'-'+s.id;
             const tgt=document.getElementById(targetId); if(!tgt) return;
-            new Sortable(tgt,{group:'autocollantes-game',animation:150,onAdd:e=>{
+            createSortable(tgt,{group:'autocollantes-game',animation:150,onAdd:e=>{
                 const ok=e.item.dataset.stickerId===s.id && e.item.dataset.boardKey===boardKey;
                 if(ok){
                     const sheetSrc=autoImgSrc(cfg.sheetImageKey);
@@ -486,6 +502,7 @@ function initGame() {
 }
 
 function showStartScreen() {
+    destroyActiveSortables();
     document.getElementById('start-screen').classList.remove('hidden'); document.getElementById('end-screen').classList.add('hidden');
 }
 
@@ -554,10 +571,11 @@ function getCWPronounHtml(x, y) {
 }
 
 function buildCrosswordSolutionHtml() {
+    const cellMap = new Map(cwData.map(c => [`${c.x}-${c.y}`, c]));
     let html = '<div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200" style="grid-template-columns: repeat(12, 40px); width:max-content; margin:0 auto;">';
     for (let y = 0; y < 12; y++) {
         for (let x = 0; x < 12; x++) {
-            const cell = cwData.find(c => c.x === x && c.y === y);
+            const cell = cellMap.get(`${x}-${y}`);
             if (cell) {
                 html += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><div class="cw-play-cell cw-solution-cell font-mont">${cell.char}</div></div>`;
             } else html += '<div class="w-10 h-10"></div>';
@@ -567,6 +585,7 @@ function buildCrosswordSolutionHtml() {
 }
 
 function showEndScreen() {
+    destroyActiveSortables();
     document.getElementById('end-screen').classList.remove('hidden');
     const type = getCurrentType();
     
@@ -593,13 +612,13 @@ function showEndScreen() {
             const imgNeeded = items[i - 1];
             const imgSrc = getSolutionImg(imgNeeded);
             const visual = imgSrc
-                ? `<img src="${imgSrc}" alt="" class="pointer-events-none">`
+                ? `<img src="${imgSrc}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">`
                 : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
             dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${word}</div></div>`;
         });
         const lastWord = items[items.length - 1];
         const lastImg = getSolutionImg(lastWord);
-        const lastVisual = lastImg ? `<img src="${lastImg}" alt="" class="pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${lastWord}</span>`;
+        const lastVisual = lastImg ? `<img src="${lastImg}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">` : `<span class="domino-img-placeholder">📷<br>${lastWord}</span>`;
         dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${lastVisual}</div><div class="domino-solution-text domino-end-block"></div></div>`;
         dominoSolutions += '</div>';
         answersHtml += `<li class="list-none">${dominoSolutions}</li>`;
@@ -614,7 +633,7 @@ function showEndScreen() {
             const parsed = parseAnagramItem(it);
             const imgSrc = getAnagramImage(it);
             const visual = imgSrc
-                ? `<img src="${imgSrc}" alt="" class="pointer-events-none">`
+                ? `<img src="${imgSrc}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">`
                 : `<span class="anagram-solution-placeholder">📷</span>`;
             const label = `${parsed.determiner ? parsed.determiner + ' ' : ''}${parsed.lexical}`.trim();
             answersHtml += `<div class="anagram-solution-card"><div class="anagram-solution-image">${visual}</div><div class="anagram-solution-label">${label}</div></div>`;
@@ -773,6 +792,7 @@ function checkOrder(mode) {
 }
 
 function loadStep(idx) {
+    destroyActiveSortables();
     curStep = idx; renderNav();
     const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
     const type = getCurrentType();
@@ -1185,7 +1205,7 @@ function setupSortable(mode, targetWord) {
     
     if (mode === 'autocollantes' || mode === 'dressing' || mode === 'domino') {
         if(!pool) return;
-        new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
+        createSortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
         
         const itemArray = getCurrentItems();
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
@@ -1194,7 +1214,7 @@ function setupSortable(mode, targetWord) {
         targetWords.forEach(w => {
             const tgt = document.getElementById('target-' + w);
             if (tgt) {
-                new Sortable(tgt, {
+                createSortable(tgt, {
                     group: 'game', animation: 150, onStart: () => playSound('drag'),
                     onAdd: (e) => {
                         const dropped = e.item.getAttribute('data-word');
@@ -1223,8 +1243,8 @@ function setupSortable(mode, targetWord) {
                             e.target.style.backgroundColor = "transparent";
                             playSound('global_ok');
 
-                            const remainingPool = Array.from(pool.children).filter(child => !child.classList.contains('sortable-ghost'));
-                            if (remainingPool.length === 0) {
+                            const hasRemaining = Array.from(pool.children).some(child => !child.classList.contains('sortable-ghost'));
+                            if (!hasRemaining) {
                                 setTimeout(() => showEndScreen(), 1500);
                             }
                         } else {
@@ -1247,13 +1267,13 @@ function setupSortable(mode, targetWord) {
     if(!target) return;
     
     if (mode === 'anagramme' || mode === 'sentence_ordering') {
-        new Sortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
+        createSortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
         return;
     }
 
     if(!pool) return;
-    new Sortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
-    new Sortable(target, { 
+    createSortable(pool, { group: 'game', sort: false, animation: 150, onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
+    createSortable(target, { 
         group: 'game', animation: 150, onStart: () => playSound('drag'),
         onAdd: (e) => {
             const dropped = e.item.getAttribute('data-word') || e.item.getAttribute('data-letter') || e.item.getAttribute('data-chunk');
