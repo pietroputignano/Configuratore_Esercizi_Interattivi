@@ -43,6 +43,13 @@ function getCurrentItems() {
     if (isPlayerMode()) return GAME_CONFIG.levels?.[curLvl]?.items || [];
     return items;
 }
+
+function isStepReadingEnabled() {
+    if (isPlayerMode()) return GAME_CONFIG.levels?.[curLvl]?.readEachSentence !== false;
+    const id = curLvl === 'facile' ? 'read-step-f' : 'read-step-d';
+    const el = document.getElementById(id);
+    return el ? el.checked : true;
+}
 function syncPlayerConfig() {
     if (!isPlayerMode()) return;
     items = [...getCurrentItems()];
@@ -887,7 +894,7 @@ function loadStep(idx) {
     let stepAudioHtml = '';
     const stepAudioKey = word + '_audio';
     const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-    if (audioSrc && type !== 'dressing') {
+    if (audioSrc && type !== 'dressing' && isStepReadingEnabled()) {
         stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
     }
 
@@ -1199,7 +1206,8 @@ function loadStep(idx) {
     }
     else if(type === 'sentence_ordering') {
         const chunks = word.split('/').map(c => c.trim());
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
+        const sentenceImg = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images?.[word] : dbImg[word];
+        const imgContent = sentenceImg ? `<img src="${sentenceImg}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
         const shuffled = [...chunks].sort(()=>Math.random()-0.5);
         stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
             <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
@@ -1213,7 +1221,8 @@ function loadStep(idx) {
     else if(type === 'rebus') {
         const sentence = rebusData[word] || `{${word}}`;
         const text = sentence.replace(/{([^}]+)}/g, `<div id="target" class="rebus-gap overflow-hidden inline-flex items-center justify-center px-4 shadow-inner" data-ans="$1"></div>`);
-        const imgContent = dbImg[word] ? `<img src="${dbImg[word]}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
+        const rebusImg = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images?.[word] : dbImg[word];
+        const imgContent = rebusImg ? `<img src="${rebusImg}" class="h-full w-full object-contain pointer-events-none">` : '<span class="text-[10px] text-gray-500 font-bold uppercase text-center">📷 Immagine<br>(Opzionale)</span>';
         stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center w-full max-w-3xl gap-6"><div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer hover:scale-105 transition" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div><div class="text-2xl md:text-4xl font-black text-blue-900 leading-relaxed text-center font-mont bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full">${text}</div></div>`);
         const shuffledItems = [...items].sort(() => Math.random() - 0.5);
         pool.innerHTML = shuffledItems.map(it => `<div class="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-md cursor-grab font-bold text-lg flex items-center justify-center hover:border-blue-400 transition font-source uppercase" data-word="${it.replace(/"/g, '&quot;')}">${it}</div>`).join('');
@@ -1488,8 +1497,8 @@ async function exportToZIP() {
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
         levels: { 
-            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF }, 
-            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD } 
+            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF, readEachSentence: document.getElementById('read-step-f') ? document.getElementById('read-step-f').checked : true }, 
+            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD, readEachSentence: document.getElementById('read-step-d') ? document.getElementById('read-step-d').checked : true } 
         } 
     };
 
