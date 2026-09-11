@@ -133,6 +133,7 @@ function playSound(type) {
 window.onload = () => {
     if (isPlayerMode()) {
         syncPlayerConfig();
+        applyEnabledLevelsUI();
         showStartScreen();
         return;
     }
@@ -140,6 +141,7 @@ window.onload = () => {
     const btnF = document.getElementById('type-f'); if(btnF) btnF.value = 'sentence_ordering';
     const btnD = document.getElementById('type-d'); if(btnD) btnD.value = 'dressing';
     toggleToolBtns('f'); toggleToolBtns('d');
+    applyEnabledLevelsUI();
     buildCWGrid(); initGame();
 };
 
@@ -259,21 +261,49 @@ function getAutoLevelBucket(level = autoBuilderLevel) {
     return autocollantesData[level];
 }
 function getAutoBuilderItems(level = autoBuilderLevel) {
-    const id = level === 'facile' ? 'items-list-f' : 'items-list-d';
-    const el = document.getElementById(id);
-    if (!el) return [];
-    const raw = el.value.trim() !== '' ? el.value : el.placeholder;
-    return raw.split(';').map(v => v.trim()).filter(Boolean);
+    return Object.keys(getAutoLevelBucket(level));
 }
 function autoSafeKey(v) { return String(v).replace(/[^a-z0-9_-]/gi, '_'); }
+function makeAutoBoardKey(level = autoBuilderLevel) {
+    const bucket = getAutoLevelBucket(level);
+    let i = 1;
+    while (bucket[`base_${i}`]) i++;
+    return `base_${i}`;
+}
+function renderAutoBoardTabs() {
+    const tabs = document.getElementById('auto-board-tabs');
+    if (!tabs) return;
+    const keys = getAutoBuilderItems(autoBuilderLevel);
+    tabs.innerHTML = keys.map((k,i) => `<button type="button" onclick="selectAutoActivity('${k.replace(/'/g,"\\'")}')" class="px-3 py-2 rounded-full text-xs font-black border ${k===autoBuilderKey ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-pink-700 border-pink-200'}">Base ${i+1}</button>`).join('');
+}
+function addAutoActivity() {
+    const key = makeAutoBoardKey();
+    getAutoLevelBucket()[key] = { baseImageKey:'', sheetImageKey:'', baseWidth:0, baseHeight:0, sheetWidth:0, sheetHeight:0, stickers:[] };
+    autoBuilderKey = key;
+    renderAutocollantesBuilder();
+}
+function removeAutoActivity() {
+    const bucket = getAutoLevelBucket();
+    const keys = Object.keys(bucket);
+    if (!autoBuilderKey || !bucket[autoBuilderKey]) return;
+    if (keys.length <= 1) { alert('Deve rimanere almeno una base.'); return; }
+    const idx = keys.indexOf(autoBuilderKey);
+    delete bucket[autoBuilderKey];
+    const remaining = Object.keys(bucket);
+    autoBuilderKey = remaining[Math.min(Math.max(idx,0), remaining.length-1)];
+    autoDrawMode = null; autoDraftCrop = null; autoPointerState = null;
+    renderAutocollantesBuilder();
+}
 function openAutocollantesBuilder(level) {
     autoBuilderLevel = level || 'facile';
-    const keys = getAutoBuilderItems(autoBuilderLevel);
-    if (!keys.length) { alert('Inserisci prima gli identificativi delle basi nel campo Dati, separati da ; (es: 1; 2; 3).'); return; }
-    if (!autoBuilderKey || !keys.includes(autoBuilderKey)) autoBuilderKey = keys[0];
-    const sel = document.getElementById('auto-board-select');
-    sel.innerHTML = keys.map(k => `<option value="${k.replace(/"/g,'&quot;')}">${k}</option>`).join('');
-    sel.value = autoBuilderKey;
+    const bucket = getAutoLevelBucket(autoBuilderLevel);
+    let keys = Object.keys(bucket);
+    if (!keys.length) {
+        const firstKey = makeAutoBoardKey(autoBuilderLevel);
+        bucket[firstKey] = { baseImageKey:'', sheetImageKey:'', baseWidth:0, baseHeight:0, sheetWidth:0, sheetHeight:0, stickers:[] };
+        keys = [firstKey];
+    }
+    if (!autoBuilderKey || !bucket[autoBuilderKey]) autoBuilderKey = keys[0];
     document.getElementById('auto-builder-level-label').innerText = autoBuilderLevel === 'facile' ? 'FACILE' : 'DIFFICILE';
     document.getElementById('auto-modal').classList.remove('hidden');
     renderAutocollantesBuilder();
@@ -364,6 +394,7 @@ function renderAutoTempRect() {
 }
 function autoOverlayRect(rect, label, extra='') { return `<div class="auto-builder-rect ${extra}" style="left:${rect.x}%;top:${rect.y}%;width:${rect.w}%;height:${rect.h}%"><span>${label}</span></div>`; }
 function renderAutocollantesBuilder() {
+    renderAutoBoardTabs();
     const cfg=getAutoActivity();
     const baseSrc=autoImgSrc(cfg.baseImageKey), sheetSrc=autoImgSrc(cfg.sheetImageKey);
     const baseWrap=document.getElementById('auto-base-wrap'), sheetWrap=document.getElementById('auto-sheet-wrap');
@@ -511,6 +542,10 @@ function startGame() {
     if (isPlayerMode()) syncPlayerConfig();
     const type = getCurrentType();
     items = [...getCurrentItems()];
+    if (type === 'autocollantes') {
+        const levelData = isPlayerMode() ? (GAME_CONFIG.autocollantesData?.[curLvl] || {}) : (autocollantesData[curLvl] || {});
+        items = Object.keys(levelData);
+    }
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
     else errorTracker = new Array(items.length).fill(0);
@@ -872,9 +907,6 @@ function loadStep(idx) {
             boardsHtml += `<div class="auto-game-card"><div class="auto-game-board"><img src="${baseSrc}" draggable="false">${zones}</div></div>`;
         });
         boardsHtml += '</div>';
-        if(missing.length){
-            boardsHtml += `<div class="auto-missing-config">Da configurare: ${missing.map(x=>x.boardKey).join(', ')}</div>`;
-        }
         stage.innerHTML = boardsHtml;
 
         const allStickers=[];
@@ -1335,7 +1367,37 @@ function renderNav() {
     document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i] || ''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
 }
 
+function getEnabledLevels() {
+    if (isPlayerMode()) {
+        const cfg = GAME_CONFIG.enabledLevels || { facile:true, difficile:true };
+        return { facile: cfg.facile !== false, difficile: cfg.difficile !== false };
+    }
+    const f = document.getElementById('enable-f');
+    const d = document.getElementById('enable-d');
+    return { facile: !f || f.checked, difficile: !d || d.checked };
+}
+function applyEnabledLevelsUI() {
+    const enabled = getEnabledLevels();
+    const bf = document.getElementById('btn-f-view');
+    const bd = document.getElementById('btn-d-view');
+    if (bf) bf.classList.toggle('hidden', !enabled.facile);
+    if (bd) bd.classList.toggle('hidden', !enabled.difficile);
+    if (!enabled[curLvl]) curLvl = enabled.facile ? 'facile' : 'difficile';
+}
+function updateEnabledLevels() {
+    const f = document.getElementById('enable-f'), d = document.getElementById('enable-d');
+    if (f && d && !f.checked && !d.checked) {
+        // Deve rimanere almeno un livello disponibile.
+        if (curLvl === 'difficile') d.checked = true; else f.checked = true;
+        alert('Deve rimanere disponibile almeno un livello.');
+    }
+    applyEnabledLevelsUI();
+    initGame(); startGame();
+}
+
 function switchLvl(l) { 
+    const enabled = getEnabledLevels();
+    if (!enabled[l]) return;
     curLvl = l; 
     document.getElementById('btn-f-view').className = l==='facile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
     document.getElementById('btn-d-view').className = l==='difficile' ? 'px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide' : 'px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent';
@@ -1370,7 +1432,7 @@ async function exportToZIP() {
     const itemsDRaw = listD.value.trim() !== '' ? listD.value : listD.placeholder;
     const itemsD = itemsDRaw.split(';').map(i=>i.trim()).filter(i=>i);
 
-    if(itemsF.length === 0 && typeF !== 'crossword' && typeD !== 'crossword') { alert("Dati mancanti!"); return; }
+    if(itemsF.length === 0 && typeF !== 'crossword' && typeF !== 'autocollantes' && typeD !== 'crossword') { alert("Dati mancanti!"); return; }
     const zip = new JSZip(); 
     const assetsFolder = zip.folder("assets"); 
     const jsFolder = zip.folder("js");
@@ -1411,6 +1473,9 @@ async function exportToZIP() {
         expAud[k] = `assets/${name}`; 
     }
 
+    const exportItemsF = typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : itemsF;
+    const exportItemsD = typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : itemsD;
+
     const gameConfig = { 
         unite: document.getElementById('in-unite').value || '1', 
         uniteColor: document.getElementById('in-color').value || '#E84C7B',
@@ -1420,10 +1485,11 @@ async function exportToZIP() {
         cwVerbLabel: cwVerbLabel,
         cwShowClues: cwShowClues,
         mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, autocollantesData: autocollantesData, 
-        images: expImg, audio: expAud, 
+        images: expImg, audio: expAud,
+        enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
         levels: { 
-            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: itemsF }, 
-            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: itemsD } 
+            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF }, 
+            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD } 
         } 
     };
 
