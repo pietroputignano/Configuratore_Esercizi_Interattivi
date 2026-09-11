@@ -333,3 +333,53 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     .anagram-solution-image { height: 92px; }
     .anagram-solution-label { font-size: 14px; }
 }
+
+/* TU VIENS / completamento verbale: la desinenza si unisce visivamente alla radice */
+.dressing-inline-text {
+    display: inline-flex;
+    align-items: center;
+    white-space: pre;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+    color: white;
+    line-height: 1;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+.dressing-inline-target {
+    min-width: 2.4rem;
+    height: 2.6rem;
+    padding: 0 .15rem;
+    margin: 0;
+    flex: 0 0 auto;
+}
+.dressing-inline-target-solved {
+    min-width: 0;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.dressing-inline-answer {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.25rem, 2.6vw, 1.875rem);
+    line-height: 1;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    text-transform: none;
+    white-space: nowrap;
+}
