@@ -114,7 +114,7 @@
                         <input id="tts-context-f" type="text" class="w-full p-2 border rounded text-xs mb-2" placeholder="es: J'habite. Tu habites..." oninput="initGame(); startGame();">
                         <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
                         <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs placeholder-gray-400" placeholder="Il / habite / dans / une yourte ; Tu / habites / dans / une maison" oninput="initGame(); startGame();"></textarea>
-                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici). Per Anagramme puoi includere il determinante: es. "La poule; Le cheval; L'ours".</p>
+                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici).</p>
                     </div>
                 </div>
 
@@ -134,7 +134,6 @@
                         <input id="tts-context-d" type="text" class="w-full p-2 border rounded text-xs mb-2 text-gray-800" placeholder="es: J'habite. Tu habites..." oninput="initGame(); startGame();">
                         <p class="font-bold uppercase mb-1 text-white text-[10px]">Dati Livello DIFFICILE (separati da ;)</p>
                         <textarea id="items-list-d" class="w-full h-16 p-2 border rounded text-xs bg-slate-100 placeholder-gray-400 text-gray-800" placeholder="habite; habites; habitons; habitez" oninput="initGame(); startGame();"></textarea>
-                        <p class="text-[10px] text-blue-100 italic mt-1">Per Anagramme puoi includere il determinante: es. "La poule; Le cheval; L'ours". Il determinante resta già visibile e si riordinano solo le lettere del nome.</p>
                     </div>
                 </div>
 
@@ -251,6 +250,6 @@
     <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=9"></script>
+    <script src="core.js?v=8"></script>
 </body>
 </html>
