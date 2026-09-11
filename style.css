@@ -225,3 +225,111 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 .domino-end-block { background: #f05a67 !important; color: transparent !important; padding: 0 !important; }
 .domino-solution-img.domino-start-block { border-right: 2px dashed var(--hfle-blue); }
 .domino-solution-text.domino-end-block { border-left: 2px dashed var(--hfle-blue); }
+
+
+/* ANAGRAMME v8.2 - stili isolati: determinante gia' dato, parola compatta e soluzioni visuali. */
+.anagram-answer-wrap {
+    width: min(100%, 680px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.anagram-determiner {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1;
+    color: var(--hfle-blue);
+}
+.anagram-target {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 68px;
+    min-width: min(300px, 100%);
+    max-width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.08);
+    border: 2px solid #e2e8f0;
+}
+.anagram-target.anagram-target-solved {
+    gap: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+.anagram-solved-letter {
+    width: auto;
+    min-width: 0;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #1e3a8a;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(26px, 3vw, 34px);
+    font-weight: 900;
+    line-height: 1;
+    cursor: default;
+}
+.anagram-solutions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    padding: 8px 0;
+}
+.anagram-solution-card {
+    width: 145px;
+    flex: 0 0 auto;
+    overflow: hidden;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,.07);
+}
+.anagram-solution-image {
+    width: 100%;
+    height: 105px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    background: #fff;
+}
+.anagram-solution-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.anagram-solution-placeholder {
+    font-size: 34px;
+    opacity: .45;
+}
+.anagram-solution-label {
+    padding: 8px 6px 10px;
+    text-align: center;
+    color: var(--hfle-blue);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    line-height: 1.1;
+    font-weight: 900;
+}
+@media (max-width: 700px) {
+    .anagram-target { min-width: 0; gap: 6px; }
+    .anagram-determiner { font-size: 24px; }
+    .anagram-solutions { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
+    .anagram-solution-card { width: 132px; }
+    .anagram-solution-image { height: 92px; }
+    .anagram-solution-label { font-size: 14px; }
+}
