@@ -914,10 +914,12 @@ function loadStep(idx) {
     const word = items[idx];
 
     let stepAudioHtml = '';
-    const stepAudioKey = word + '_audio';
-    const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[stepAudioKey] : dbAud[stepAudioKey];
-    if (audioSrc && type !== 'dressing' && isStepReadingEnabled()) {
-        stepAudioHtml = `<button onclick="new Audio('${audioSrc}').play()" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
+    // Se la lettura dello step e' abilitata mostriamo sempre il comando ÉCOUTE.
+    // playStepAudio() usa l'audio caricato quando disponibile e, in assenza,
+    // ricade sulla sintesi vocale del browser (fr-FR).
+    if (type !== 'dressing' && isStepReadingEnabled()) {
+        const safeWord = String(word).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        stepAudioHtml = `<button type="button" data-word="${safeWord}" onclick="playStepAudio(this)" class="mb-6 bg-orange-100 border-2 border-orange-400 text-orange-700 rounded-full px-8 py-2 font-black text-lg hover:bg-orange-200 transition shadow-md flex items-center justify-center gap-3 mx-auto"><span>▶</span> ÉCOUTE</button>`;
     }
 
     if(type === 'autocollantes') {
