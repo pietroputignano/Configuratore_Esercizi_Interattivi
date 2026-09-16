@@ -556,7 +556,17 @@ function startGame() {
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
     else errorTracker = new Array(items.length).fill(0);
-    loadStep(0);
+
+    let initialStep = 0;
+    if (isPlayerMode() && window.BSMART_SCORM) {
+        const saved = window.BSMART_SCORM.getState();
+        if (saved && saved.level === curLvl) {
+            if (Array.isArray(saved.status) && saved.status.length === status.length) status = saved.status.slice();
+            if (Array.isArray(saved.errorTracker)) errorTracker = saved.errorTracker.slice();
+            if (Number.isInteger(saved.step)) initialStep = Math.max(0, Math.min(saved.step, Math.max(0, items.length - 1)));
+        }
+    }
+    loadStep(initialStep);
 }
 
 
@@ -650,6 +660,15 @@ function showEndScreen() {
     document.getElementById('end-screen').classList.remove('hidden');
     const type = getCurrentType();
     const scorePerc = calculateScore(type);
+
+    if (isPlayerMode() && window.BSMART_SCORM) {
+        window.BSMART_SCORM.reportResult(scorePerc, {
+            level: curLvl,
+            step: curStep,
+            status: status,
+            errorTracker: errorTracker
+        });
+    }
 
     let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
     if (type === 'crossword') {
@@ -853,6 +872,9 @@ function checkOrder(mode) {
 function loadStep(idx) {
     destroyActiveSortables();
     curStep = idx; renderNav();
+    if (isPlayerMode() && window.BSMART_SCORM) {
+        window.BSMART_SCORM.saveState({ level: curLvl, step: curStep, status: status, errorTracker: errorTracker });
+    }
     const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
     const type = getCurrentType();
     
@@ -1366,7 +1388,10 @@ function validate(correct) {
         if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; 
         playSound('global_ko'); 
     } 
-    renderNav(); 
+    renderNav();
+    if (isPlayerMode() && window.BSMART_SCORM) {
+        window.BSMART_SCORM.saveState({ level: curLvl, step: curStep, status: status, errorTracker: errorTracker });
+    }
 }
 
 function renderNav() { 
@@ -1428,93 +1453,279 @@ function playConsigne() {
         const m = new SpeechSynthesisUtterance(consigneText); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); 
     } 
 }
-/* --- EXPORT JSZIP --- */
+/* --- EXPORT SCORM 2004 --- */
+function xmlEscape(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function makeScormManifest(title, passingScore = 80) {
+    const safeTitle = xmlEscape(title || 'bSmart Interactive Exercise');
+    const scaled = Math.max(0, Math.min(100, Number(passingScore) || 80)) / 100;
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="BSMART-SCORM-${Date.now()}" version="1.0"
+ xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+ xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3"
+ xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3"
+ xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3"
+ xmlns:imsss="http://www.imsglobal.org/xsd/imsss"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd
+ http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd
+ http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd
+ http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd
+ http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 4th Edition</schemaversion>
+  </metadata>
+  <organizations default="ORG-BSMART">
+    <organization identifier="ORG-BSMART">
+      <title>${safeTitle}</title>
+      <item identifier="ITEM-BSMART" identifierref="RES-BSMART" isvisible="true">
+        <title>${safeTitle}</title>
+        <imsss:sequencing>
+          <imsss:objectives>
+            <imsss:primaryObjective objectiveID="BSMART_OBJECTIVE" satisfiedByMeasure="true">
+              <imsss:minNormalizedMeasure>${scaled.toFixed(2)}</imsss:minNormalizedMeasure>
+            </imsss:primaryObjective>
+          </imsss:objectives>
+        </imsss:sequencing>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="RES-BSMART" type="webcontent" adlcp:scormType="sco" href="index.html">
+      <file href="index.html"/>
+      <file href="style.css"/>
+      <file href="js/core.js"/>
+      <file href="js/config.js"/>
+      <file href="js/scorm.js"/>
+    </resource>
+  </resources>
+</manifest>`;
+}
+
+function makeScormMetadata(title) {
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<metadata><title>${xmlEscape(title || 'bSmart Interactive Exercise')}</title><format>SCORM 2004 4th Edition</format><generator>bSmart Interactive Configurator</generator></metadata>`;
+}
+
+function makeScormBridge(passingScore = 80) {
+    return `(() => {
+  'use strict';
+  const PASSING_SCORE = ${Math.max(0, Math.min(100, Number(passingScore) || 80))};
+  let api = null;
+  let version = null;
+  let initialized = false;
+  let terminated = false;
+  let localState = null;
+  const startedAt = Date.now();
+
+  function findAPI(win) {
+    let hops = 0;
+    try {
+      while (win && hops < 20) {
+        if (win.API_1484_11) return { api: win.API_1484_11, version: '2004' };
+        if (win.API) return { api: win.API, version: '1.2' };
+        if (!win.parent || win.parent === win) break;
+        win = win.parent; hops++;
+      }
+    } catch (_) {}
+    try {
+      if (window.opener) {
+        if (window.opener.API_1484_11) return { api: window.opener.API_1484_11, version: '2004' };
+        if (window.opener.API) return { api: window.opener.API, version: '1.2' };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function call(name2004, name12, ...args) {
+    if (!api) return null;
+    try {
+      const fn = api[version === '2004' ? name2004 : name12];
+      return typeof fn === 'function' ? fn.apply(api, args) : null;
+    } catch (e) { console.warn('[SCORM]', e); return null; }
+  }
+  function get(key2004, key12) { return call('GetValue', 'LMSGetValue', version === '2004' ? key2004 : key12); }
+  function set(key2004, key12, value) { return call('SetValue', 'LMSSetValue', version === '2004' ? key2004 : key12, String(value)); }
+  function commit() { return call('Commit', 'LMSCommit', ''); }
+
+  function init() {
+    if (initialized) return true;
+    const found = findAPI(window);
+    if (!found) { console.info('[SCORM] API non trovata: esecuzione standalone.'); return false; }
+    api = found.api; version = found.version;
+    const ok = call('Initialize', 'LMSInitialize', '');
+    initialized = String(ok).toLowerCase() === 'true' || ok === true;
+    if (!initialized) return false;
+
+    if (version === '2004') {
+      set('cmi.score.min', 'cmi.core.score.min', 0);
+      set('cmi.score.max', 'cmi.core.score.max', 100);
+      const completion = get('cmi.completion_status', 'cmi.core.lesson_status');
+      if (!completion || completion === 'unknown') set('cmi.completion_status', 'cmi.core.lesson_status', 'incomplete');
+    } else {
+      const status = get('cmi.completion_status', 'cmi.core.lesson_status');
+      if (!status || status === 'not attempted') set('cmi.completion_status', 'cmi.core.lesson_status', 'incomplete');
+    }
+
+    const raw = get('cmi.suspend_data', 'cmi.suspend_data');
+    if (raw) { try { localState = JSON.parse(raw); } catch (_) {} }
+    commit();
+    return true;
+  }
+
+  function saveState(state) {
+    localState = Object.assign({}, localState || {}, state || {});
+    if (!initialized) return;
+    try {
+      set('cmi.suspend_data', 'cmi.suspend_data', JSON.stringify(localState));
+      if (localState.level != null || localState.step != null) {
+        const loc = String(localState.level || '') + ':' + String(localState.step || 0);
+        set('cmi.location', 'cmi.core.lesson_location', loc);
+      }
+      set('cmi.exit', 'cmi.core.exit', version === '2004' ? 'suspend' : 'suspend');
+      commit();
+    } catch (_) {}
+  }
+
+  function reportResult(score, state) {
+    const n = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+    const previous = initialized ? Number(get('cmi.score.raw', 'cmi.core.score.raw')) : NaN;
+    const reported = Number.isFinite(previous) ? Math.max(previous, n) : n;
+    if (initialized) {
+      set('cmi.score.raw', 'cmi.core.score.raw', reported);
+      if (version === '2004') {
+        set('cmi.score.scaled', 'cmi.core.score.raw', (reported / 100).toFixed(4));
+        set('cmi.completion_status', 'cmi.core.lesson_status', 'completed');
+        set('cmi.success_status', 'cmi.core.lesson_status', reported >= PASSING_SCORE ? 'passed' : 'failed');
+      } else {
+        set('cmi.completion_status', 'cmi.core.lesson_status', reported >= PASSING_SCORE ? 'passed' : 'failed');
+      }
+    }
+    saveState(Object.assign({}, state || {}, { lastScore: n, bestScore: reported, completed: true }));
+    if (initialized) commit();
+  }
+
+  function formatDuration(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600); const m = Math.floor((total % 3600) / 60); const s = total % 60;
+    if (version === '2004') return 'PT' + h + 'H' + m + 'M' + s + 'S';
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  function finish() {
+    if (!initialized || terminated) return;
+    set('cmi.session_time', 'cmi.core.session_time', formatDuration(Date.now() - startedAt));
+    set('cmi.exit', 'cmi.core.exit', 'suspend');
+    commit();
+    call('Terminate', 'LMSFinish', '');
+    terminated = true;
+  }
+
+  window.BSMART_SCORM = { init, saveState, reportResult, finish, getState: () => localState, getVersion: () => version };
+  init();
+  window.addEventListener('pagehide', finish);
+  window.addEventListener('beforeunload', finish);
+})();`;
+}
+
 async function exportToZIP() {
-    const typeF = document.getElementById('type-f').value; 
+    const typeF = document.getElementById('type-f').value;
     const typeD = document.getElementById('type-d').value;
-    
     const listF = document.getElementById('items-list-f');
-    const itemsFRaw = listF.value.trim() !== '' ? listF.value : listF.placeholder;
-    const itemsF = itemsFRaw.split(';').map(i=>i.trim()).filter(i=>i);
-
     const listD = document.getElementById('items-list-d');
+    const itemsFRaw = listF.value.trim() !== '' ? listF.value : listF.placeholder;
     const itemsDRaw = listD.value.trim() !== '' ? listD.value : listD.placeholder;
-    const itemsD = itemsDRaw.split(';').map(i=>i.trim()).filter(i=>i);
+    const itemsF = itemsFRaw.split(';').map(i=>i.trim()).filter(Boolean);
+    const itemsD = itemsDRaw.split(';').map(i=>i.trim()).filter(Boolean);
 
-    if(itemsF.length === 0 && typeF !== 'crossword' && typeF !== 'autocollantes' && typeD !== 'crossword') { alert("Dati mancanti!"); return; }
-    const zip = new JSZip(); 
-    const assetsFolder = zip.folder("assets"); 
-    const jsFolder = zip.folder("js");
+    if(itemsF.length === 0 && typeF !== 'crossword' && typeF !== 'autocollantes' && typeD !== 'crossword') { alert('Dati mancanti!'); return; }
 
+    const zip = new JSZip();
+    const assetsFolder = zip.folder('assets');
+    const jsFolder = zip.folder('js');
+
+    let exportedCore, exportedStyle;
     try {
         const [coreResp, styleResp] = await Promise.all([fetch('core.js'), fetch('style.css')]);
         if (!coreResp.ok || !styleResp.ok) throw new Error('Impossibile leggere core.js o style.css');
-        jsFolder.file('core.js', await coreResp.text());
-        zip.file('style.css', await styleResp.text());
+        exportedCore = await coreResp.text();
+        exportedStyle = await styleResp.text();
     } catch (err) {
         console.error(err);
-        alert('Export interrotto: avvia il configuratore tramite un web server (http/https), non direttamente con file://, così posso includere core.js e style.css nello ZIP.');
+        alert('Export interrotto: avvia il configuratore tramite un web server (http/https), non direttamente con file://.');
         return;
     }
 
-    function dataURLtoBlob(url) { 
-        let arr = url.split(','), mime = arr[0].match(/:(.*?);/)[1]; 
-        let bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n); 
-        while(n--){ u8arr[n] = bstr.charCodeAt(n); } 
-        return new Blob([u8arr], {type:mime}); 
+    function dataURLtoBlob(url) {
+        const arr = url.split(','), mime = (arr[0].match(/:(.*?);/) || [,'application/octet-stream'])[1];
+        const bstr = atob(arr[1]), u8arr = new Uint8Array(bstr.length);
+        for (let n = bstr.length - 1; n >= 0; n--) u8arr[n] = bstr.charCodeAt(n);
+        return new Blob([u8arr], {type:mime});
     }
 
-    let expImg = {}; 
-    for(let k in dbImg) { 
-        if(!dbImg[k]) continue; 
-        let ext = dbImg[k].match(/data:image\/(.*);base64/)[1]; 
-        let name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`; 
-        assetsFolder.file(name, dataURLtoBlob(dbImg[k])); 
-        expImg[k] = `assets/${name}`; 
+    const expImg = {};
+    for (const k in dbImg) {
+        if(!dbImg[k]) continue;
+        const m = dbImg[k].match(/data:image\/([^;]+);base64/);
+        const ext = m ? m[1].replace('svg+xml','svg').replace('jpeg','jpg') : 'png';
+        const name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`;
+        assetsFolder.file(name, dataURLtoBlob(dbImg[k]));
+        expImg[k] = `assets/${name}`;
     }
 
-    let expAud = {}; 
-    for(let k in dbAud) { 
-        if(!dbAud[k]) continue; 
-        let ext = dbAud[k].includes('mpeg') ? 'mp3' : 'wav'; 
-        let name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`; 
-        assetsFolder.file(name, dataURLtoBlob(dbAud[k])); 
-        expAud[k] = `assets/${name}`; 
+    const expAud = {};
+    for (const k in dbAud) {
+        if(!dbAud[k]) continue;
+        const mime = (dbAud[k].match(/^data:audio\/([^;]+)/) || [,'mpeg'])[1];
+        const ext = mime.includes('mpeg') ? 'mp3' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.replace(/[^a-z0-9]/gi,'') || 'mp3';
+        const name = `${k.replace(/[^a-z0-9_]/gi,'_')}.${ext}`;
+        assetsFolder.file(name, dataURLtoBlob(dbAud[k]));
+        expAud[k] = `assets/${name}`;
     }
 
     const exportItemsF = typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : itemsF;
     const exportItemsD = typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : itemsD;
-
-    const gameConfig = { 
-        unite: document.getElementById('in-unite').value || '1', 
+    const passingScore = 80;
+    const gameConfig = {
+        unite: document.getElementById('in-unite').value || '1',
         uniteColor: document.getElementById('in-color').value || '#E84C7B',
         showLecon: document.getElementById('in-show-lecon').checked,
         lecon: document.getElementById('in-lecon').value || '1',
-        titre: document.getElementById('in-titre').value || 'Jeu', 
-        cwVerbLabel: cwVerbLabel,
-        cwShowClues: cwShowClues,
-        mappedZones: mappedZones, cwData: cwData, cwClues: cwClues, rebusData: rebusData, autocollantesData: autocollantesData, 
+        titre: document.getElementById('in-titre').value || 'Jeu',
+        scorm: { version: '2004 4th Edition', passingScore },
+        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData,
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
-        levels: { 
-            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF, readEachSentence: document.getElementById('read-step-f') ? document.getElementById('read-step-f').checked : true }, 
-            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD, readEachSentence: document.getElementById('read-step-d') ? document.getElementById('read-step-d').checked : true } 
-        } 
+        levels: {
+            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF, readEachSentence: document.getElementById('read-step-f') ? document.getElementById('read-step-f').checked : true },
+            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD, readEachSentence: document.getElementById('read-step-d') ? document.getElementById('read-step-d').checked : true }
+        }
     };
 
-    jsFolder.file("config.js", `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
+    jsFolder.file('core.js', exportedCore);
+    zip.file('style.css', exportedStyle);
+    jsFolder.file('config.js', `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
+    jsFolder.file('scorm.js', makeScormBridge(passingScore));
 
-    let playerHTML = `<!DOCTYPE html>
+    const playerHTML = `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>bSmart | ${gameConfig.titre}</title>
+<title>bSmart | ${String(gameConfig.titre).replace(/[<>]/g,'')}</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="js/config.js"></script>
+<script src="js/scorm.js"></script>
 <script src="js/core.js" defer></script>
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
@@ -1529,49 +1740,29 @@ async function exportToZIP() {
             <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
             <div class="flex flex-col items-center md:items-start w-full max-w-sm">
                 <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
-                <div class="flex items-center gap-4 w-full mb-8">
-                    <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
-                    <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-6">
-                    <button onclick="startGame()" class="font-bold text-gray-800">↺ Je rejoue</button>
-                    <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="font-bold text-gray-800">💡 Les solutions</button>
-                </div>
+                <div class="flex items-center gap-4 w-full mb-8"><div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div><span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span></div>
+                <div class="flex flex-col sm:flex-row gap-6"><button onclick="startGame()" class="font-bold text-gray-800">↺ Je rejoue</button><button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="font-bold text-gray-800">💡 Les solutions</button></div>
             </div>
         </div>
         <div id="end-score" class="w-full max-w-4xl flex flex-col items-center hidden mt-2"></div>
     </div>
     <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
-        <div class="flex flex-col items-center md:items-start z-10 shrink-0">
-            <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
-            <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
-        </div>
-        <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
-            <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
-        </div>
-        <div class="flex items-center gap-3 z-10 shrink-0">
-            <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
-                <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
-                <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
-            </div>
-            <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200"><span id="mute-icon">🔊</span></button>
-        </div>
+        <div class="flex flex-col items-center md:items-start z-10 shrink-0"><div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div><div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div></div>
+        <div class="flex-grow flex justify-center z-10 px-2 md:px-6"><h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1></div>
+        <div class="flex items-center gap-3 z-10 shrink-0"><div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100"><button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button><button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button></div><button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200"><span id="mute-icon">🔊</span></button></div>
     </div>
-    <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
-        <div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full">
-            <button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button>
-            <p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p>
-        </div>
-        <div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div>
-        <div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div>
-    </div>
+    <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50"><div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full"><button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button><p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p></div><div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div><div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div></div>
     <div id="nav-step" class="striped-footer flex justify-center gap-3 flex-wrap mt-auto"></div>
 </div>
 </body>
 </html>`;
 
-    zip.file("index.html", playerHTML);
-    const customName = document.getElementById('in-filename') ? document.getElementById('in-filename').value.trim() : '';
-    const finalName = (customName !== '' ? customName : `bSmart_${gameConfig.titre}`).replace(/[^a-z0-9_\-]+/gi, '_');
-    zip.generateAsync({type:"blob"}).then(c => saveAs(c, `${finalName}.zip`));
+    zip.file('index.html', playerHTML);
+    zip.file('imsmanifest.xml', makeScormManifest(gameConfig.titre, passingScore));
+    zip.file('metadata.xml', makeScormMetadata(gameConfig.titre));
+
+    const rawName = document.getElementById('in-filename')?.value.trim() || gameConfig.titre || 'esercizio';
+    const safeName = rawName.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_');
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+    saveAs(blob, `${safeName}_SCORM2004.zip`);
 }
