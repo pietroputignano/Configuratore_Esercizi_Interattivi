@@ -90,6 +90,17 @@ function dominoLabelHtml(value) {
 function fitDominoTileText(root = document) {
     const nodes = root.querySelectorAll('.domino-tile .tile-text:not(.domino-end-block)');
     nodes.forEach(el => {
+        const tile = el.closest('.domino-tile');
+        if (tile) {
+            tile.classList.remove('domino-short-label', 'domino-medium-label', 'domino-wide-label', 'domino-long-label');
+            const compactLength = (el.textContent || '').replace(/\s+/g, '').length;
+            // L'immagine guadagna spazio quando l'etichetta e' corta; il testo ne recupera
+            // progressivamente per etichette piu' lunghe.
+            if (compactLength <= 5) tile.classList.add('domino-short-label');
+            else if (compactLength <= 9) tile.classList.add('domino-medium-label');
+            else tile.classList.add('domino-wide-label');
+        }
+
         el.style.removeProperty('font-size');
         const base = parseFloat(getComputedStyle(el).fontSize) || 18;
         let size = base;
@@ -100,11 +111,12 @@ function fitDominoTileText(root = document) {
             size = Math.max(minSize, size - 0.5);
             el.style.fontSize = `${size}px`;
         }
-        // Ultima salvaguardia: una parola singola molto lunga deve rimanere su una riga.
-        // Se siamo gia' al minimo, allarghiamo leggermente la parte testuale sottraendo spazio all'immagine.
-        if (el.scrollWidth > el.clientWidth + 1) {
-            const tile = el.closest('.domino-tile');
-            if (tile) tile.classList.add('domino-long-label');
+        // Ultima salvaguardia: se ancora non entra, allarghiamo ulteriormente la parte testuale.
+        if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
+            if (tile) {
+                tile.classList.remove('domino-short-label', 'domino-medium-label', 'domino-wide-label');
+                tile.classList.add('domino-long-label');
+            }
         }
     });
 }
