@@ -1,656 +1,333 @@
-:root { --hfle-blue: #0169B3; --hfle-orange: #EFA92C; --hfle-success: #8dc549; --hfle-error: #d84157; --hfle-pink: #E84C7B; --domino-accent:#E84C7B; --domino-tile-bg:rgba(232,76,123,.12); --domino-image-bg:rgba(232,76,123,.055); --domino-font-size:18px; }
-body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bSmart | Jeux interactifs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- IL NOSTRO NUOVO FILE DEGLI STILI -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 
-.font-mont { font-family: 'Montserrat', sans-serif; }
-.font-source { font-family: 'Source Sans Pro', sans-serif; }
-.h-titre { font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); letter-spacing: -0.5px; }
+    <!-- MODAL MAPPER -->
+    <div id="mapper-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[90vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-blue-50">
+                <h3 class="font-bold text-blue-900">🗺️ Visual Mapper</h3>
+                <button onclick="closeMapper()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Salva e Chiudi</button>
+            </div>
+            <div class="p-3 flex flex-wrap gap-2 bg-gray-50 border-b items-center">
+                <button onclick="pickImg('mapper_bg')" class="bg-white border-2 border-blue-200 px-3 py-1.5 rounded font-bold text-xs">1. Carica Sfondo</button>
+                <button onclick="addZone()" class="bg-white border-2 border-orange-200 px-3 py-1.5 rounded font-bold text-xs text-orange-700">+ 2. Aggiungi Zona</button>
+                <div class="h-6 w-px bg-gray-300 mx-2"></div>
+                <span class="text-[10px] font-bold text-gray-500 uppercase">Allinea/Ridimensiona:</span>
+                <button onclick="alignZones('width')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Larghezza">↔️ Largh.</button>
+                <button onclick="alignZones('height')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Altezza">↕️ Alt.</button>
+                <button onclick="alignZones('left')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Allinea a Sinistra">⬅️ Sinistra</button>
+                <button onclick="alignZones('top')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Allinea in Alto">⬆️ Sopra</button>
+                <span class="text-[9px] text-gray-400 italic ml-1">(Clicca sui blocchi per selezionarli)</span>
+            </div>
+            <div class="flex-grow overflow-auto p-10 bg-slate-300 flex justify-center items-center" onclick="clearSelection(event)">
+                <div id="mapper-container" class="relative bg-white shadow-xl w-[900px] max-w-full aspect-[9/5]">
+                    <img id="mapper-preview" src="" class="absolute inset-0 w-full h-full object-cover pointer-events-none hidden">
+                    <p id="mapper-hint" class="absolute inset-0 flex items-center justify-center text-gray-400 font-bold uppercase italic pointer-events-none">Carica uno sfondo per iniziare</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL CRUCIVERBA -->
+    <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-orange-50">
+                <h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3>
+                <div class="flex gap-2">
+                    <button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button>
+                    <button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-4 items-center">
+                <label class="flex items-center gap-2 text-xs font-bold text-blue-900">
+                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra definizioni sotto la griglia <span class="font-normal text-gray-500">(i pronomi restano visibili)</span>
+                </label>
+                <input id="cw-in-verb" type="text" class="border border-gray-300 p-2 rounded text-xs w-64 shadow-inner" placeholder="Etichetta / Verbo (es: HABITER)">
+            </div>
+            <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center">
+                <div id="cw-builder-grid" class="cw-grid bg-white p-4 shadow-lg rounded-lg mb-6"></div>
+                <div id="cw-clues-container" class="w-full bg-white p-4 shadow-lg rounded-lg hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL REBUS -->
+    <div id="rebus-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-green-50">
+                <h3 class="font-bold text-green-900">📝 Costruttore Frasi (Rebus)</h3>
+                <button onclick="closeRebusBuilder()" class="bg-green-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Frasi</button>
+            </div>
+            <div class="flex-grow overflow-auto p-6 bg-slate-100 flex flex-col gap-4" id="rebus-sentences-container"></div>
+        </div>
+    </div>
 
-.unit-badge { background-color: var(--theme-color, var(--hfle-pink)); color: white; border-radius: 12px; padding: 6px 18px; display: inline-flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; outline: 3px solid var(--theme-color, var(--hfle-pink)); }
-.unit-badge-text { font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; }
-.unit-badge-num { font-size: 40px; font-weight: 900; font-family: 'Montserrat', sans-serif; }
+    <!-- MODAL AUTOCOLLANTES -->
+    <div id="auto-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-7xl flex flex-col h-[94vh]">
+            <div class="p-4 border-b flex flex-wrap justify-between items-center gap-3 bg-pink-50">
+                <div><h3 class="font-black text-pink-800 text-lg">✂️ Costruttore Autocollantes</h3><p class="text-xs text-gray-500">Livello <b id="auto-builder-level-label"></b></p></div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div id="auto-board-tabs" class="flex flex-wrap gap-2"></div>
+                    <button onclick="addAutoActivity()" class="bg-white border border-pink-300 text-pink-700 px-3 py-2 rounded-full font-bold text-xs">+ Aggiungi base</button>
+                    <button onclick="removeAutoActivity()" class="bg-white border border-red-200 text-red-700 px-3 py-2 rounded-full font-bold text-xs">Elimina base</button>
+                    <button onclick="closeAutocollantesBuilder()" class="bg-pink-600 text-white px-5 py-2 rounded-full font-bold text-sm">Salva e Chiudi</button>
+                </div>
+            </div>
+            <div class="p-3 border-b bg-gray-50 flex flex-wrap gap-2 items-center">
+                <button onclick="pickAutoFile('base')" class="bg-white border-2 border-blue-200 px-3 py-2 rounded font-bold text-xs">1. Carica Base</button>
+                <button onclick="pickAutoFile('sheet')" class="bg-white border-2 border-orange-200 px-3 py-2 rounded font-bold text-xs">2. Carica Tavola Autocollantes</button>
+                <button onclick="startAutoStickerPair()" class="bg-emerald-600 text-white px-4 py-2 rounded font-bold text-xs">+ Nuovo Sticker → Zona</button>
+                <button onclick="cancelAutoDrawing()" class="bg-white border px-3 py-2 rounded font-bold text-xs">Annulla disegno</button>
+                <button onclick="clearAutoStickers()" class="bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded font-bold text-xs">Cancella coppie</button>
+                <span id="auto-draw-status" class="text-xs font-bold text-gray-600 ml-2"></span>
+            </div>
+            <div class="flex-grow overflow-auto p-4 bg-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl p-3 shadow-sm"><h4 class="font-black text-blue-900 mb-2">BASE — disegna qui la zona di destinazione</h4><div id="auto-base-wrap" class="auto-builder-preview"></div></div>
+                <div class="bg-white rounded-xl p-3 shadow-sm"><h4 class="font-black text-orange-800 mb-2">AUTOCOLLANTES — ritaglia qui il singolo sticker</h4><div id="auto-sheet-wrap" class="auto-builder-preview"></div></div>
+            </div>
+            <div class="p-4 border-t bg-white"><div id="auto-pairs-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs"></div></div>
+        </div>
+    </div>
 
-.lecon-ribbon { background-color: var(--hfle-orange); color: white; font-weight: 900; padding: 6px 30px 6px 20px; margin-top: 12px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-left: -5px; position: relative; font-size: 16px; text-transform: uppercase; clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 0 100%); }
+    <!-- MAIN APP -->
+    <div class="w-full max-w-[1600px] flex flex-col xl:flex-row gap-6">
+        
+        <!-- PANNELLO DI SINISTRA (CONFIGURATORE) -->
+        <div class="xl:w-1/3 bg-white p-5 rounded-2xl shadow-lg border-t-8 border-blue-800 overflow-y-auto max-h-[95vh] text-xs">
+            <h2 class="text-xl font-black text-blue-900 mb-4 border-b pb-2 uppercase tracking-tight">bSmart | Configurator</h2>
+            
+            <div class="space-y-6">
+                <!-- Dati Testata -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Unité (Num)</p><input id="in-unite" type="text" class="w-full p-2 border rounded" placeholder="1" oninput="initGame()"></div>
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore Unité</p><input id="in-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#E84C7B" oninput="initGame()"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="font-bold uppercase mb-1 text-[10px] text-gray-500 flex items-center gap-1">
+                            <input type="checkbox" id="in-show-lecon" checked onchange="initGame()"> Mostra Leçon
+                        </p>
+                        <input id="in-lecon" type="text" class="w-full p-2 border rounded" placeholder="1" oninput="initGame()">
+                    </div>
+                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Tu habites où ?" oninput="initGame()"></div>
+                </div>
 
-.header-wrapper { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; background: white; padding-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); z-index: 10; position: relative; }
-.striped-footer { background: repeating-linear-gradient( 45deg, #FCD34D, #FCD34D 15px, #FBBF24 15px, #FBBF24 30px ); padding: 15px; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.05); }
+                <!-- LIVELLI DISPONIBILI -->
+                <div class="p-3 bg-violet-50 rounded-xl border border-violet-200">
+                    <p class="font-black text-violet-900 text-xs uppercase mb-2">Livelli disponibili nel gioco</p>
+                    <div class="flex gap-5 items-center">
+                        <label class="flex items-center gap-2 font-bold text-blue-800"><input id="enable-f" type="checkbox" checked onchange="updateEnabledLevels()"> Facile</label>
+                        <label class="flex items-center gap-2 font-bold text-blue-900"><input id="enable-d" type="checkbox" checked onchange="updateEnabledLevels()"> Difficile</label>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-1">Puoi pubblicare entrambi i livelli oppure soltanto uno.</p>
+                </div>
 
-.nav-square { width: 40px; height: 40px; border-radius: 8px; background: #60A5FA; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family: 'Montserrat', sans-serif; font-size: 18px; }
-.nav-square:hover { transform: translateY(-2px); }
-.nav-square.active { background-color: var(--hfle-blue); transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-.nav-square.completed { background-color: var(--hfle-success); }
-.nav-square.error { background-color: var(--hfle-error); }
+                <!-- LIVELLO FACILE -->
+                <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
+                    <p class="font-black text-blue-800 text-lg uppercase">Facile</p>
+                    <input id="con-f" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Écoute et remets les mots dans l'ordre." oninput="initGame(); startGame();">
+                    <select id="type-f" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('f'); initGame(); startGame();"></select>
+                    <div class="flex gap-2">
+                        <button onclick="pickAud('aud-f')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-50">🎵 Audio Consigne</button>
+                        <button id="btn-map-f" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
+                        <button id="btn-cw-f" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
+                        <button id="btn-rebus-f" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
+                        <button id="btn-auto-f" onclick="openAutocollantesBuilder('facile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden">✂️ Autocollantes</button>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-blue-200">
+                        <label class="flex items-center gap-2 mb-2 text-[10px] font-bold text-blue-800"><input id="read-step-f" type="checkbox" checked onchange="startGame()"> Lettura di ogni frase</label>
+                        <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Testo Lettura Completa (Opzionale)</p>
+                        <input id="tts-context-f" type="text" class="w-full p-2 border rounded text-xs mb-2" placeholder="es: J'habite. Tu habites..." oninput="initGame(); startGame();">
+                        <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
+                        <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs placeholder-gray-400" placeholder="Il / habite / dans / une yourte ; Tu / habites / dans / une maison" oninput="initGame(); startGame();"></textarea>
+                        <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici).</p>
+                    </div>
+                </div>
 
-/* STILE DOMINO PUZZLE 3D - circuito responsive */
-.domino-chain {
-    position: relative;
-    display: block;
-    width: var(--d-board-w);
-    height: var(--d-board-h);
-    max-width: 100%;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.72);
-    border: 2px dashed #cbd5e1;
-    overflow: visible;
-    flex: 0 0 auto;
-}
+                <!-- LIVELLO DIFFICILE -->
+                <div class="p-4 bg-blue-900 rounded-xl border border-blue-900 space-y-3 shadow-inner">
+                    <p class="font-black text-white text-lg uppercase">Difficile</p>
+                    <input id="con-d" type="text" class="w-full p-2 border rounded font-bold text-gray-700" placeholder="Écoute et complète le tableau de conjugaison." oninput="initGame(); startGame();">
+                    <select id="type-d" class="type-sel w-full p-2 border rounded bg-white font-bold" onchange="toggleToolBtns('d'); initGame(); startGame();"></select>
+                    <div class="flex gap-2">
+                        <button onclick="pickAud('aud-d')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-100 text-gray-800">🎵 Audio Consigne</button>
+                        <button id="btn-map-d" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
+                        <button id="btn-cw-d" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
+                        <button id="btn-rebus-d" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
+                        <button id="btn-auto-d" onclick="openAutocollantesBuilder('difficile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">✂️ Autocollantes</button>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-blue-800">
+                        <label class="flex items-center gap-2 mb-2 text-[10px] font-bold text-white"><input id="read-step-d" type="checkbox" checked onchange="startGame()"> Lettura di ogni frase</label>
+                        <p class="font-bold uppercase mb-1 text-white text-[10px]">Testo Lettura Completa (Opzionale)</p>
+                        <input id="tts-context-d" type="text" class="w-full p-2 border rounded text-xs mb-2 text-gray-800" placeholder="es: J'habite. Tu habites..." oninput="initGame(); startGame();">
+                        <p class="font-bold uppercase mb-1 text-white text-[10px]">Dati Livello DIFFICILE (separati da ;)</p>
+                        <textarea id="items-list-d" class="w-full h-16 p-2 border rounded text-xs bg-slate-100 placeholder-gray-400 text-gray-800" placeholder="habite; habites; habitons; habitez" oninput="initGame(); startGame();"></textarea>
+                    </div>
+                </div>
 
-.domino-slot {
-    position: absolute;
-    left: var(--d-left);
-    top: var(--d-top);
-    width: var(--d-w);
-    height: var(--d-h);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-}
+                <!-- IMPOSTAZIONI DOMINO -->
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 mt-4 space-y-3">
+                    <div>
+                        <p class="font-black text-amber-900 uppercase text-xs">🁢 Impostazioni Domino</p>
+                        <p class="text-[9px] text-gray-500 mt-1">Valgono per tutti i livelli che usano il gioco Domino.</p>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-[10px] text-gray-700 uppercase">Dimensione testo tessere</span>
+                            <span id="domino-font-value" class="font-black text-amber-900 text-xs">18 px</span>
+                        </div>
+                        <div class="grid grid-cols-[36px_1fr_36px] gap-2 items-center">
+                            <button type="button" onclick="changeDominoFont(-1)" class="h-9 bg-white border border-amber-300 rounded-lg font-black text-lg text-amber-900 hover:bg-amber-100">−</button>
+                            <input id="domino-font-size" type="range" min="12" max="26" step="1" value="18" oninput="applyDominoTheme()" onchange="updateDominoOptions()" class="w-full accent-amber-600">
+                            <button type="button" onclick="changeDominoFont(1)" class="h-9 bg-white border border-amber-300 rounded-lg font-black text-lg text-amber-900 hover:bg-amber-100">+</button>
+                        </div>
+                    </div>
+                    <label class="flex items-start gap-2 text-[10px] font-bold text-gray-700">
+                        <input id="domino-autofit" type="checkbox" checked onchange="updateDominoOptions()" class="mt-0.5">
+                        <span><b>Adatta tutto alla pagina</b><br><span class="font-normal text-gray-500">Riduce automaticamente tavola e tessere quando serve per limitare lo scroll.</span></span>
+                    </label>
+                    <div class="pt-2 border-t border-amber-200">
+                        <label class="flex items-center gap-2 text-[10px] font-bold text-gray-700 mb-2">
+                            <input id="domino-use-unit-color" type="checkbox" checked onchange="updateDominoOptions()">
+                            Usa lo stesso colore dell’Unité
+                        </label>
+                        <div class="grid grid-cols-[1fr_56px] gap-3 items-center">
+                            <span class="text-[10px] text-gray-600">Colore personalizzato</span>
+                            <input id="domino-color" type="color" value="#E84C7B" disabled onchange="updateDominoOptions()" class="w-14 h-9 p-0 border rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                        </div>
+                        <p class="text-[9px] text-gray-500 mt-1 italic">Il colore viene applicato come tinta leggera, mantenendo il testo scuro e leggibile.</p>
+                    </div>
+                </div>
 
-.domino-connectors {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    overflow: visible;
-    pointer-events: none;
-}
-.domino-connectors polyline {
-    fill: none;
-    stroke: var(--hfle-orange);
-    stroke-width: 12;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.08));
-}
-.domino-connectors-mobile { display: none; }
+                <!-- CARICA AUDIO PER STEP -->
+                <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center shadow-sm">
+                    <p class="text-[10px] text-yellow-800 font-bold mb-2">Se usi giochi con audio specifico per frase (es. Mise en ordre):</p>
+                    <button onclick="if(items[curStep]) pickAud(items[curStep] + '_audio'); else alert('Avvia anteprima e cambia step in basso per caricare audio')" class="w-full bg-white border border-yellow-400 p-2 rounded shadow-sm hover:bg-yellow-100 text-[11px] font-bold text-yellow-700 transition">🎵 Carica Audio per la Frase Corrente</button>
+                </div>
 
-.domino-tile {
-    background: var(--domino-tile-bg, white) !important;
-    border-radius: 14px !important;
-    display: flex !important;
-    cursor: grab;
-    flex-shrink: 0 !important;
-    box-shadow: 0 6px 0 var(--domino-accent, var(--hfle-blue)), 0 11px 18px rgba(0,0,0,0.12) !important;
-    border: 3px solid var(--domino-accent, var(--hfle-blue)) !important;
-    transform: translateY(0) !important;
-    transition: transform 0.1s, box-shadow 0.1s !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden;
-}
-.domino-tile:active { transform: translateY(6px) !important; box-shadow: 0 0 0 var(--domino-accent, var(--hfle-blue)), 0 2px 5px rgba(0,0,0,0.1) !important; }
-.domino-starter { opacity: 0.96; box-shadow: 0 4px 0 var(--domino-accent, var(--hfle-blue)), 0 8px 14px rgba(0,0,0,0.10) !important; }
-.domino-pool-tile:hover { transform: translateY(-3px) !important; }
+                <!-- IMMAGINI REPORT -->
+                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
+                    <p class="font-bold text-indigo-900 uppercase mb-2 text-[10px]">Immagini Report Finale (Opzionali)</p>
+                    <div class="flex gap-2">
+                        <button onclick="pickImg('score_high')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Vittoria (>50%)</button>
+                        <button onclick="pickImg('score_low')" class="flex-1 bg-white border p-2 rounded shadow-sm hover:bg-indigo-100 text-[10px] font-bold">📷 Sconfitta (&lt;50%)</button>
+                    </div>
+                </div>
 
-.orient-d-h .domino-tile, .orient-d-h .drop-target { width: var(--d-h-w, 205px) !important; height: var(--d-h-h, 94px) !important; }
-.orient-d-h .tile-img { width: 48%; height: 100%; }
-.orient-d-h .tile-text { width: 52%; height: 100%; }
-.orient-d-v .domino-tile, .orient-d-v .drop-target { width: var(--d-v-w, 108px) !important; height: var(--d-v-h, 140px) !important; }
-.orient-d-v .tile-img { width: 100%; height: 55%; }
-.orient-d-v .tile-text { width: 100%; height: 45%; }
+                <!-- SUONI -->
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                    <p class="font-bold text-gray-800 uppercase mb-2 text-[10px]">Suoni Personalizzati (Opzionali)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="pickAud('drag')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drag (Presa)</button>
+                        <button onclick="pickAud('drop')" class="bg-white border p-1 rounded hover:bg-gray-100 text-[9px]">🔊 Drop (Rilascio)</button>
+                        <button onclick="pickAud('global_ok')" class="bg-white border p-1 rounded hover:bg-green-50 text-[9px]">🔊 Esatto</button>
+                        <button onclick="pickAud('global_ko')" class="bg-white border p-1 rounded hover:bg-red-50 text-[9px]">🔊 Errore</button>
+                        <button onclick="pickAud('report_high')" class="bg-white border p-1 rounded hover:bg-blue-50 text-[9px]">🔊 Report Vittoria</button>
+                        <button onclick="pickAud('report_low')" class="bg-white border p-1 rounded hover:bg-orange-50 text-[9px]">🔊 Report Sconfitta</button>
+                    </div>
+                    <p class="text-[8px] text-gray-500 mt-1 italic">Se lasci vuoto, userà i suoni di default.</p>
+                </div>
 
-.tile-img { display: flex; align-items: center; justify-content: center; position: relative; padding: 5px; background: var(--domino-image-bg, #fff); }
-.tile-img img { max-height: 92%; max-width: 92%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
-.tile-text { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: var(--domino-effective-font, var(--domino-font-size, 18px)); line-height: 1.08; text-align: center; padding: 6px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; overflow-wrap: normal; word-break: normal; hyphens: none; }
-.domino-img-placeholder { font-size: 10px; line-height: 1.15; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: center; }
+                <!-- NOME FILE ESPORTATO -->
+                <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 mt-4">
+                    <p class="font-bold text-emerald-900 uppercase mb-2 text-[10px]">📥 Nome File Export</p>
+                    <input id="in-filename" type="text" class="w-full p-2 border rounded text-xs" placeholder="Verrà usato il Titre se lasci vuoto">
+                    <p class="text-[8px] text-gray-500 mt-1 italic">Nome del file .zip che verrà scaricato (senza estensione).</p>
+                </div>
+            </div>
+            
+            <button onclick="initGame(); startGame();" class="w-full mt-6 bg-blue-700 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-blue-800 transition transform hover:-translate-y-1">🚀 AGGIORNA ANTEPRIMA</button>
+            <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📦 ESPORTA SCORM 2004</button>
+        </div>
 
-.drop-target {
-    border: 3px dashed var(--domino-accent, var(--hfle-orange)) !important;
-    border-radius: 14px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: var(--domino-accent, var(--hfle-orange)) !important;
-    font-weight: bold !important;
-    font-size: 18px !important;
-    flex-shrink: 0 !important;
-    background: var(--domino-image-bg, rgba(239, 169, 44, 0.10)) !important;
-    margin: 0 !important;
-    position: relative;
-}
-.drop-target:empty::before { content: '?'; font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; opacity: 0.45; }
+        <!-- PANNELLO DI DESTRA (ANTEPRIMA GIOCO) -->
+        <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
+            
+            <!-- SCHERMATA START -->
+            <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
+                <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase font-mont">Unité <span id="start-unite"></span></h2>
+                <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-mont leading-tight break-words px-4"></h1>
+                <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400 font-mont uppercase">COMMENCER</button>
+            </div>
+            
+            <!-- SCHERMATA REPORT FINALE -->
+            <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
+                <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+                    <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
+                        <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">Essaie<br>encore !</div>
+                        <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
+                    </div>
+                    <div class="flex flex-col items-center md:items-start w-full max-w-sm">
+                        <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
+                        <div class="flex items-center gap-4 w-full mb-8">
+                            <div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div>
+                            <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-6">
+                            <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
+                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="end-score" class="w-full max-w-4xl flex flex-col items-center hidden mt-2"></div>
+            </div>
 
-/* Direzione interna: la meta' immagine e' sempre quella che riceve la parola precedente. */
-.domino-slot.orient-d-h.flow-d-right .domino-tile { flex-direction: row !important; }
-.domino-slot.orient-d-h.flow-d-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-top: 0; border-bottom: 0; }
-.domino-slot.orient-d-h.flow-d-left .domino-tile { flex-direction: row-reverse !important; }
-.domino-slot.orient-d-h.flow-d-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-top: 0; border-bottom: 0; }
-.domino-slot.orient-d-v.flow-d-down .domino-tile { flex-direction: column !important; }
-.domino-slot.orient-d-v.flow-d-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
-.domino-slot.orient-d-v.flow-d-up .domino-tile { flex-direction: column-reverse !important; }
-.domino-slot.orient-d-v.flow-d-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
+            <!-- HEADER DELL'ESERCIZIO -->
+            <div class="header-wrapper flex flex-col md:flex-row items-center justify-between p-4 md:px-8 border-b border-gray-100 relative gap-4">
+                <div class="flex flex-col items-center md:items-start z-10 shrink-0">
+                    <div class="unit-badge" id="res-badge"><span class="unit-badge-text">Unité</span><span id="res-unite" class="unit-badge-num"></span></div>
+                    <div id="res-lecon-wrapper" class="lecon-ribbon">LEÇON <span id="res-lecon">1</span></div>
+                </div>
+                <div class="flex-grow flex justify-center z-10 px-2 md:px-6">
+                    <h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1>
+                </div>
+                <div class="flex items-center gap-3 z-10 shrink-0 justify-center md:justify-end h-fit">
+                    <div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100">
+                        <button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button>
+                        <button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button>
+                    </div>
+                    <button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200 hover:bg-gray-50 transition text-lg" title="Son">
+                        <span id="mute-icon">🔊</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- AREA GIOCO -->
+            <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50">
+                <div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full">
+                    <button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button>
+                    <p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p>
+                </div>
+                <div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div>
+                <div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div>
+            </div>
+            
+            <!-- NAVIGATORE IN BASSO -->
+            <div id="nav-step" class="striped-footer flex justify-center gap-3 flex-wrap mt-auto"></div>
+        </div>
+    </div>
 
-/* Nel pool le tessere restano orizzontali per essere leggibili e facili da trascinare. */
-#pool .domino-tile { width: var(--pool-domino-w, 205px) !important; height: var(--pool-domino-h, 94px) !important; flex-direction: row !important; }
-#pool .domino-tile .tile-img { width: 48%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-left:0; border-top:0; border-bottom:0; }
-#pool .domino-tile .tile-text { width: 52%; height: 100%; }
+    <!-- HIDDEN INPUTS -->
+    <input type="file" id="imgInp" class="hidden" accept="image/*" onchange="handleImg(event)">
+    <input type="file" id="audInp" class="hidden" accept="audio/*" onchange="handleAud(event)">
+    <input type="file" id="autoBaseInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'base')">
+    <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
-@media (max-width: 700px) {
-    .domino-chain {
-        width: var(--m-board-w);
-        height: var(--m-board-h);
-        max-width: 100%;
-        border-radius: 16px;
-    }
-    .domino-slot {
-        left: var(--m-left);
-        top: var(--m-top);
-        width: var(--m-w);
-        height: var(--m-h);
-    }
-    .domino-connectors-desktop { display: none; }
-    .domino-connectors-mobile { display: block; }
-    .domino-connectors polyline { stroke-width: 10; }
-
-    .orient-m-h .domino-tile, .orient-m-h .drop-target { width: var(--m-h-w, 140px) !important; height: var(--m-h-h, 76px) !important; }
-    .orient-m-h .tile-img { width: 46%; height: 100%; }
-    .orient-m-h .tile-text { width: 54%; height: 100%; }
-    .orient-m-v .domino-tile, .orient-m-v .drop-target { width: var(--m-v-w, 88px) !important; height: var(--m-v-h, 122px) !important; }
-    .orient-m-v .tile-img { width: 100%; height: 54%; }
-    .orient-m-v .tile-text { width: 100%; height: 46%; }
-
-    .domino-slot.orient-m-h.flow-m-right .domino-tile { flex-direction: row !important; }
-    .domino-slot.orient-m-h.flow-m-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
-    .domino-slot.orient-m-h.flow-m-left .domino-tile { flex-direction: row-reverse !important; }
-    .domino-slot.orient-m-h.flow-m-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
-    .domino-slot.orient-m-v.flow-m-down .domino-tile { flex-direction: column !important; }
-    .domino-slot.orient-m-v.flow-m-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
-    .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction: column-reverse !important; }
-    .domino-slot.orient-m-v.flow-m-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
-
-    .tile-text { line-height: 1.04; padding: 4px; }
-    #pool { gap: 10px !important; }
-    #pool .domino-tile { width: var(--pool-domino-w, 145px) !important; height: var(--pool-domino-h, 76px) !important; }
-    #pool .domino-tile .tile-text { font-size: var(--domino-effective-font, var(--domino-font-size, 14px)); }
-}
-
-.letter-tile { width: 40px; height: 40px; background: var(--hfle-orange); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: grab; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.rebus-gap { display: inline-block; width: auto; min-width: 100px; height: 40px; border: 2px dashed var(--hfle-blue); border-radius: 8px; vertical-align: middle; margin: 0 5px; background: white; }
-
-.modal-bg { background: rgba(0,0,0,0.85); z-index: 100; }
-.mapper-zone { position: absolute; border: 2px dashed var(--hfle-orange); background: rgba(239, 169, 44, 0.6); cursor: grab; transition: box-shadow 0.2s, border-color 0.2s; }
-.resize-handle { position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px; background: var(--hfle-blue); border-radius: 50%; cursor: se-resize; z-index: 20; }
-
-.cw-grid { display: grid; grid-template-columns: repeat(12, 35px); gap: 2px; justify-content: center; }
-.cw-cell-wrapper { position: relative; width: 35px; height: 35px; }
-.cw-number { position: absolute; top: 1px; left: 3px; font-size: 10px; font-weight: bold; color: var(--hfle-blue); pointer-events: none; z-index: 10; }
-.cw-cell { width: 100%; height: 100%; border: 1px solid #ccc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16px; outline: none; }
-.cw-cell:focus { border: 2px solid var(--hfle-orange); background: #fff8e1; }
-
-.cw-play-wrapper { position: relative; width: 40px; height: 40px; }
-.cw-play-cell { width: 100%; height: 100%; border: 2px solid var(--hfle-blue); text-align: center; font-weight: bold; text-transform: uppercase; font-size: 18px; border-radius: 4px; outline: none; transition: 0.3s; }
-.cw-play-cell:focus { background: #e0f2fe; }
-.cw-play-cell.correct { background-color: var(--hfle-success); color: white; border-color: var(--hfle-success); pointer-events: none; }
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    50% { transform: translateX(8px); }
-    75% { transform: translateX(-8px); }
-}
-.shake-error { animation: shake 0.4s ease-in-out !important; border-color: var(--hfle-error) !important; box-shadow: 0 0 15px rgba(216,65,87,0.6) !important; }
-.shake-error > div { background-color: #fee2e2 !important; }
-/* Direzione interna del domino: segue il verso della catena, non il semplice
-   lato di ingresso. Questo mantiene IMG e WORD coerenti anche alle quattro curve. */
-.domino-slot.orient-d-h.flow-d-right .domino-tile { flex-direction: row !important; }
-.domino-slot.orient-d-h.flow-d-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-top: 0; border-bottom: 0; }
-.domino-slot.orient-d-h.flow-d-left .domino-tile { flex-direction: row-reverse !important; }
-.domino-slot.orient-d-h.flow-d-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-top: 0; border-bottom: 0; }
-
-.domino-slot.orient-d-v.flow-d-down .domino-tile { flex-direction: column !important; }
-.domino-slot.orient-d-v.flow-d-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
-.domino-slot.orient-d-v.flow-d-up .domino-tile { flex-direction: column-reverse !important; }
-.domino-slot.orient-d-v.flow-d-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
-
-@media (max-width: 700px) {
-    .domino-slot.orient-m-h.flow-m-right .domino-tile { flex-direction: row !important; }
-    .domino-slot.orient-m-h.flow-m-right .tile-img { border-right: 2px dashed var(--hfle-blue); border-left: 0; border-bottom: 0; border-top: 0; }
-    .domino-slot.orient-m-h.flow-m-left .domino-tile { flex-direction: row-reverse !important; }
-    .domino-slot.orient-m-h.flow-m-left .tile-img { border-right: 0; border-left: 2px dashed var(--hfle-blue); border-bottom: 0; border-top: 0; }
-
-    .domino-slot.orient-m-v.flow-m-down .domino-tile { flex-direction: column !important; }
-    .domino-slot.orient-m-v.flow-m-down .tile-img { border-bottom: 2px dashed var(--hfle-blue); border-top: 0; border-right: 0; border-left: 0; }
-    .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction: column-reverse !important; }
-    .domino-slot.orient-m-v.flow-m-up .tile-img { border-bottom: 0; border-top: 2px dashed var(--hfle-blue); border-right: 0; border-left: 0; }
-}
-
-
-/* Soluzioni Domino: solo presentazione, senza modificare la logica degli altri giochi. */
-.domino-solutions {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    padding: 12px;
-}
-.domino-solution-tile {
-    width: 176px;
-    height: 80px;
-    display: flex;
-    flex: 0 0 auto;
-    overflow: hidden;
-    background: #fff;
-    border: 3px solid var(--hfle-blue);
-    border-radius: 12px;
-    box-shadow: 0 4px 0 var(--hfle-blue), 0 7px 12px rgba(0,0,0,.08);
-}
-.domino-solution-img {
-    width: 48%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    border-right: 2px dashed var(--hfle-blue);
-}
-.domino-solution-img img { max-width: 94%; max-height: 94%; object-fit: contain; }
-.domino-solution-text {
-    width: 52%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 5px;
-    text-align: center;
-    text-transform: uppercase;
-    overflow-wrap: anywhere;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 900;
-    font-size: 17px;
-    line-height: 1.05;
-    color: #1e293b;
-}
-@media (max-width: 700px) {
-    .domino-solutions { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
-    .domino-solution-tile { width: 150px; height: 70px; }
-    .domino-solution-text { font-size: 14px; }
-}
-
-/* Domino lineare: indicatori cromatici di inizio e fine, senza icone o testo. */
-.domino-start-block { background: #22c55e !important; }
-.domino-end-block { background: #f05a67 !important; color: transparent !important; padding: 0 !important; }
-.domino-solution-img.domino-start-block { border-right: 2px dashed var(--hfle-blue); }
-.domino-solution-text.domino-end-block { border-left: 2px dashed var(--hfle-blue); }
-
-
-/* ANAGRAMME v8.2 - stili isolati: determinante gia' dato, parola compatta e soluzioni visuali. */
-.anagram-answer-wrap {
-    width: min(100%, 680px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-.anagram-determiner {
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 900;
-    font-size: clamp(24px, 3vw, 34px);
-    line-height: 1;
-    color: var(--hfle-blue);
-}
-.anagram-target {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 68px;
-    min-width: min(300px, 100%);
-    max-width: 100%;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,.08);
-    border: 2px solid #e2e8f0;
-}
-.anagram-target.anagram-target-solved {
-    gap: 0;
-    padding-left: 8px;
-    padding-right: 8px;
-}
-.anagram-solved-letter {
-    width: auto;
-    min-width: 0;
-    height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    color: #1e3a8a;
-    font-family: 'Montserrat', sans-serif;
-    font-size: clamp(26px, 3vw, 34px);
-    font-weight: 900;
-    line-height: 1;
-    cursor: default;
-}
-.anagram-solutions {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 14px;
-    padding: 8px 0;
-}
-.anagram-solution-card {
-    width: 145px;
-    flex: 0 0 auto;
-    overflow: hidden;
-    background: #fff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 3px 8px rgba(0,0,0,.07);
-}
-.anagram-solution-image {
-    width: 100%;
-    height: 105px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    background: #fff;
-}
-.anagram-solution-image img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-.anagram-solution-placeholder {
-    font-size: 34px;
-    opacity: .45;
-}
-.anagram-solution-label {
-    padding: 8px 6px 10px;
-    text-align: center;
-    color: var(--hfle-blue);
-    font-family: 'Montserrat', sans-serif;
-    font-size: 16px;
-    line-height: 1.1;
-    font-weight: 900;
-}
-@media (max-width: 700px) {
-    .anagram-target { min-width: 0; gap: 6px; }
-    .anagram-determiner { font-size: 24px; }
-    .anagram-solutions { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
-    .anagram-solution-card { width: 132px; }
-    .anagram-solution-image { height: 92px; }
-    .anagram-solution-label { font-size: 14px; }
-}
-
-/* TU VIENS / completamento verbale: la desinenza si unisce visivamente alla radice */
-.dressing-inline-text {
-    display: inline-flex;
-    align-items: center;
-    white-space: pre;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 900;
-    font-size: clamp(1.25rem, 2.6vw, 1.875rem);
-    color: white;
-    line-height: 1;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-.dressing-inline-target {
-    min-width: 2.4rem;
-    height: 2.6rem;
-    padding: 0 .15rem;
-    margin: 0;
-    flex: 0 0 auto;
-}
-.dressing-inline-target-solved {
-    min-width: 0;
-    width: auto;
-    height: auto;
-    padding: 0;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-.dressing-inline-answer {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: flex-start;
-    width: auto !important;
-    height: auto !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 900;
-    font-size: clamp(1.25rem, 2.6vw, 1.875rem);
-    line-height: 1;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    text-transform: none;
-    white-space: nowrap;
-}
-
-
-/* CROSSWORD v8.4: pronomi, focus sequenziale e soluzioni complete */
-.cw-play-wrapper { overflow: visible; }
-.cw-pronoun-label { position: absolute; z-index: 20; font-family: 'Montserrat', sans-serif; font-weight: 900; color: var(--hfle-blue); white-space: nowrap; font-size: 16px; line-height: 1; }
-.cw-pronoun-h { right: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
-.cw-pronoun-v { bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); }
-.cw-solution-scroll { width: 100%; overflow-x: auto; padding: 4px 0 12px; }
-.cw-solution-cell { display: flex; align-items: center; justify-content: center; background: #ecfdf5; color: #166534; border-color: var(--hfle-success); pointer-events: none; }
-.cw-solution-conjugation { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 20px; text-align: left; color: var(--hfle-blue); font-family: 'Montserrat', sans-serif; font-size: 14px; }
-@media (max-width: 640px) {
-    .cw-pronoun-label { font-size: 14px; }
-    .cw-solution-conjugation { grid-template-columns: 1fr; }
-}
-
-
-/* AUTOCOLLANTES v8.5 */
-.auto-builder-preview { min-height: 220px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:12px; overflow:auto; padding:10px; }
-.auto-img-stage { position:relative; display:inline-block; max-width:100%; touch-action:none; user-select:none; }
-.auto-img-stage > img { display:block; max-width:100%; max-height:58vh; width:auto; height:auto; pointer-events:none; user-select:none; }
-.auto-empty-preview { color:#94a3b8; font-weight:700; padding:50px 20px; text-align:center; }
-.auto-builder-rect { position:absolute; border:3px solid #2563eb; background:rgba(37,99,235,.12); pointer-events:none; display:flex; align-items:flex-start; justify-content:flex-start; }
-.auto-builder-rect > span { background:#2563eb; color:#fff; font-size:11px; font-weight:900; line-height:1; padding:4px 6px; border-bottom-right-radius:6px; }
-.auto-crop-rect { border-color:#f59e0b; background:rgba(245,158,11,.12); }
-.auto-crop-rect > span { background:#f59e0b; }
-.auto-draft-rect { border-style:dashed; }
-.auto-temp-rect { position:absolute; border:3px dashed #ec4899; background:rgba(236,72,153,.12); pointer-events:none; z-index:30; }
-.auto-pair-row { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; }
-.auto-pair-row span { flex:1; color:#64748b; }
-.auto-pair-row button { color:#b91c1c; font-weight:800; }
-.auto-game-board { position:relative; display:inline-block; width:min(100%,900px); line-height:0; }
-.auto-game-board > img { width:100%; height:auto; display:block; border-radius:14px; box-shadow:0 8px 24px rgba(15,23,42,.12); user-select:none; pointer-events:none; }
-.auto-drop-zone { position:absolute; border:3px dashed #cbd5e1; background:rgba(255,255,255,.58); border-radius:10px; display:flex; align-items:center; justify-content:center; line-height:1; overflow:hidden; transition:.2s; }
-.auto-drop-zone > span { color:#94a3b8; font-family:'Montserrat',sans-serif; font-weight:900; font-size:18px; }
-.auto-drop-zone.sortable-ghost, .auto-drop-zone:hover { border-color:#60a5fa; }
-.auto-target-solved { border-color:transparent; background:transparent; }
-.auto-target-solved > span { display:none; }
-.auto-sticker-piece { height:105px; min-width:90px; max-width:190px; background:#fff; border:2px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 10px rgba(15,23,42,.14); cursor:grab; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:5px; flex:0 0 auto; }
-.auto-sticker-piece:active { cursor:grabbing; }
-.auto-sticker-placed { min-width:0; max-width:none; border:0; border-radius:0; box-shadow:none; padding:0; background:transparent; }
-.auto-crop-svg { width:100%; height:100%; display:block; overflow:visible; pointer-events:none; }
-.auto-missing-config { padding:28px; background:white; border:2px dashed #f59e0b; border-radius:14px; color:#92400e; font-weight:700; }
-@media(max-width:640px){
-  .auto-sticker-piece { height:82px; min-width:72px; max-width:140px; }
-  .auto-drop-zone { border-width:2px; border-radius:7px; }
-  .auto-drop-zone > span { font-size:14px; }
-}
-
-
-/* AUTOCOLLANTES v8.6 - attivita unica e fit esatto nella zona */
-.auto-activity-all {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
-    gap: 22px;
-    align-items: start;
-}
-.auto-game-card {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.auto-activity-all .auto-game-board {
-    width: 100%;
-    max-width: 720px;
-}
-.auto-target-solved { overflow: hidden; }
-.auto-sticker-placed .auto-crop-target {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-@media (max-width: 700px) {
-    .auto-activity-all { grid-template-columns: 1fr; gap: 16px; }
-    .auto-activity-all .auto-game-board { max-width: 100%; }
-}
-
-/* --- REPORT FINALE: fallback grafico kid-friendly, senza asset esterni --- */
-.score-custom-image {
-    width: 100%; height: 100%; object-fit: contain;
-    filter: drop-shadow(0 12px 18px rgba(15, 23, 42, .18));
-    transform: scale(1.06);
-}
-.score-celebration {
-    position: relative; width: 100%; height: 100%; min-width: 190px; min-height: 190px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    isolation: isolate; font-family: 'Montserrat', sans-serif;
-}
-.score-rays {
-    position: absolute; width: 82%; aspect-ratio: 1; border-radius: 50%; z-index: -2;
-    background: repeating-conic-gradient(from 0deg, rgba(255,255,255,.0) 0 12deg, rgba(255,255,255,.68) 12deg 20deg);
-    animation: score-spin 14s linear infinite;
-}
-.score-medal {
-    position: relative; width: 132px; height: 132px; border-radius: 50%;
-    display: grid; place-items: center; border: 8px solid rgba(255,255,255,.96);
-    box-shadow: 0 12px 0 rgba(15,23,42,.08), 0 18px 30px rgba(15,23,42,.16);
-    animation: score-pop .55s cubic-bezier(.2,.9,.25,1.25) both;
-}
-.score-medal::before, .score-medal::after {
-    content: ''; position: absolute; bottom: -38px; width: 34px; height: 58px; z-index: -1;
-    border-radius: 0 0 10px 10px;
-}
-.score-medal::before { left: 25px; transform: rotate(12deg); }
-.score-medal::after { right: 25px; transform: rotate(-12deg); }
-.score-star {
-    width: 68px; height: 68px; background: rgba(255,255,255,.96);
-    clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 56%,79% 91%,50% 70%,21% 91%,32% 56%,2% 35%,39% 35%);
-    filter: drop-shadow(0 4px 3px rgba(15,23,42,.12));
-}
-.score-message {
-    margin-top: 34px; display: flex; flex-direction: column; align-items: center; line-height: 1.05;
-    animation: score-message-in .45s .18s ease-out both;
-}
-.score-message strong { font-size: clamp(22px, 3vw, 32px); font-weight: 900; }
-.score-message span { margin-top: 7px; font-family: 'Source Sans Pro', sans-serif; font-size: 16px; font-weight: 700; color: #475569; }
-.score-high .score-medal { background: #F9B52C; }
-.score-high .score-medal::before, .score-high .score-medal::after { background: #E84C7B; }
-.score-high .score-message strong { color: #0169B3; }
-.score-high .score-rays { background-color: #FEF3C7; }
-.score-medium .score-medal { background: #54B7C8; }
-.score-medium .score-medal::before, .score-medium .score-medal::after { background: #2753F4; }
-.score-medium .score-message strong { color: #2753F4; }
-.score-medium .score-rays { background-color: #DBF4F7; }
-.score-low .score-medal { background: #A7D96B; }
-.score-low .score-medal::before, .score-low .score-medal::after { background: #54B7C8; }
-.score-low .score-message strong { color: #39763E; }
-.score-low .score-rays { background-color: #ECF8DC; }
-.score-confetti { position: absolute; width: 11px; height: 20px; border-radius: 4px; z-index: 2; animation: score-float 1.8s ease-in-out infinite alternate; }
-.score-confetti.c1 { left: 8%; top: 18%; background: #E84C7B; transform: rotate(22deg); }
-.score-confetti.c2 { right: 7%; top: 14%; background: #2753F4; transform: rotate(-18deg); animation-delay: -.4s; }
-.score-confetti.c3 { left: 18%; bottom: 31%; background: #F9B52C; transform: rotate(65deg); animation-delay: -.8s; }
-.score-confetti.c4 { right: 16%; bottom: 34%; background: #8DC549; transform: rotate(38deg); animation-delay: -.2s; }
-.score-confetti.c5 { left: 7%; top: 49%; background: #54B7C8; transform: rotate(-55deg); animation-delay: -.65s; }
-.score-confetti.c6 { right: 5%; top: 49%; background: #E84C7B; transform: rotate(74deg); animation-delay: -.95s; }
-@keyframes score-pop { from { transform: scale(.55) rotate(-8deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
-@keyframes score-message-in { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes score-float { from { translate: 0 -4px; } to { translate: 0 6px; } }
-@keyframes score-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-    .score-rays, .score-medal, .score-message, .score-confetti { animation: none !important; }
-}
-@media (max-width: 700px) {
-    .score-celebration { min-width: 165px; min-height: 165px; }
-    .score-medal { width: 108px; height: 108px; border-width: 6px; }
-    .score-star { width: 56px; height: 56px; }
-    .score-message { margin-top: 28px; }
-}
-
-
-/* v8.8 - dimensione uniforme delle immagini nelle soluzioni */
-.solution-image-standard {
-    width: 88px !important;
-    height: 72px !important;
-    max-width: 88px !important;
-    max-height: 72px !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    display: block;
-}
-.domino-solution-img .solution-image-standard {
-    width: min(76px, 92%) !important;
-    height: 64px !important;
-    max-width: 92% !important;
-    max-height: 80% !important;
-}
-.anagram-solution-image .solution-image-standard {
-    width: 88px !important;
-    height: 72px !important;
-}
-
-/* Piccole ottimizzazioni di rendering per le aree interattive. */
-.domino-tile, .auto-sticker-piece, .letter-tile {
-    contain: layout paint;
-}
-.auto-game-card, .anagram-solution-card, .domino-solution-tile {
-    content-visibility: auto;
-    contain-intrinsic-size: 180px 100px;
-}
-
-
-/* v8.9 - immagini Anagramme nelle soluzioni: box standard compatto */
-.anagram-solution-image {
-    height: 82px !important;
-    padding: 8px !important;
-    overflow: hidden;
-}
-.anagram-solution-image .solution-image-standard {
-    width: auto !important;
-    height: auto !important;
-    max-width: 72px !important;
-    max-height: 60px !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    margin: 0 auto;
-}
-@media (max-width: 700px) {
-    .anagram-solution-image { height: 76px !important; }
-    .anagram-solution-image .solution-image-standard {
-        max-width: 66px !important;
-        max-height: 54px !important;
-    }
-}
-
-/* DOMINO v12 - controlli configuratore, tinta e auto-fit */
-.domino-stage { gap: 14px !important; }
-.domino-board-wrap { min-width: 0; }
-.domino-pool { padding-top: 14px !important; gap: 10px !important; align-content: flex-start; }
-.domino-pool .domino-tile { margin-bottom: 4px !important; }
-.domino-pool .tile-text { padding: 4px; }
-.domino-chain .tile-img, .domino-chain .tile-text, .domino-pool .tile-img, .domino-pool .tile-text { transition: background-color .2s, border-color .2s, font-size .2s; }
-
-
-/* Domino v13: le parole non si spezzano mai internamente. Il ritorno a capo avviene solo tra parole. */
-.domino-label { display: block; max-width: 100%; white-space: normal; text-align: center; line-height: inherit; }
-.domino-word { display: inline-block; white-space: nowrap; }
-.domino-solution-text .domino-label { width: 100%; }
+    <!-- COLLEGAMENTO AL FILE ESTERNO -->
+    <script src="core.js?v=12.0-scorm2004"></script>
+</body>
+</html>
