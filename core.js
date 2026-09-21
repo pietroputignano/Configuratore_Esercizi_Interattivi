@@ -93,11 +93,18 @@ function fitDominoTileText(root = document) {
         el.style.removeProperty('font-size');
         const base = parseFloat(getComputedStyle(el).fontSize) || 18;
         let size = base;
-        const minSize = 10;
-        // Riduce soltanto la singola tessera finche' tutte le parole entrano senza spezzarsi.
+        const minSize = 8;
+        // Riduce soltanto la singola tessera finche' ogni parola rimane intera.
+        // Il ritorno a capo e' consentito esclusivamente tra parole (es. LA / COUVERTURE).
         while ((el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) && size > minSize) {
             size = Math.max(minSize, size - 0.5);
             el.style.fontSize = `${size}px`;
+        }
+        // Ultima salvaguardia: una parola singola molto lunga deve rimanere su una riga.
+        // Se siamo gia' al minimo, allarghiamo leggermente la parte testuale sottraendo spazio all'immagine.
+        if (el.scrollWidth > el.clientWidth + 1) {
+            const tile = el.closest('.domino-tile');
+            if (tile) tile.classList.add('domino-long-label');
         }
     });
 }
@@ -1123,9 +1130,9 @@ function loadStep(idx) {
             return { x:p.x * scale, y:p.y * scale };
         }
 
-        function portOffset(tile, kind, direction, mobile=false) {
-            const sz = dominoTileSize(tile.o, mobile);
-            const hc = dominoHalfCenter(tile.o, tile.flow, kind, mobile);
+        function portOffset(tile, kind, direction, mobile=false, scale=dominoScale) {
+            const sz = dominoTileSize(tile.o, mobile, scale);
+            const hc = dominoHalfCenter(tile.o, tile.flow, kind, mobile, scale);
             if (direction === 'right') return {x: sz.w/2, y: hc.y};
             if (direction === 'left')  return {x:-sz.w/2, y: hc.y};
             if (direction === 'down')  return {x: hc.x, y: sz.h/2};
@@ -1143,15 +1150,15 @@ function loadStep(idx) {
             return {right:'left',left:'right',down:'up',up:'down'}[dir];
         }
 
-        // Pattern: riga -> discesa -> riga inversa -> discesa -> ...
-        // Desktop: 3 tessere per riga e 2 nel tratto verticale.
-        // Mobile: 2 tessere per riga e 1 nel tratto verticale.
-        function buildDominoOpenSnake(count, mobile=false) {
+        // Pattern adattivo: riga -> discesa -> riga inversa -> discesa -> ...
+        // La lunghezza delle righe dipende dallo spazio disponibile: piu' colonne su desktop,
+        // meno colonne su mobile. Questo riduce lo sviluppo verticale della catena.
+        function buildDominoOpenSnake(count, mobile=false, scale=dominoScale, horizontalRun=null, verticalRun=null) {
             if (!count) return {path:[], positions:[], width:1, height:1};
-            const horizontalRun = mobile ? 2 : 3;
-            const verticalRun = mobile ? 1 : 2;
-            const gap = (mobile ? 14 : 18) * dominoScale;
-            const pad = (mobile ? 12 : 22) * dominoScale;
+            horizontalRun = horizontalRun || (mobile ? 2 : 4);
+            verticalRun = verticalRun || (mobile ? 1 : 1);
+            const gap = (mobile ? 12 : 16) * scale;
+            const pad = (mobile ? 10 : 18) * scale;
             const path = [];
             const positions = [];
 
@@ -1179,14 +1186,14 @@ function loadStep(idx) {
                 path.push({o, flow, entryDir});
 
                 if (i === 0) {
-                    const sz = dominoTileSize(o,mobile);
+                    const sz = dominoTileSize(o,mobile,scale);
                     positions.push({x:pad+sz.w/2, y:pad+sz.h/2});
                 } else {
                     const prev = path[i-1];
                     const prevPos = positions[i-1];
                     const dir = entryDir;
-                    const prevPort = portOffset(prev,'word',dir,mobile);
-                    const currPort = portOffset(path[i],'image',oppositeDirection(dir),mobile);
+                    const prevPort = portOffset(prev,'word',dir,mobile,scale);
+                    const currPort = portOffset(path[i],'image',oppositeDirection(dir),mobile,scale);
                     const dv = vecForDirection(dir,gap);
                     positions.push({
                         x: prevPos.x + prevPort.x + dv.x - currPort.x,
@@ -1209,7 +1216,7 @@ function loadStep(idx) {
 
             let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
             path.forEach((tile,i)=>{
-                const sz=dominoTileSize(tile.o,mobile), c=positions[i];
+                const sz=dominoTileSize(tile.o,mobile,scale), c=positions[i];
                 minX=Math.min(minX,c.x-sz.w/2); minY=Math.min(minY,c.y-sz.h/2);
                 maxX=Math.max(maxX,c.x+sz.w/2); maxY=Math.max(maxY,c.y+sz.h/2);
             });
@@ -1219,26 +1226,51 @@ function loadStep(idx) {
         }
 
         const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 900;
+        const mobileNow = viewportW <= 700;
+        const availableWidth = Math.max(270, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 16);
+
+        // Geometria adattiva: 4/3/2 tessere per riga in base allo spazio reale disponibile.
+        const desktopRun = availableWidth >= 980 ? 4 : (availableWidth >= 700 ? 3 : 2);
+        const mobileRun = availableWidth >= 520 ? 3 : 2;
+        const currentRun = mobileNow ? mobileRun : desktopRun;
+        const currentVerticalRun = 1;
+
         if (dominoSettings.autoFit) {
-            dominoScale = 1;
-            const mobileNow = (window.innerWidth || document.documentElement.clientWidth || 900) <= 700;
-            const baseCircuit = buildDominoOpenSnake(dominoTileCount, mobileNow);
-            const availableWidth = Math.max(280, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 24);
-            const viewportH = Math.max(520, window.innerHeight || 760);
-            const reservedH = isPlayerMode() ? 300 : 360;
-            const activityBudgetH = Math.max(330, viewportH - reservedH);
-            const poolTileW = mobileNow ? 145 : 215;
-            const poolTileH = mobileNow ? 86 : 104;
-            const poolCols = Math.max(1, Math.floor(availableWidth / poolTileW));
-            const poolRows = Math.max(1, Math.ceil(Math.max(1, items.length) / poolCols));
-            const poolBudgetH = Math.min(activityBudgetH * 0.34, poolRows * poolTileH + 18);
-            const boardBudgetH = Math.max(220, activityBudgetH - poolBudgetH);
-            const widthScale = availableWidth / baseCircuit.width;
-            const heightScale = boardBudgetH / baseCircuit.height;
-            dominoScale = Math.max(0.58, Math.min(1, widthScale, heightScale));
+            // Budget verticale reale: parte dal punto in cui inizia l'attivita', non da una stima fissa.
+            const viewportH = window.innerHeight || document.documentElement.clientHeight || 760;
+            const stageTop = Math.max(0, stage?.getBoundingClientRect?.().top || 0);
+            const bottomSafety = 18;
+            const activityBudgetH = Math.max(300, viewportH - stageTop - bottomSafety);
+            const poolCount = Math.max(1, items.length);
+
+            const fitsAt = (scale) => {
+                const circuit = buildDominoOpenSnake(dominoTileCount, mobileNow, scale, currentRun, currentVerticalRun);
+                const poolW = (mobileNow ? 160 : 205) * scale;
+                const poolH = (mobileNow ? 76 : 94) * scale;
+                const poolGap = Math.max(6, (mobileNow ? 8 : 10) * scale);
+                const cols = Math.max(1, Math.floor((availableWidth + poolGap) / (poolW + poolGap)));
+                const rows = Math.max(1, Math.ceil(poolCount / cols));
+                const poolBlockH = rows * poolH + Math.max(0, rows - 1) * poolGap + 12;
+                const totalH = circuit.height + poolBlockH + 18;
+                return circuit.width <= availableWidth + 1 && totalH <= activityBudgetH + 1;
+            };
+
+            // Ricerca della scala massima che tiene board + pool nello stesso viewport.
+            let lo = mobileNow ? 0.40 : 0.46;
+            let hi = 1;
+            if (!fitsAt(lo)) {
+                dominoScale = lo; // limite di leggibilita': non riduciamo oltre.
+            } else {
+                for (let i=0; i<14; i++) {
+                    const mid = (lo + hi) / 2;
+                    if (fitsAt(mid)) lo = mid; else hi = mid;
+                }
+                dominoScale = Math.max(mobileNow ? 0.40 : 0.46, Math.min(1, lo));
+            }
         }
-        const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false);
-        const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true);
+        const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false, dominoScale, desktopRun, 1);
+        const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true, dominoScale, mobileRun, 1);
         const desktopPath = desktopCircuit.path;
         const mobilePath = mobileCircuit.path;
         const desktopGeo = {positions:desktopCircuit.positions,width:desktopCircuit.width,height:desktopCircuit.height};
@@ -1299,8 +1331,8 @@ function loadStep(idx) {
         pool.classList.add('domino-pool');
         pool.style.setProperty('--domino-scale', dominoScale);
         pool.style.setProperty('--domino-effective-font', `${dominoEffectiveFont}px`);
-        pool.style.setProperty('--pool-domino-w', `${205*dominoScale}px`);
-        pool.style.setProperty('--pool-domino-h', `${94*dominoScale}px`);
+        pool.style.setProperty('--pool-domino-w', `${(mobileNow ? 160 : 205)*dominoScale}px`);
+        pool.style.setProperty('--pool-domino-h', `${(mobileNow ? 76 : 94)*dominoScale}px`);
 
         // Nel pool restano le tessere dalla seconda parola in poi, piu' la tessera terminale.
         const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i]}));
@@ -1318,7 +1350,11 @@ function loadStep(idx) {
         }).join('');
 
         document.getElementById('nav-step').innerHTML = '';
-        requestAnimationFrame(() => fitDominoTileText(document));
+        requestAnimationFrame(() => {
+            fitDominoTileText(document);
+            // Le immagini possono cambiare di qualche pixel il layout; un secondo passaggio stabilizza le etichette.
+            requestAnimationFrame(() => fitDominoTileText(document));
+        });
         setupSortable('domino', null);
     }
     else if(type === 'anagramme') {
