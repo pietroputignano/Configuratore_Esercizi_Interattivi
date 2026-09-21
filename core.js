@@ -130,13 +130,26 @@ function dominoHexToRgba(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Restituisce una tinta SOLIDA del colore scelto mescolata con il bianco.
+// A differenza dell'rgba trasparente, nasconde davvero i connettori che passano dietro la tessera.
+function dominoTintOnWhite(hex, strength = 0.12) {
+    let value = String(hex || '').trim().replace('#','');
+    if (value.length === 3) value = value.split('').map(c => c+c).join('');
+    if (!/^[0-9a-f]{6}$/i.test(value)) value = 'E84C7B';
+    const n = parseInt(value, 16);
+    const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    const mixed = rgb.map(c => Math.round(255 + (c - 255) * strength));
+    return `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
+}
+
 function applyDominoTheme(root = document) {
     const settings = getDominoSettings();
     const color = settings.color || '#E84C7B';
     const target = root?.documentElement || document.documentElement;
     target.style.setProperty('--domino-accent', color);
-    target.style.setProperty('--domino-tile-bg', dominoHexToRgba(color, 0.12));
-    target.style.setProperty('--domino-image-bg', dominoHexToRgba(color, 0.055));
+    // Sfondi solidi ma molto chiari: il colore resta quello scelto e il percorso non traspare sotto le tessere.
+    target.style.setProperty('--domino-tile-bg', dominoTintOnWhite(color, 0.12));
+    target.style.setProperty('--domino-image-bg', dominoTintOnWhite(color, 0.055));
     target.style.setProperty('--domino-font-size', `${settings.fontSize}px`);
     const value = document.getElementById('domino-font-value');
     if (value) value.textContent = `${settings.fontSize} px`;
@@ -249,7 +262,7 @@ window.onload = () => {
     if (isPlayerMode()) {
         syncPlayerConfig();
         applyEnabledLevelsUI();
-        showStartScreen();
+        startGame();
         return;
     }
     document.querySelectorAll('.type-sel').forEach(s => { s.innerHTML = types.map(t=>`<option value="${t.id}">${t.n}</option>`).join(''); });
@@ -257,7 +270,7 @@ window.onload = () => {
     const btnD = document.getElementById('type-d'); if(btnD) btnD.value = 'dressing';
     toggleToolBtns('f'); toggleToolBtns('d');
     applyEnabledLevelsUI();
-    buildCWGrid(); initGame();
+    buildCWGrid(); initGame(); startGame();
 };
 
 function toggleToolBtns(l) {
@@ -638,23 +651,29 @@ function initGame() {
     const inUnite = document.getElementById('in-unite');
     const uniteText = inUnite.value.trim() !== '' ? inUnite.value : inUnite.placeholder;
     document.getElementById('res-unite').innerText = uniteText;
-    document.getElementById('start-unite').innerText = uniteText;
+    document.getElementById('start-unite') && (document.getElementById('start-unite').innerText = uniteText);
     
     const inTitre = document.getElementById('in-titre');
     const titreText = inTitre.value.trim() !== '' ? inTitre.value : inTitre.placeholder;
     document.getElementById('res-titre').innerText = titreText;
-    document.getElementById('start-titre').innerText = titreText;
+    document.getElementById('start-titre') && (document.getElementById('start-titre').innerText = titreText);
     
     toggleToolBtns('f'); toggleToolBtns('d');
 }
 
 function showStartScreen() {
     destroyActiveSortables();
-    document.getElementById('start-screen').classList.remove('hidden'); document.getElementById('end-screen').classList.add('hidden');
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) startScreen.classList.remove('hidden');
+    const endScreen = document.getElementById('end-screen');
+    if (endScreen) endScreen.classList.add('hidden');
 }
 
 function startGame() {
-    document.getElementById('start-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden');
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) startScreen.classList.add('hidden');
+    const endScreen = document.getElementById('end-screen');
+    if (endScreen) endScreen.classList.add('hidden');
     if (isPlayerMode()) syncPlayerConfig();
     const type = getCurrentType();
     items = [...getCurrentItems()];
@@ -1481,8 +1500,12 @@ function setupSortable(mode, targetWord) {
                                     e.item.className = "w-full h-full flex items-center justify-center p-0 m-0 border-0 bg-transparent shadow-none font-black text-2xl md:text-3xl text-white drop-shadow-md font-mont uppercase";
                                 }
                             } else if (mode === 'domino') {
-                                e.item.className = "domino-tile shadow-sm"; 
-                                e.item.style.setProperty('box-shadow', '0 4px 0 var(--hfle-blue)', 'important');
+                                // Manteniamo le classi di auto-fit del testo (short/medium/wide/long)
+                                // e rimuoviamo soltanto gli effetti specifici della tessera nel pool.
+                                e.item.classList.remove('domino-pool-tile', 'domino-finish-tile', 'shadow-lg', 'hover:shadow-xl', 'transition', 'cursor-grab');
+                                e.item.classList.add('domino-placed');
+                                // Anche il bordo inferiore/ombra deve usare SEMPRE il colore Domino scelto.
+                                e.item.style.setProperty('box-shadow', '0 4px 0 var(--domino-accent, var(--hfle-blue)), 0 8px 14px rgba(0,0,0,0.10)', 'important');
                                 e.item.style.setProperty('transform', 'none', 'important');
                                 e.item.style.cursor = 'default';
                             } else {
@@ -1494,6 +1517,11 @@ function setupSortable(mode, targetWord) {
                             e.target.appendChild(e.item);
                             e.target.style.border = "none";
                             e.target.style.backgroundColor = "transparent";
+                            if (mode === 'domino') {
+                                // La tessera puo' passare da orizzontale a verticale: ricalcoliamo il font
+                                // dopo che il browser ha applicato dimensioni e orientamento dello slot.
+                                requestAnimationFrame(() => fitDominoTileText(e.target));
+                            }
                             playSound('global_ok');
 
                             const hasRemaining = Array.from(pool.children).some(child => !child.classList.contains('sortable-ghost'));
@@ -1904,11 +1932,6 @@ async function exportToZIP() {
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
-    <div id="start-screen" class="absolute inset-0 bg-blue-600 flex flex-col items-center justify-center z-50 text-white p-6">
-        <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-widest uppercase font-mont">Unité <span id="start-unite"></span></h2>
-        <h1 id="start-titre" class="text-4xl md:text-6xl font-black mb-12 text-center drop-shadow-lg font-mont leading-tight break-words px-4"></h1>
-        <button onclick="startGame()" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-4 px-12 rounded-full text-2xl shadow-2xl transform transition hover:scale-105 border-4 border-orange-400 font-mont uppercase">COMMENCER</button>
-    </div>
     <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
         <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
             <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
