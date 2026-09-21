@@ -50,6 +50,64 @@ function isStepReadingEnabled() {
     const el = document.getElementById(id);
     return el ? el.checked : true;
 }
+function getDominoSettings() {
+    if (isPlayerMode()) {
+        const cfg = GAME_CONFIG.domino || {};
+        return {
+            fontSize: Math.max(12, Math.min(26, Number(cfg.fontSize) || 18)),
+            autoFit: cfg.autoFit !== false,
+            useUnitColor: cfg.useUnitColor !== false,
+            color: cfg.color || GAME_CONFIG.uniteColor || '#E84C7B'
+        };
+    }
+    const fontEl = document.getElementById('domino-font-size');
+    const autoFitEl = document.getElementById('domino-autofit');
+    const useUnitEl = document.getElementById('domino-use-unit-color');
+    const colorEl = document.getElementById('domino-color');
+    return {
+        fontSize: Math.max(12, Math.min(26, Number(fontEl?.value) || 18)),
+        autoFit: autoFitEl ? autoFitEl.checked : true,
+        useUnitColor: useUnitEl ? useUnitEl.checked : true,
+        color: (useUnitEl ? useUnitEl.checked : true) ? (document.getElementById('in-color')?.value || '#E84C7B') : (colorEl?.value || '#E84C7B')
+    };
+}
+
+function dominoHexToRgba(hex, alpha) {
+    let value = String(hex || '').trim().replace('#','');
+    if (value.length === 3) value = value.split('').map(c => c+c).join('');
+    if (!/^[0-9a-f]{6}$/i.test(value)) value = 'E84C7B';
+    const n = parseInt(value, 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyDominoTheme(root = document) {
+    const settings = getDominoSettings();
+    const color = settings.color || '#E84C7B';
+    const target = root?.documentElement || document.documentElement;
+    target.style.setProperty('--domino-accent', color);
+    target.style.setProperty('--domino-tile-bg', dominoHexToRgba(color, 0.12));
+    target.style.setProperty('--domino-image-bg', dominoHexToRgba(color, 0.055));
+    target.style.setProperty('--domino-font-size', `${settings.fontSize}px`);
+    const value = document.getElementById('domino-font-value');
+    if (value) value.textContent = `${settings.fontSize} px`;
+    const custom = document.getElementById('domino-color');
+    if (custom) custom.disabled = settings.useUnitColor;
+}
+
+function changeDominoFont(delta) {
+    const el = document.getElementById('domino-font-size');
+    if (!el) return;
+    el.value = String(Math.max(12, Math.min(26, Number(el.value || 18) + delta)));
+    applyDominoTheme();
+    if (getCurrentType() === 'domino') startGame();
+}
+
+function updateDominoOptions() {
+    applyDominoTheme();
+    if (getCurrentType() === 'domino') startGame();
+}
+
 function syncPlayerConfig() {
     if (!isPlayerMode()) return;
     items = [...getCurrentItems()];
@@ -63,6 +121,7 @@ function syncPlayerConfig() {
 
     const badge = document.getElementById('res-badge');
     if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
+    applyDominoTheme();
     const unite = String(GAME_CONFIG.unite ?? '1');
     const titre = GAME_CONFIG.titre || 'Jeu';
     document.getElementById('res-unite') && (document.getElementById('res-unite').innerText = unite);
@@ -515,6 +574,7 @@ function initGame() {
     
     let color = document.getElementById('in-color').value || '#E84C7B';
     document.getElementById('res-badge').style.setProperty('--theme-color', color);
+    applyDominoTheme();
     
     let showLecon = document.getElementById('in-show-lecon').checked;
     let leconWrapper = document.getElementById('res-lecon-wrapper');
@@ -888,6 +948,9 @@ function loadStep(idx) {
     
     stage.innerHTML = '';
     pool.innerHTML = '';
+    stage.classList.remove('domino-stage');
+    pool.classList.remove('domino-pool');
+    pool.style.removeProperty('--domino-scale');
    if(type === 'crossword') {
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
         let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
@@ -999,31 +1062,35 @@ function loadStep(idx) {
     }
     else if(type === 'domino') {
         const getImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
+        const dominoSettings = getDominoSettings();
+        applyDominoTheme();
+        let dominoScale = 1;
 
         // Serpentina APERTA: niente chiusura forzata verso la prima tessera.
         // Ogni nuova tessera viene posizionata a partire dal punto WORD della precedente
         // e dal punto IMAGE della successiva. In questo modo allineamento e connettore
         // usano esattamente la stessa geometria.
-        function dominoTileSize(orientation, mobile = false) {
-            if (mobile) return orientation === 'h' ? {w:140, h:76} : {w:88, h:122};
-            return orientation === 'h' ? {w:205, h:94} : {w:108, h:140};
+        function dominoTileSize(orientation, mobile = false, scale = dominoScale) {
+            const base = mobile
+                ? (orientation === 'h' ? {w:140, h:76} : {w:88, h:122})
+                : (orientation === 'h' ? {w:205, h:94} : {w:108, h:140});
+            return { w: base.w * scale, h: base.h * scale };
         }
 
-        function dominoHalfCenter(orientation, flow, kind, mobile = false) {
+        function dominoHalfCenter(orientation, flow, kind, mobile = false, scale = dominoScale) {
+            let p;
             if (mobile) {
                 if (orientation === 'h') {
-                    if (flow === 'left') return kind === 'image' ? {x:37.8,y:0} : {x:-32.2,y:0};
-                    return kind === 'image' ? {x:-37.8,y:0} : {x:32.2,y:0};
+                    p = flow === 'left' ? (kind === 'image' ? {x:37.8,y:0} : {x:-32.2,y:0}) : (kind === 'image' ? {x:-37.8,y:0} : {x:32.2,y:0});
+                } else {
+                    p = flow === 'up' ? (kind === 'image' ? {x:0,y:28.06} : {x:0,y:-32.94}) : (kind === 'image' ? {x:0,y:-28.06} : {x:0,y:32.94});
                 }
-                if (flow === 'up') return kind === 'image' ? {x:0,y:28.06} : {x:0,y:-32.94};
-                return kind === 'image' ? {x:0,y:-28.06} : {x:0,y:32.94};
+            } else if (orientation === 'h') {
+                p = flow === 'left' ? (kind === 'image' ? {x:53.3,y:0} : {x:-49.2,y:0}) : (kind === 'image' ? {x:-53.3,y:0} : {x:49.2,y:0});
+            } else {
+                p = flow === 'up' ? (kind === 'image' ? {x:0,y:31.5} : {x:0,y:-38.5}) : (kind === 'image' ? {x:0,y:-31.5} : {x:0,y:38.5});
             }
-            if (orientation === 'h') {
-                if (flow === 'left') return kind === 'image' ? {x:53.3,y:0} : {x:-49.2,y:0};
-                return kind === 'image' ? {x:-53.3,y:0} : {x:49.2,y:0};
-            }
-            if (flow === 'up') return kind === 'image' ? {x:0,y:31.5} : {x:0,y:-38.5};
-            return kind === 'image' ? {x:0,y:-31.5} : {x:0,y:38.5};
+            return { x:p.x * scale, y:p.y * scale };
         }
 
         function portOffset(tile, kind, direction, mobile=false) {
@@ -1053,8 +1120,8 @@ function loadStep(idx) {
             if (!count) return {path:[], positions:[], width:1, height:1};
             const horizontalRun = mobile ? 2 : 3;
             const verticalRun = mobile ? 1 : 2;
-            const gap = mobile ? 14 : 18;
-            const pad = mobile ? 12 : 22;
+            const gap = (mobile ? 14 : 18) * dominoScale;
+            const pad = (mobile ? 12 : 22) * dominoScale;
             const path = [];
             const positions = [];
 
@@ -1122,6 +1189,24 @@ function loadStep(idx) {
         }
 
         const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
+        if (dominoSettings.autoFit) {
+            dominoScale = 1;
+            const mobileNow = (window.innerWidth || document.documentElement.clientWidth || 900) <= 700;
+            const baseCircuit = buildDominoOpenSnake(dominoTileCount, mobileNow);
+            const availableWidth = Math.max(280, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 24);
+            const viewportH = Math.max(520, window.innerHeight || 760);
+            const reservedH = isPlayerMode() ? 300 : 360;
+            const activityBudgetH = Math.max(330, viewportH - reservedH);
+            const poolTileW = mobileNow ? 145 : 215;
+            const poolTileH = mobileNow ? 86 : 104;
+            const poolCols = Math.max(1, Math.floor(availableWidth / poolTileW));
+            const poolRows = Math.max(1, Math.ceil(Math.max(1, items.length) / poolCols));
+            const poolBudgetH = Math.min(activityBudgetH * 0.34, poolRows * poolTileH + 18);
+            const boardBudgetH = Math.max(220, activityBudgetH - poolBudgetH);
+            const widthScale = availableWidth / baseCircuit.width;
+            const heightScale = boardBudgetH / baseCircuit.height;
+            dominoScale = Math.max(0.58, Math.min(1, widthScale, heightScale));
+        }
         const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false);
         const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true);
         const desktopPath = desktopCircuit.path;
@@ -1152,7 +1237,8 @@ function loadStep(idx) {
 
         const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopGeo, false);
         const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileGeo, true);
-        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
+        const dominoEffectiveFont = Math.max(10, dominoSettings.fontSize * dominoScale);
+        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--domino-scale:${dominoScale}; --domino-effective-font:${dominoEffectiveFont}px; --d-h-w:${205*dominoScale}px; --d-h-h:${94*dominoScale}px; --d-v-w:${108*dominoScale}px; --d-v-h:${140*dominoScale}px; --m-h-w:${140*dominoScale}px; --m-h-h:${76*dominoScale}px; --m-v-w:${88*dominoScale}px; --m-v-h:${122*dominoScale}px; --d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
 
         for (let i = 0; i < dominoTileCount; i++) {
             const d = desktopPath[i];
@@ -1178,7 +1264,13 @@ function loadStep(idx) {
         }
 
         dominoChainHtml += `</div>`;
-        stage.insertAdjacentHTML('beforeend', `<div class="w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
+        stage.classList.add('domino-stage');
+        stage.insertAdjacentHTML('beforeend', `<div class="domino-board-wrap w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
+        pool.classList.add('domino-pool');
+        pool.style.setProperty('--domino-scale', dominoScale);
+        pool.style.setProperty('--domino-effective-font', `${dominoEffectiveFont}px`);
+        pool.style.setProperty('--pool-domino-w', `${205*dominoScale}px`);
+        pool.style.setProperty('--pool-domino-h', `${94*dominoScale}px`);
 
         // Nel pool restano le tessere dalla seconda parola in poi, piu' la tessera terminale.
         const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i]}));
@@ -1702,6 +1794,7 @@ async function exportToZIP() {
         lecon: document.getElementById('in-lecon').value || '1',
         titre: document.getElementById('in-titre').value || 'Jeu',
         scorm: { version: '2004 4th Edition', passingScore },
+        domino: getDominoSettings(),
         cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData,
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
