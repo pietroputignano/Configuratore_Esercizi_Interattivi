@@ -85,14 +85,14 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 .domino-pool-tile:hover { transform: translateY(-3px) !important; }
 
 .orient-d-h .domino-tile, .orient-d-h .drop-target { width: var(--d-h-w, 205px) !important; height: var(--d-h-h, 94px) !important; }
-.orient-d-h .tile-img { width: 38%; height: 100%; }
-.orient-d-h .tile-text { width: 62%; height: 100%; }
+.orient-d-h .tile-img { width: 45%; height: 100%; }
+.orient-d-h .tile-text { width: 55%; height: 100%; }
 .orient-d-v .domino-tile, .orient-d-v .drop-target { width: var(--d-v-w, 108px) !important; height: var(--d-v-h, 140px) !important; }
 .orient-d-v .tile-img { width: 100%; height: 55%; }
 .orient-d-v .tile-text { width: 100%; height: 45%; }
 
-.tile-img { display: flex; align-items: center; justify-content: center; position: relative; padding: 5px; background: var(--domino-image-bg, #fff); }
-.tile-img img { max-height: 92%; max-width: 92%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+.tile-img { display: flex; align-items: center; justify-content: center; position: relative; padding: 2px; background: var(--domino-image-bg, #fff); overflow: hidden; }
+.tile-img img { max-height: 98%; max-width: 98%; width: auto; height: auto; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
 .tile-text { display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: var(--domino-effective-font, var(--domino-font-size, 18px)); line-height: 1.08; text-align: center; padding: 6px; text-transform: uppercase; color: #1e293b; font-family: 'Montserrat', sans-serif; overflow-wrap: normal; word-break: normal; hyphens: none; }
 .domino-img-placeholder { font-size: 10px; line-height: 1.15; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: center; }
 
@@ -124,8 +124,8 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 
 /* Nel pool le tessere restano orizzontali per essere leggibili e facili da trascinare. */
 #pool .domino-tile { width: var(--pool-domino-w, 205px) !important; height: var(--pool-domino-h, 94px) !important; flex-direction: row !important; }
-#pool .domino-tile .tile-img { width: 38%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-left:0; border-top:0; border-bottom:0; }
-#pool .domino-tile .tile-text { width: 62%; height: 100%; }
+#pool .domino-tile .tile-img { width: 45%; height: 100%; border-right: 2px dashed var(--hfle-blue); border-left:0; border-top:0; border-bottom:0; }
+#pool .domino-tile .tile-text { width: 55%; height: 100%; }
 
 @media (max-width: 700px) {
     .domino-chain {
@@ -145,8 +145,8 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     .domino-connectors polyline { stroke-width: 10; }
 
     .orient-m-h .domino-tile, .orient-m-h .drop-target { width: var(--m-h-w, 140px) !important; height: var(--m-h-h, 76px) !important; }
-    .orient-m-h .tile-img { width: 36%; height: 100%; }
-    .orient-m-h .tile-text { width: 64%; height: 100%; }
+    .orient-m-h .tile-img { width: 43%; height: 100%; }
+    .orient-m-h .tile-text { width: 57%; height: 100%; }
     .orient-m-v .domino-tile, .orient-m-v .drop-target { width: var(--m-v-w, 88px) !important; height: var(--m-v-h, 122px) !important; }
     .orient-m-v .tile-img { width: 100%; height: 54%; }
     .orient-m-v .tile-text { width: 100%; height: 46%; }
@@ -667,4 +667,26 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
   .domino-stage { gap: 8px !important; }
   .domino-tile.domino-long-label .tile-img { flex-basis: 27% !important; width: 27% !important; }
   .domino-tile.domino-long-label .tile-text { flex-basis: 73% !important; width: 73% !important; }
+}
+
+
+/* DOMINO v15 - rapporto immagine/testo dinamico: immagini piu' grandi senza sacrificare le parole lunghe */
+.domino-tile.domino-short-label .tile-img { flex-basis: 50% !important; width: 50% !important; }
+.domino-tile.domino-short-label .tile-text { flex-basis: 50% !important; width: 50% !important; }
+.domino-tile.domino-medium-label .tile-img { flex-basis: 45% !important; width: 45% !important; }
+.domino-tile.domino-medium-label .tile-text { flex-basis: 55% !important; width: 55% !important; }
+.domino-tile.domino-wide-label .tile-img { flex-basis: 38% !important; width: 38% !important; }
+.domino-tile.domino-wide-label .tile-text { flex-basis: 62% !important; width: 62% !important; padding-left: 4px; padding-right: 4px; }
+.domino-tile.domino-long-label .tile-img { flex-basis: 32% !important; width: 32% !important; }
+.domino-tile.domino-long-label .tile-text { flex-basis: 68% !important; width: 68% !important; padding-left: 3px; padding-right: 3px; }
+.domino-tile .tile-img img { max-width: 98% !important; max-height: 98% !important; }
+@media (max-width: 700px) {
+  .domino-tile.domino-short-label .tile-img { flex-basis: 48% !important; width: 48% !important; }
+  .domino-tile.domino-short-label .tile-text { flex-basis: 52% !important; width: 52% !important; }
+  .domino-tile.domino-medium-label .tile-img { flex-basis: 43% !important; width: 43% !important; }
+  .domino-tile.domino-medium-label .tile-text { flex-basis: 57% !important; width: 57% !important; }
+  .domino-tile.domino-wide-label .tile-img { flex-basis: 36% !important; width: 36% !important; }
+  .domino-tile.domino-wide-label .tile-text { flex-basis: 64% !important; width: 64% !important; }
+  .domino-tile.domino-long-label .tile-img { flex-basis: 30% !important; width: 30% !important; }
+  .domino-tile.domino-long-label .tile-text { flex-basis: 70% !important; width: 70% !important; }
 }
