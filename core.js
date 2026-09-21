@@ -72,6 +72,36 @@ function getDominoSettings() {
     };
 }
 
+
+function escapeDominoHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function dominoLabelHtml(value) {
+    const words = String(value ?? '').trim().split(/\s+/).filter(Boolean);
+    return `<span class="domino-label">${words.map(w => `<span class="domino-word">${escapeDominoHtml(w)}</span>`).join(' ')}</span>`;
+}
+
+function fitDominoTileText(root = document) {
+    const nodes = root.querySelectorAll('.domino-tile .tile-text:not(.domino-end-block)');
+    nodes.forEach(el => {
+        el.style.removeProperty('font-size');
+        const base = parseFloat(getComputedStyle(el).fontSize) || 18;
+        let size = base;
+        const minSize = 10;
+        // Riduce soltanto la singola tessera finche' tutte le parole entrano senza spezzarsi.
+        while ((el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) && size > minSize) {
+            size = Math.max(minSize, size - 0.5);
+            el.style.fontSize = `${size}px`;
+        }
+    });
+}
+
 function dominoHexToRgba(hex, alpha) {
     let value = String(hex || '').trim().replace('#','');
     if (value.length === 3) value = value.split('').map(c => c+c).join('');
@@ -744,7 +774,7 @@ function showEndScreen() {
         let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
         items.forEach((word, i) => {
             if (i === 0) {
-                dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img domino-start-block"></div><div class="domino-solution-text">${word}</div></div>`;
+                dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img domino-start-block"></div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
                 return;
             }
             const imgNeeded = items[i - 1];
@@ -752,7 +782,7 @@ function showEndScreen() {
             const visual = imgSrc
                 ? `<img src="${imgSrc}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">`
                 : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
-            dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${word}</div></div>`;
+            dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
         });
         const lastWord = items[items.length - 1];
         const lastImg = getSolutionImg(lastWord);
@@ -1253,7 +1283,7 @@ function loadStep(idx) {
             if (i === 0) {
                 // La catena e' lineare: il primo mezzo-domino e' un blocco START, non l'immagine dell'ultima parola.
                 const w = items[0];
-                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div class="domino-tile domino-starter cursor-default"><div class="tile-img domino-start-block" aria-label="Début"></div><div class="tile-text">${w}</div></div></div>`;
+                dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div class="domino-tile domino-starter cursor-default"><div class="tile-img domino-start-block" aria-label="Début"></div><div class="tile-text">${dominoLabelHtml(w)}</div></div></div>`;
             } else if (i === items.length) {
                 // Ultima posizione: immagine dell'ultima parola + blocco END.
                 dominoChainHtml += `<div class="${slotClasses}" style="${slotStyle}"><div id="target-__DOMINO_END__" class="drop-target" data-expected="__DOMINO_END__"></div></div>`;
@@ -1284,10 +1314,11 @@ function loadStep(idx) {
             if (entry.kind === 'end') {
                 return `<div class="domino-tile domino-pool-tile domino-finish-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="__DOMINO_END__"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text domino-end-block" aria-label="Fin"></div></div>`;
             }
-            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${entry.word}</div></div>`;
+            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${dominoLabelHtml(entry.word)}</div></div>`;
         }).join('');
 
         document.getElementById('nav-step').innerHTML = '';
+        requestAnimationFrame(() => fitDominoTileText(document));
         setupSortable('domino', null);
     }
     else if(type === 'anagramme') {
