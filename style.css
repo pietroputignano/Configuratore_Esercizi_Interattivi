@@ -690,3 +690,62 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
   .domino-tile.domino-long-label .tile-img { flex-basis: 30% !important; width: 30% !important; }
   .domino-tile.domino-long-label .tile-text { flex-basis: 70% !important; width: 70% !important; }
 }
+
+
+/* DOMINO v17 - drop coerente, percorso dietro le tessere, verticali sempre leggibili */
+/* Il connettore resta sotto; gli slot e le tessere formano uno strato opaco sopra di esso. */
+.domino-connectors { z-index: 0 !important; }
+.domino-slot { z-index: 3 !important; }
+.domino-tile, .drop-target { position: relative; z-index: 4; }
+.domino-placed { background: var(--domino-tile-bg, #fff) !important; }
+
+/* Le classi dinamiche 50/50, 45/55, ecc. sono pensate SOLO per le tessere orizzontali.
+   In verticale immagine e testo devono sempre occupare tutta la larghezza dello slot. */
+.domino-slot.orient-d-v .domino-tile .tile-img,
+.domino-slot.orient-d-v .domino-tile.domino-short-label .tile-img,
+.domino-slot.orient-d-v .domino-tile.domino-medium-label .tile-img,
+.domino-slot.orient-d-v .domino-tile.domino-wide-label .tile-img,
+.domino-slot.orient-d-v .domino-tile.domino-long-label .tile-img {
+    width: 100% !important;
+    flex-basis: auto !important;
+    height: 43% !important;
+    min-height: 0;
+}
+.domino-slot.orient-d-v .domino-tile .tile-text,
+.domino-slot.orient-d-v .domino-tile.domino-short-label .tile-text,
+.domino-slot.orient-d-v .domino-tile.domino-medium-label .tile-text,
+.domino-slot.orient-d-v .domino-tile.domino-wide-label .tile-text,
+.domino-slot.orient-d-v .domino-tile.domino-long-label .tile-text {
+    width: 100% !important;
+    flex-basis: auto !important;
+    height: 57% !important;
+    min-height: 0;
+    padding: 3px 4px !important;
+    overflow: visible;
+}
+.domino-slot.orient-d-v .domino-label { width: 100%; }
+
+@media (max-width: 700px) {
+    .domino-slot.orient-m-v .domino-tile .tile-img,
+    .domino-slot.orient-m-v .domino-tile.domino-short-label .tile-img,
+    .domino-slot.orient-m-v .domino-tile.domino-medium-label .tile-img,
+    .domino-slot.orient-m-v .domino-tile.domino-wide-label .tile-img,
+    .domino-slot.orient-m-v .domino-tile.domino-long-label .tile-img {
+        width: 100% !important;
+        flex-basis: auto !important;
+        height: 40% !important;
+        min-height: 0;
+    }
+    .domino-slot.orient-m-v .domino-tile .tile-text,
+    .domino-slot.orient-m-v .domino-tile.domino-short-label .tile-text,
+    .domino-slot.orient-m-v .domino-tile.domino-medium-label .tile-text,
+    .domino-slot.orient-m-v .domino-tile.domino-wide-label .tile-text,
+    .domino-slot.orient-m-v .domino-tile.domino-long-label .tile-text {
+        width: 100% !important;
+        flex-basis: auto !important;
+        height: 60% !important;
+        min-height: 0;
+        padding: 2px 3px !important;
+        overflow: visible;
+    }
+}
