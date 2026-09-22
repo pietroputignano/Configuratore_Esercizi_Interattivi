@@ -404,6 +404,7 @@ function phraseSafe(v) { return String(v ?? '').replace(/&/g,'&amp;').replace(/<
 function phraseNewId() { return `pr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`; }
 function phraseImageKey(itemId, slot) { return `phrase_${phraseBuilderLevel}_${itemId}_${slot}`; }
 function phraseAudioKey(itemId) { return `phrase_${phraseBuilderLevel}_${itemId}_audio`; }
+function phraseMultiAudioKey(level = phraseBuilderLevel) { return `phrase_${level}_multi_audio`; }
 function openPhraseRebusBuilder(level) {
     phraseBuilderLevel = level || 'facile';
     const data = phraseLevelData();
@@ -482,9 +483,10 @@ function renderPhraseRebusBuilder() {
         return;
     }
     if(data.layout==='multi') {
-        const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Frase ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">FRASE — usa ... per ogni zona di drop<input value="${phraseSafe(it.sentence||'')}" oninput="updatePhraseItem('${it.id}','sentence',this.value); renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-2 text-xs" placeholder="Ma professeure de ... est ..."></label><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">RISPOSTA DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs"></label>`).join('')}</div></div>`; }).join('');
-        const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">TESSERA ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Testo tessera" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Visual opzionale</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina tessera</button></div>`).join('');
-        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità pagina unica:</b> tutte le frasi vengono mostrate insieme. Ogni <code>...</code> crea una zona di drop. Le tessere sotto sono condivise da tutte le frasi.</div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di tessere</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi tessera</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le tessere da trascinare.</p>'}</div></div>`;
+        data.multiAudioKey = data.multiAudioKey || phraseMultiAudioKey();
+        const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Riga ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">TESTO — usa ... in ogni punto in cui va inserita un'immagine<input value="${phraseSafe(it.sentence||'')}" oninput="updatePhraseItem('${it.id}','sentence',this.value); renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-2 text-xs" placeholder="Ma professeure de ... est ..."></label><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">VALORE CORRETTO DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="es. français"></label>`).join('')}</div></div>`; }).join('');
+        const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">VISUAL ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Valore interno, es. français" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci immagine</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina visual</button></div>`).join('');
+        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Un unico step:</b> tutte le righe sono mostrate insieme. Ogni <code>...</code> crea un drop. Lo studente trascina nei drop esclusivamente i visual caricati nel pool; il valore testuale serve solo per associare ogni visual alla risposta corretta e non viene mostrato sulla tessera.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2"><h4 class="font-black text-yellow-900">Audio unico del testo</h4>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="w-full bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica / sostituisci audio completo</button></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
         return;
     }
     wrap.innerHTML = data.items.map((it,idx) => {
@@ -1412,22 +1414,41 @@ function checkOrder(mode) {
 
 
 function phraseMultiExpected(data){ return (data.items||[]).flatMap(it=>{phraseEnsureMulti(it); return it.answers||[];}).map(x=>String(x||'').trim()).filter(Boolean); }
+function phraseMultiSetTargetVisual(target, value, src){
+    target.innerHTML = src ? `<img src="${src}" alt="" class="phrase-multi-drop-img">` : '';
+    target.dataset.value = value;
+    target.classList.add('phrase-rebus-target-solved');
+    target.dataset.done='1';
+}
+function playPhraseMultiAudio(){
+    const data=getPhraseLevelData();
+    const key=data.multiAudioKey || phraseMultiAudioKey(curLvl);
+    const src=phraseAsset(key,true);
+    if(src) new Audio(src).play().catch(()=>{});
+}
 function setupPhraseMultiDnD(data){
     const pool=document.getElementById('pool'); if(!pool)return;
     createSortable(pool,{group:{name:'phrase-multi',pull:'clone',put:false},sort:false,animation:150,onStart:()=>playSound('drag')});
     document.querySelectorAll('.phrase-multi-target').forEach(t=>{
-      createSortable(t,{group:{name:'phrase-multi',put:true},sort:false,animation:150,onAdd:e=>{ const el=e.item; const val=el.dataset.value||''; const exp=t.dataset.answer||''; if(val.toLowerCase()===exp.toLowerCase()){t.textContent=val;t.classList.add('phrase-rebus-target-solved');t.dataset.done='1';playSound('global_ok');}else{playSound('global_ko');t.classList.add('shake-error');setTimeout(()=>t.classList.remove('shake-error'),450);} try{el.remove()}catch(_){ } phraseCheckMultiComplete(data); }});
+      createSortable(t,{group:{name:'phrase-multi',put:true},sort:false,animation:150,onAdd:e=>{ const el=e.item; const val=el.dataset.value||''; const exp=t.dataset.answer||''; const src=el.dataset.src||el.querySelector('img')?.src||''; if(val.toLowerCase()===exp.toLowerCase()){phraseMultiSetTargetVisual(t,val,src);playSound('global_ok');}else{playSound('global_ko');t.classList.add('shake-error');setTimeout(()=>t.classList.remove('shake-error'),450);} try{el.remove()}catch(_){ } phraseCheckMultiComplete(data); }});
     });
-    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{ const empty=[...document.querySelectorAll('.phrase-multi-target')].find(t=>t.dataset.done!=='1'); if(!empty)return; const val=el.dataset.value||''; if(val.toLowerCase()===(empty.dataset.answer||'').toLowerCase()){empty.textContent=val;empty.classList.add('phrase-rebus-target-solved');empty.dataset.done='1';playSound('global_ok');phraseCheckMultiComplete(data);}else{playSound('global_ko');} }));
+    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{ const empty=[...document.querySelectorAll('.phrase-multi-target')].find(t=>t.dataset.done!=='1'); if(!empty)return; const val=el.dataset.value||''; const src=el.dataset.src||el.querySelector('img')?.src||''; if(val.toLowerCase()===(empty.dataset.answer||'').toLowerCase()){phraseMultiSetTargetVisual(empty,val,src);playSound('global_ok');phraseCheckMultiComplete(data);}else{playSound('global_ko');} }));
 }
 function phraseCheckMultiComplete(data){ const ts=[...document.querySelectorAll('.phrase-multi-target')]; if(ts.length&&ts.every(t=>t.dataset.done==='1')){status[0]='completed';renderNav();const b=document.getElementById('phrase-multi-finish');if(b)b.classList.remove('hidden');if(isPlayerMode()&&window.BSMART_SCORM)window.BSMART_SCORM.saveState({level:curLvl,step:0,status,errorTracker});} }
 function finishPhraseMulti(){ if(status[0]==='completed') showEndScreen(); }
 function renderPhraseMulti(data,stage,pool){
+    data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
     const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
-    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
-    const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()||phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
-    pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice ${c.src?'phrase-rebus-choice-image':'phrase-rebus-choice-text'}" data-value="${phraseSafe(c.value)}">${c.src?`<img src="${c.src}" alt="${phraseSafe(c.value)}" class="phrase-rebus-choice-img">`:''}${c.value?`<span>${phraseSafe(c.value)}</span>`:''}</button>`).join('');
-    if(status[0]==='completed'){ document.querySelectorAll('.phrase-multi-target').forEach(t=>{t.textContent=t.dataset.answer;t.classList.add('phrase-rebus-target-solved');t.dataset.done='1'});document.getElementById('phrase-multi-finish')?.classList.remove('hidden'); } else setupPhraseMultiDnD(data);
+    const audioSrc=phraseAsset(data.multiAudioKey,true);
+    const audioBtn=audioSrc?`<button type="button" onclick="playPhraseMultiAudio()" class="phrase-rebus-audio-btn"><span>▶</span> ÉCOUTE</button>`:'';
+    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage">${audioBtn}<div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
+    pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${c.src}"><img src="${c.src}" alt="" class="phrase-rebus-choice-img"></button>`).join('');
+    if(!choices.length) pool.innerHTML='<p class="text-gray-400 text-sm font-bold">Carica i visual nel pool dal configuratore.</p>';
+    if(status[0]==='completed'){
+        document.querySelectorAll('.phrase-multi-target').forEach(t=>{const c=(data.pool||[]).find(x=>String(x.label||'').trim().toLowerCase()===(t.dataset.answer||'').toLowerCase());const src=c?phraseAsset(c.imageKey):'';phraseMultiSetTargetVisual(t,t.dataset.answer||'',src)});
+        document.getElementById('phrase-multi-finish')?.classList.remove('hidden');
+    } else setupPhraseMultiDnD(data);
 }
 
 function loadStep(idx) {
