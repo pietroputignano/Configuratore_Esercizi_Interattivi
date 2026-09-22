@@ -103,6 +103,33 @@
         </div>
     </div>
 
+
+    <!-- MODAL PHRASE-REBUS -->
+    <div id="phrase-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl flex flex-col h-[92vh]">
+            <div class="p-4 border-b flex flex-wrap justify-between items-center gap-3 bg-violet-50">
+                <div>
+                    <h3 class="font-black text-violet-900 text-lg">🎭 Phrase-rébus / Glisser-déposer</h3>
+                    <p class="text-xs text-gray-500">Livello <b id="phrase-builder-level-label"></b></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="addPhraseRebusItem()" class="bg-white border border-violet-300 text-violet-800 px-4 py-2 rounded-full font-bold text-xs">+ Aggiungi item</button>
+                    <button type="button" onclick="closePhraseRebusBuilder()" class="bg-violet-700 text-white px-5 py-2 rounded-full font-bold text-sm">Salva e Chiudi</button>
+                </div>
+            </div>
+            <div class="p-3 border-b bg-white flex flex-wrap items-center gap-3">
+                <label class="font-bold text-xs text-gray-700">Modalità
+                    <select id="phrase-mode" onchange="setPhraseMode(this.value)" class="ml-2 border rounded p-2 text-xs bg-white">
+                        <option value="word">Lis et place le bon mot</option>
+                        <option value="image">Écoute et choisis la bonne image</option>
+                    </select>
+                </label>
+                <span id="phrase-mode-help" class="text-xs text-gray-500"></span>
+            </div>
+            <div id="phrase-items-container" class="flex-grow overflow-auto p-4 bg-slate-100 space-y-4"></div>
+        </div>
+    </div>
+
     <!-- MAIN APP -->
     <div class="w-full max-w-[1600px] flex flex-col xl:flex-row gap-6">
         
@@ -147,6 +174,7 @@
                         <button id="btn-cw-f" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
                         <button id="btn-rebus-f" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                         <button id="btn-auto-f" onclick="openAutocollantesBuilder('facile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden">✂️ Autocollantes</button>
+                        <button id="btn-phrase-f" onclick="openPhraseRebusBuilder('facile')" class="flex-1 bg-violet-100 border border-violet-300 p-2 rounded shadow-sm font-bold hidden">🎭 Phrase-rébus</button>
                     </div>
                     <div class="mt-3 pt-3 border-t border-blue-200">
                         <label class="flex items-center gap-2 mb-2 text-[10px] font-bold text-blue-800"><input id="read-step-f" type="checkbox" checked onchange="startGame()"> Lettura di ogni frase</label>
@@ -169,6 +197,7 @@
                         <button id="btn-cw-d" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
                         <button id="btn-rebus-d" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                         <button id="btn-auto-d" onclick="openAutocollantesBuilder('difficile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">✂️ Autocollantes</button>
+                        <button id="btn-phrase-d" onclick="openPhraseRebusBuilder('difficile')" class="flex-1 bg-violet-100 border border-violet-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🎭 Phrase-rébus</button>
                     </div>
                     <div class="mt-3 pt-3 border-t border-blue-800">
                         <label class="flex items-center gap-2 mb-2 text-[10px] font-bold text-white"><input id="read-step-d" type="checkbox" checked onchange="startGame()"> Lettura di ogni frase</label>
@@ -321,6 +350,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=19-mise-next-all-complete"></script>
+    <script src="core.js?v=22-phrase-rebus"></script>
 </body>
 </html>
