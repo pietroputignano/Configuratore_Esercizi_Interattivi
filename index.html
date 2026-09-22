@@ -118,19 +118,13 @@
                 </div>
             </div>
             <div class="p-3 border-b bg-white flex flex-wrap items-center gap-3">
-                <label class="font-bold text-xs text-gray-700">Modalità
+                <label class="font-bold text-xs text-gray-700">Tipo di esercizio
                     <select id="phrase-mode" onchange="setPhraseMode(this.value)" class="ml-2 border rounded p-2 text-xs bg-white">
-                        <option value="word">Lis et place le bon mot</option>
-                        <option value="image">Écoute et choisis la bonne image</option>
+                        <option value="word">1 — Trascina le parole (uno step alla volta)</option>
+                        <option value="image">2 — Trascina le immagini nel testo (testo unico)</option>
                     </select>
                 </label>
-                <label class="font-bold text-xs text-gray-700">Layout
-                    <select id="phrase-layout" onchange="setPhraseLayout(this.value)" class="ml-2 border rounded p-2 text-xs bg-white">
-                        <option value="single">Uno step alla volta</option>
-                        <option value="multi">Pagina unica: più frasi / più drop</option>
-                    </select>
-                </label>
-                <span id="phrase-mode-help" class="text-xs text-gray-500"></span>
+                <span id="phrase-mode-help" class="text-xs text-gray-500 flex-1 min-w-[260px]"></span>
             </div>
             <div id="phrase-items-container" class="flex-grow overflow-auto p-4 bg-slate-100 space-y-4"></div>
         </div>
@@ -356,6 +350,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=25-phrase-rebus-visual-text"></script>
+    <script src="core.js?v=26-phrase-rebus-modes-newlines"></script>
 </body>
 </html>
