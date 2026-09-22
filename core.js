@@ -999,6 +999,34 @@ function renderSolvedSentence(target, rawItem) {
     target.classList.add('sentence-ordering-target-solved');
 }
 
+function areAllStepsCompleted() {
+    const itemsArr = getCurrentItems();
+    return itemsArr.length > 0 && itemsArr.every((_, i) => status[i] === 'completed');
+}
+
+function continueSentenceOrdering() {
+    if (areAllStepsCompleted()) {
+        showEndScreen();
+        return;
+    }
+
+    const itemsArr = getCurrentItems();
+    let nextIdx = -1;
+
+    // Prima prova a proseguire in ordine dal punto corrente.
+    for (let i = curStep + 1; i < itemsArr.length; i++) {
+        if (status[i] !== 'completed') { nextIdx = i; break; }
+    }
+    // Se gli step successivi sono gia' completati, torna al primo rimasto incompleto.
+    if (nextIdx === -1) {
+        for (let i = 0; i < curStep; i++) {
+            if (status[i] !== 'completed') { nextIdx = i; break; }
+        }
+    }
+
+    if (nextIdx >= 0) loadStep(nextIdx);
+}
+
 function checkOrder(mode) {
     const target = document.getElementById('target');
     const targetWord = items[curStep];
@@ -1026,6 +1054,14 @@ function checkOrder(mode) {
         if (mode === 'anagramme') target.classList.add('anagram-target-solved');
         document.getElementById('check-btn').classList.add('hidden');
         validate(true);
+        if (mode === 'sentence_ordering') {
+            const targetWrap = target.parentElement;
+            if (targetWrap && !document.getElementById('sentence-next-btn')) {
+                targetWrap.insertAdjacentHTML('beforeend', `
+                    <button id="sentence-next-btn" onclick="continueSentenceOrdering()" class="mt-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Continuer</button>
+                `);
+            }
+        }
     } else {
         playSound('global_ko');
         target.classList.add('shake-error', 'border-red-500');
@@ -1617,11 +1653,26 @@ function validate(correct) {
     
     if(correct) { 
         status[curStep]='completed'; playSound('global_ok'); 
-        const successDelay = type === 'sentence_ordering' ? 2200 : 1500;
-        setTimeout(() => { 
-            if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= itemsArr.length - 1) showEndScreen(); 
-            else loadStep(curStep + 1); 
-        }, successDelay); 
+
+        // Mise en ordre: la frase corretta rimane a video finche' l'utente non preme Continuer.
+        if (type !== 'sentence_ordering') {
+            setTimeout(() => {
+                const allCompleted = itemsArr.length > 0 && itemsArr.every((_, i) => status[i] === 'completed');
+                if (['domino','autocollantes','crossword','dressing'].includes(type) || allCompleted) showEndScreen();
+                else {
+                    let nextIdx = -1;
+                    for (let i = curStep + 1; i < itemsArr.length; i++) {
+                        if (status[i] !== 'completed') { nextIdx = i; break; }
+                    }
+                    if (nextIdx === -1) {
+                        for (let i = 0; i < curStep; i++) {
+                            if (status[i] !== 'completed') { nextIdx = i; break; }
+                        }
+                    }
+                    if (nextIdx >= 0) loadStep(nextIdx);
+                }
+            }, 1500);
+        }
     } else { 
         status[curStep]='error'; 
         if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; 
