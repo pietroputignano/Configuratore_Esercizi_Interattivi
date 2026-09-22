@@ -11,7 +11,9 @@ const types = [
 let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
 let errorTracker = [];
 let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
-let cwVerbLabel = ""; let cwShowClues = true; 
+let cwVerbLabel = ""; let cwShowClues = true;
+let cwActiveEntryKey = ""; // parola/direzione attiva nel cruciverba
+
 let autocollantesData = { facile: {}, difficile: {} };
 let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoDraftCrop = null, autoPointerState = null;
 
@@ -723,18 +725,68 @@ function getCWCellMeta() {
     return meta;
 }
 
-function getCWNextCellId(x, y) {
-    const meta = getCWCellMeta().get(`${x}-${y}`);
-    if (!meta || !meta.entries.length) return '';
-    // Prefer horizontal when an intersection belongs to two words; otherwise use the only direction.
-    const entry = meta.entries.find(e => e.clue.dir === 'h') || meta.entries[0];
-    const nextIndex = entry.index + 1;
-    if (nextIndex >= String(entry.clue.word).length) return '';
-    const start = getCWClueStart(entry.clue);
-    if (!start) return '';
-    const nx = start.x + (entry.clue.dir === 'h' ? nextIndex : 0);
-    const ny = start.y + (entry.clue.dir === 'v' ? nextIndex : 0);
-    return `cw-${nx}-${ny}`;
+function getCWEntryKey(entry) {
+    if (!entry || !entry.clue) return '';
+    const start = getCWClueStart(entry.clue) || {x:'',y:''};
+    return `${entry.clue.num || ''}|${entry.clue.dir || ''}|${start.x}|${start.y}|${entry.clue.word || ''}`;
+}
+
+function getCWEntriesAt(x, y) {
+    return getCWCellMeta().get(`${x}-${y}`)?.entries || [];
+}
+
+function activateCrosswordCell(inputEl) {
+    if (!inputEl) return;
+    const x = parseInt(inputEl.dataset.x), y = parseInt(inputEl.dataset.y);
+    const entries = getCWEntriesAt(x, y);
+    if (!entries.length) return;
+
+    // Se siamo arrivati qui seguendo una parola, non cambiamo asse all'intersezione.
+    const active = entries.find(e => getCWEntryKey(e) === cwActiveEntryKey);
+    if (active) return;
+
+    // Se la cella appartiene a una sola parola, quella diventa la direzione attiva.
+    // In una cella iniziale condivisa, privilegiamo una parola che parte proprio qui.
+    const starting = entries.find(e => e.index === 0);
+    const chosen = entries.length === 1 ? entries[0] : (starting || entries[0]);
+    cwActiveEntryKey = getCWEntryKey(chosen);
+}
+
+function getCWActiveEntryForInput(inputEl) {
+    if (!inputEl) return null;
+    const x = parseInt(inputEl.dataset.x), y = parseInt(inputEl.dataset.y);
+    const entries = getCWEntriesAt(x, y);
+    if (!entries.length) return null;
+    let entry = entries.find(e => getCWEntryKey(e) === cwActiveEntryKey);
+    if (!entry) {
+        activateCrosswordCell(inputEl);
+        entry = entries.find(e => getCWEntryKey(e) === cwActiveEntryKey) || entries[0];
+    }
+    return entry;
+}
+
+function focusNextCrosswordCell(inputEl) {
+    const entry = getCWActiveEntryForInput(inputEl);
+    if (!entry) return false;
+    const clue = entry.clue;
+    const start = getCWClueStart(clue);
+    if (!start) return false;
+    const len = String(clue.word || '').length;
+
+    // Continua lungo LA STESSA parola. Le intersezioni gia' corrette vengono saltate.
+    for (let i = entry.index + 1; i < len; i++) {
+        const nx = start.x + (clue.dir === 'h' ? i : 0);
+        const ny = start.y + (clue.dir === 'v' ? i : 0);
+        const next = document.getElementById(`cw-${nx}-${ny}`);
+        if (!next) continue;
+        if (next.classList.contains('correct') || next.value.toUpperCase() === next.dataset.ans) {
+            if (next.value.toUpperCase() === next.dataset.ans) next.classList.add('correct');
+            continue;
+        }
+        setTimeout(() => next.focus(), 80);
+        return true;
+    }
+    return false;
 }
 
 function getCWPronounLabelsAt(x, y) {
@@ -752,7 +804,7 @@ function getCWPronounHtml(x, y) {
 
 function buildCrosswordSolutionHtml() {
     const cellMap = new Map(cwData.map(c => [`${c.x}-${c.y}`, c]));
-    let html = '<div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200" style="grid-template-columns: repeat(12, 40px); width:max-content; margin:0 auto;">';
+    let html = '<div class="cw-solution-complete"><div class="cw-solution-title">Grille corrigée</div><div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm" style="grid-template-columns: repeat(12, 40px); width:max-content; margin:0 auto;">';
     for (let y = 0; y < 12; y++) {
         for (let x = 0; x < 12; x++) {
             const cell = cellMap.get(`${x}-${y}`);
@@ -761,7 +813,7 @@ function buildCrosswordSolutionHtml() {
             } else html += '<div class="w-10 h-10"></div>';
         }
     }
-    return html + '</div></div>';
+    return html + '</div></div></div>';
 }
 
 function calculateScore(type) {
@@ -929,11 +981,8 @@ function checkCrossword(inputEl) {
             inputEl.value = inputEl.dataset.ans;
             inputEl.classList.add('correct');
             playSound('drop');
-            const nextId = inputEl.dataset.next;
-            if (nextId) {
-                const next = document.getElementById(nextId);
-                if (next && !next.classList.contains('correct')) setTimeout(() => next.focus(), 80);
-            }
+            // Mantieni la direzione della parola attiva e salta eventuali incroci gia' compilati.
+            focusNextCrosswordCell(inputEl);
         }
     }
 
@@ -1093,6 +1142,7 @@ function loadStep(idx) {
     pool.classList.remove('domino-pool');
     pool.style.removeProperty('--domino-scale');
    if(type === 'crossword') {
+        cwActiveEntryKey = '';
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
         let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
         // Preserve the exact v8.3 crossword grid: 12 columns and the original x/y positions.
@@ -1101,8 +1151,7 @@ function loadStep(idx) {
             for(let x=0; x<12; x++) {
                 let cell = cwData.find(c => c.x === x && c.y === y);
                 if(cell) {
-                    const nextId = getCWNextCellId(x, y);
-                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" data-next="${nextId}" oninput="checkCrossword(this)"></div>`;
+                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" onfocus="activateCrosswordCell(this)" oninput="checkCrossword(this)"></div>`;
                 } else gridHtml += `<div class="w-10 h-10"></div>`;
             }
         }
