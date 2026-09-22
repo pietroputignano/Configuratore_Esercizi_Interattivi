@@ -455,7 +455,7 @@ function renderPhraseRebusBuilder() {
     const data = phraseLevelData();
     document.getElementById('phrase-mode-help').textContent = data.mode === 'word'
         ? 'Lo studente trascina una parola sotto/nel visual.'
-        : 'Lo studente ascolta e trascina il visual corretto nella frase.';
+        : 'Lo studente ascolta e trascina la risposta corretta. Il visual delle opzioni è facoltativo: se non viene caricato, la tessera resta testuale.';
     if (!data.items.length) {
         wrap.innerHTML = '<div class="p-8 text-center text-gray-400 font-bold">Nessun item. Premi “+ Aggiungi item”.</div>';
         return;
@@ -476,8 +476,8 @@ function renderPhraseRebusBuilder() {
         const imageFields = `<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">${it.choices.slice(0,3).map((c,i)=>`
             <div class="border rounded-lg p-2 bg-slate-50">
                 <div class="flex justify-between items-center mb-2"><b class="text-[10px] ${i===0?'text-emerald-700':'text-gray-600'}">${i===0?'CORRETTA':'DISTRATTORE '+i}</b>${phraseAssetPreview(c.imageKey)}</div>
-                <input value="${phraseSafe(c.label||'')}" oninput="updatePhraseItem('${it.id}','choiceLabel:${i}',this.value)" placeholder="Etichetta (es. drôle)" class="w-full border rounded p-2 text-xs mb-2">
-                <button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci visual</button>
+                <input value="${phraseSafe(c.label||'')}" oninput="updatePhraseItem('${it.id}','choiceLabel:${i}',this.value)" placeholder="Testo della tessera (es. drôle)" class="w-full border rounded p-2 text-xs mb-2">
+                <button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Visual opzionale: carica / sostituisci</button>
             </div>`).join('')}</div>`;
         return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-between gap-3 mb-3"><h4 class="font-black text-violet-900">Item ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div>
@@ -1443,10 +1443,20 @@ function loadStep(idx) {
         if(data.mode === 'word') {
             choices=[item.answer, ...(item.distractors||[])].filter(v=>String(v||'').trim()).map(v=>({value:String(v).trim(),html:phraseSafe(v)}));
         } else {
-            choices=(item.choices||[]).filter(c=>c.imageKey).map(c=>{ const src=phraseAsset(c.imageKey); return src ? {value:String(c.label||'').trim(),html:`<img src="${src}" alt="${phraseSafe(c.label||'')}" class="phrase-rebus-choice-img"><span>${phraseSafe(c.label||'')}</span>`} : null; }).filter(Boolean);
+            choices=(item.choices||[]).map(c=>{
+                const value=String(c.label||'').trim();
+                const src=c.imageKey ? phraseAsset(c.imageKey) : '';
+                if(!value && !src) return null;
+                const labelHtml=value ? `<span>${phraseSafe(value)}</span>` : '';
+                return {
+                    value,
+                    hasImage:!!src,
+                    html:src ? `<img src="${src}" alt="${phraseSafe(value)}" class="phrase-rebus-choice-img">${labelHtml}` : labelHtml
+                };
+            }).filter(Boolean);
         }
         choices.sort(()=>Math.random()-.5);
-        pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice ${data.mode==='image'?'phrase-rebus-choice-image':''}" data-value="${phraseSafe(c.value)}">${c.html}</button>`).join('');
+        pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice ${data.mode==='image' && c.hasImage ? 'phrase-rebus-choice-image' : 'phrase-rebus-choice-text'}" data-value="${phraseSafe(c.value)}">${c.html}</button>`).join('');
         if(status[idx] === 'completed') {
             const expected=String(item.answer || item.choices?.find(c=>c.correct)?.label || '').trim();
             const fake=document.createElement('div'); fake.dataset.value=expected;
