@@ -830,3 +830,14 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
         height: 120px;
     }
 }
+
+
+/* CROSSWORD v20 - navigazione direzionale e corretto completo */
+.cw-solution-complete { width:100%; }
+.cw-solution-title {
+    margin: 2px 0 12px; text-align:center; color:var(--hfle-blue);
+    font-family:'Montserrat',sans-serif; font-weight:900; text-transform:uppercase;
+    font-size:14px; letter-spacing:.06em;
+}
+.cw-solution-complete .cw-solution-scroll { max-height:none; overflow-x:auto; overflow-y:visible; }
+.cw-solution-complete .cw-solution-cell { box-shadow: inset 0 0 0 1px rgba(141,197,73,.18); }
