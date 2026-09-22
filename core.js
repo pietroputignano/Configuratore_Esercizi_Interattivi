@@ -410,7 +410,11 @@ function openPhraseRebusBuilder(level) {
     const data = phraseLevelData();
     document.getElementById('phrase-builder-level-label').textContent = phraseBuilderLevel === 'facile' ? 'FACILE' : 'DIFFICILE';
     document.getElementById('phrase-mode').value = data.mode || 'word';
-    const layoutSel=document.getElementById('phrase-layout'); if(layoutSel) layoutSel.value=data.layout||'single';
+    data.layout = data.mode === 'image' ? 'multi' : 'single';
+    if (data.mode === 'image' && !data.items.length) {
+        const id = phraseNewId();
+        data.items.push({ id, sentence:'', answers:[], audioKey:phraseAudioKey(id) });
+    }
     document.getElementById('phrase-modal').classList.remove('hidden');
     renderPhraseRebusBuilder();
 }
@@ -419,7 +423,14 @@ function closePhraseRebusBuilder() {
     if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
 }
 function setPhraseMode(v) {
-    phraseLevelData().mode = v === 'image' ? 'image' : 'word';
+    const data = phraseLevelData();
+    data.mode = v === 'image' ? 'image' : 'word';
+    // Le due modalità hanno una struttura precisa: parole = step singoli; immagini = testo unico multi-drop.
+    data.layout = data.mode === 'image' ? 'multi' : 'single';
+    if (data.mode === 'image' && !data.items.length) {
+        const id = phraseNewId();
+        data.items.push({ id, sentence:'', answers:[], audioKey:phraseAudioKey(id) });
+    }
     renderPhraseRebusBuilder();
     if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
 }
@@ -475,18 +486,20 @@ function phraseAssetPreview(key, kind='image') {
 function renderPhraseRebusBuilder() {
     const wrap = document.getElementById('phrase-items-container'); if(!wrap) return;
     const data = phraseLevelData();
+    const addBtn = document.querySelector('#phrase-modal button[onclick="addPhraseRebusItem()"]');
+    if (addBtn) addBtn.textContent = data.mode === 'image' ? '+ Aggiungi blocco testo' : '+ Aggiungi item';
     document.getElementById('phrase-mode-help').textContent = data.mode === 'word'
-        ? 'Lo studente trascina una parola sotto/nel visual.'
-        : 'Lo studente ascolta e trascina la risposta corretta. Il visual delle opzioni è facoltativo: se non viene caricato, la tessera resta testuale.';
+        ? 'Modalità 1: ogni frase è uno step. Lo studente trascina tessere di testo per completare la frase associata al visual.'
+        : 'Modalità 2: un unico testo, un unico audio e più zone di drop. Lo studente trascina nel testo le immagini caricate nel pool.';
     if (!data.items.length) {
         wrap.innerHTML = '<div class="p-8 text-center text-gray-400 font-bold">Nessun item. Premi “+ Aggiungi item”.</div>';
         return;
     }
     if(data.layout==='multi') {
         data.multiAudioKey = data.multiAudioKey || phraseMultiAudioKey();
-        const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Riga ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">TESTO — usa ... in ogni punto in cui va inserita un'immagine<input value="${phraseSafe(it.sentence||'')}" oninput="updatePhraseItem('${it.id}','sentence',this.value); renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-2 text-xs" placeholder="Ma professeure de ... est ..."></label><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">VALORE CORRETTO DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="es. français"></label>`).join('')}</div></div>`; }).join('');
+        const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Blocco di testo ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">TESTO COMPLETO — Invio = nuova riga; usa ... in ogni punto in cui va inserita un'immagine<textarea oninput="updatePhraseItem('${it.id}','sentence',this.value)" onchange="renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-3 text-sm leading-relaxed min-h-[190px] font-mono" placeholder="Ma professeure de ... est ...\nMon professeur de ... est ...\nEt toi tu es comment Lupin ?\nOh moi, je suis ..., ..., ... et ...">${phraseSafe(it.sentence||'')}</textarea></label><p class="text-[10px] text-gray-500 mt-1">Puoi incollare tutto il testo in questo campo. Gli a-capo vengono mantenuti nell'esercizio.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">VALORE CORRETTO DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="es. français"></label>`).join('')}</div>${n===0?'<div class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Inserisci almeno un <b>...</b> nel testo per creare le zone di drop.</div>':''}</div>`; }).join('');
         const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">VISUAL ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Valore interno, es. français" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci immagine</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina visual</button></div>`).join('');
-        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Un unico step:</b> tutte le righe sono mostrate insieme. Ogni <code>...</code> crea un drop. Lo studente trascina nei drop esclusivamente i visual caricati nel pool; il valore testuale serve solo per associare ogni visual alla risposta corretta e non viene mostrato sulla tessera.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2"><h4 class="font-black text-yellow-900">Audio unico del testo</h4>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="w-full bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica / sostituisci audio completo</button></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
+        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità 2 — Trascina le immagini nel testo.</b> È un unico step: scrivi o incolla l'intero testo nel campo sotto. <b>Invio crea una nuova riga</b> e ogni <code>...</code> crea una zona di drop. Lo studente vede nel pool solo i visual caricati; il valore interno serve esclusivamente per associare ogni immagine al drop corretto.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2"><h4 class="font-black text-yellow-900">Audio unico del testo</h4>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="w-full bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica / sostituisci audio completo</button></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
         return;
     }
     wrap.innerHTML = data.items.map((it,idx) => {
