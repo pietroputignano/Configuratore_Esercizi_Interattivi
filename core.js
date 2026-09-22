@@ -394,8 +394,10 @@ function saveZones() {
 
 /* --- PHRASE-REBUS BUILDER --- */
 function phraseLevelData(level = phraseBuilderLevel) {
-    if (!phraseRebusData[level]) phraseRebusData[level] = { mode: 'word', items: [] };
+    if (!phraseRebusData[level]) phraseRebusData[level] = { mode: 'word', layout: 'single', items: [], pool: [] };
     if (!Array.isArray(phraseRebusData[level].items)) phraseRebusData[level].items = [];
+    if (!Array.isArray(phraseRebusData[level].pool)) phraseRebusData[level].pool = [];
+    if (!phraseRebusData[level].layout) phraseRebusData[level].layout = 'single';
     return phraseRebusData[level];
 }
 function phraseSafe(v) { return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -407,6 +409,7 @@ function openPhraseRebusBuilder(level) {
     const data = phraseLevelData();
     document.getElementById('phrase-builder-level-label').textContent = phraseBuilderLevel === 'facile' ? 'FACILE' : 'DIFFICILE';
     document.getElementById('phrase-mode').value = data.mode || 'word';
+    const layoutSel=document.getElementById('phrase-layout'); if(layoutSel) layoutSel.value=data.layout||'single';
     document.getElementById('phrase-modal').classList.remove('hidden');
     renderPhraseRebusBuilder();
 }
@@ -419,6 +422,24 @@ function setPhraseMode(v) {
     renderPhraseRebusBuilder();
     if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
 }
+
+function setPhraseLayout(v) {
+    const data=phraseLevelData(); data.layout = v === 'multi' ? 'multi' : 'single';
+    renderPhraseRebusBuilder();
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
+}
+function phraseEnsureMulti(item){
+    const count=(String(item.sentence||'').match(/\.\.\./g)||[]).length;
+    if(!Array.isArray(item.answers)) item.answers=[];
+    while(item.answers.length<count) item.answers.push('');
+    if(item.answers.length>count) item.answers=item.answers.slice(0,count);
+    return count;
+}
+function updatePhraseMultiAnswer(id,i,value){ const it=phraseLevelData().items.find(x=>x.id===id); if(!it)return; phraseEnsureMulti(it); it.answers[i]=value; if(curLvl===phraseBuilderLevel&&getCurrentType()==='phrase_rebus') startGame(); }
+function addPhrasePoolChoice(){ const d=phraseLevelData(); d.pool=d.pool||[]; const id=phraseNewId(); d.pool.push({id,label:'',imageKey:phraseImageKey(id,'pool')}); renderPhraseRebusBuilder(); }
+function removePhrasePoolChoice(id){ const d=phraseLevelData(); d.pool=(d.pool||[]).filter(x=>x.id!==id); renderPhraseRebusBuilder(); }
+function updatePhrasePoolChoice(id,value){ const c=(phraseLevelData().pool||[]).find(x=>x.id===id); if(c)c.label=value; if(curLvl===phraseBuilderLevel&&getCurrentType()==='phrase_rebus') startGame(); }
+
 function addPhraseRebusItem() {
     const data = phraseLevelData();
     const id = phraseNewId();
@@ -458,6 +479,12 @@ function renderPhraseRebusBuilder() {
         : 'Lo studente ascolta e trascina la risposta corretta. Il visual delle opzioni è facoltativo: se non viene caricato, la tessera resta testuale.';
     if (!data.items.length) {
         wrap.innerHTML = '<div class="p-8 text-center text-gray-400 font-bold">Nessun item. Premi “+ Aggiungi item”.</div>';
+        return;
+    }
+    if(data.layout==='multi') {
+        const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Frase ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">FRASE — usa ... per ogni zona di drop<input value="${phraseSafe(it.sentence||'')}" oninput="updatePhraseItem('${it.id}','sentence',this.value); renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-2 text-xs" placeholder="Ma professeure de ... est ..."></label><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">RISPOSTA DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs"></label>`).join('')}</div></div>`; }).join('');
+        const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">TESSERA ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Testo tessera" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Visual opzionale</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina tessera</button></div>`).join('');
+        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità pagina unica:</b> tutte le frasi vengono mostrate insieme. Ogni <code>...</code> crea una zona di drop. Le tessere sotto sono condivise da tutte le frasi.</div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di tessere</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi tessera</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le tessere da trascinare.</p>'}</div></div>`;
         return;
     }
     wrap.innerHTML = data.items.map((it,idx) => {
@@ -879,7 +906,7 @@ function startGame() {
         items = Object.keys(levelData);
     } else if (type === 'phrase_rebus') {
         const data = getPhraseLevelData();
-        items = (data.items || []).map(it => it.id);
+        items = data.layout === 'multi' ? ['phrase_multi'] : (data.items || []).map(it => it.id);
     }
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
@@ -1383,6 +1410,26 @@ function checkOrder(mode) {
     }
 }
 
+
+function phraseMultiExpected(data){ return (data.items||[]).flatMap(it=>{phraseEnsureMulti(it); return it.answers||[];}).map(x=>String(x||'').trim()).filter(Boolean); }
+function setupPhraseMultiDnD(data){
+    const pool=document.getElementById('pool'); if(!pool)return;
+    createSortable(pool,{group:{name:'phrase-multi',pull:'clone',put:false},sort:false,animation:150,onStart:()=>playSound('drag')});
+    document.querySelectorAll('.phrase-multi-target').forEach(t=>{
+      createSortable(t,{group:{name:'phrase-multi',put:true},sort:false,animation:150,onAdd:e=>{ const el=e.item; const val=el.dataset.value||''; const exp=t.dataset.answer||''; if(val.toLowerCase()===exp.toLowerCase()){t.textContent=val;t.classList.add('phrase-rebus-target-solved');t.dataset.done='1';playSound('global_ok');}else{playSound('global_ko');t.classList.add('shake-error');setTimeout(()=>t.classList.remove('shake-error'),450);} try{el.remove()}catch(_){ } phraseCheckMultiComplete(data); }});
+    });
+    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{ const empty=[...document.querySelectorAll('.phrase-multi-target')].find(t=>t.dataset.done!=='1'); if(!empty)return; const val=el.dataset.value||''; if(val.toLowerCase()===(empty.dataset.answer||'').toLowerCase()){empty.textContent=val;empty.classList.add('phrase-rebus-target-solved');empty.dataset.done='1';playSound('global_ok');phraseCheckMultiComplete(data);}else{playSound('global_ko');} }));
+}
+function phraseCheckMultiComplete(data){ const ts=[...document.querySelectorAll('.phrase-multi-target')]; if(ts.length&&ts.every(t=>t.dataset.done==='1')){status[0]='completed';renderNav();const b=document.getElementById('phrase-multi-finish');if(b)b.classList.remove('hidden');if(isPlayerMode()&&window.BSMART_SCORM)window.BSMART_SCORM.saveState({level:curLvl,step:0,status,errorTracker});} }
+function finishPhraseMulti(){ if(status[0]==='completed') showEndScreen(); }
+function renderPhraseMulti(data,stage,pool){
+    const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
+    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()||phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
+    pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice ${c.src?'phrase-rebus-choice-image':'phrase-rebus-choice-text'}" data-value="${phraseSafe(c.value)}">${c.src?`<img src="${c.src}" alt="${phraseSafe(c.value)}" class="phrase-rebus-choice-img">`:''}${c.value?`<span>${phraseSafe(c.value)}</span>`:''}</button>`).join('');
+    if(status[0]==='completed'){ document.querySelectorAll('.phrase-multi-target').forEach(t=>{t.textContent=t.dataset.answer;t.classList.add('phrase-rebus-target-solved');t.dataset.done='1'});document.getElementById('phrase-multi-finish')?.classList.remove('hidden'); } else setupPhraseMultiDnD(data);
+}
+
 function loadStep(idx) {
     destroyActiveSortables();
     curStep = idx; renderNav();
@@ -1429,6 +1476,7 @@ function loadStep(idx) {
 
     if(type === 'phrase_rebus') {
         const data = getPhraseLevelData();
+        if(data.layout === 'multi') { renderPhraseMulti(data,stage,pool); document.getElementById('nav-step').innerHTML=''; return; }
         const item = data.items?.[idx];
         if(!item) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Phrase-rébus.</p>"; return; }
         const mainSrc = phraseAsset(item.mainImageKey);
