@@ -5,7 +5,8 @@ const types = [
     {id: 'anagramme', n: 'Anagramme (Ordering)'},
     {id: 'autocollantes', n: 'Autocollantes (Stickers)'},
     {id: 'rebus', n: 'Texte à trous (Rebus)'},
-    {id: 'crossword', n: 'Mots Croisés (Cruciverba)'}
+    {id: 'crossword', n: 'Mots Croisés (Cruciverba)'},
+    {id: 'phrase_rebus', n: 'Phrase-rébus (Glisser-déposer)'}
 ];
 
 let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
@@ -16,6 +17,8 @@ let cwActiveEntryKey = ""; // parola/direzione attiva nel cruciverba
 const CW_BUILDER_SIZE = 16; // area di creazione piu' ampia; il player mostra solo quanto serve
 
 let autocollantesData = { facile: {}, difficile: {} };
+let phraseRebusData = { facile: { mode: 'word', items: [] }, difficile: { mode: 'word', items: [] } };
+let phraseBuilderLevel = 'facile';
 let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoDraftCrop = null, autoPointerState = null;
 
 let isMuted = false;
@@ -183,6 +186,7 @@ function syncPlayerConfig() {
     cwVerbLabel = GAME_CONFIG.cwVerbLabel || '';
     cwShowClues = GAME_CONFIG.cwShowClues !== false;
     autocollantesData = GAME_CONFIG.autocollantesData || { facile: {}, difficile: {} };
+    phraseRebusData = GAME_CONFIG.phraseRebusData || { facile: { mode: 'word', items: [] }, difficile: { mode: 'word', items: [] } };
 
     const badge = document.getElementById('res-badge');
     if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
@@ -284,6 +288,7 @@ function toggleToolBtns(l) {
     const cBtn = document.getElementById('btn-cw-' + l); if(cBtn) cBtn.classList.toggle('hidden', type !== 'crossword');
     const rBtn = document.getElementById('btn-rebus-' + l); if(rBtn) rBtn.classList.toggle('hidden', type !== 'rebus'); 
     const aBtn = document.getElementById('btn-auto-' + l); if(aBtn) aBtn.classList.toggle('hidden', type !== 'autocollantes');
+    const pBtn = document.getElementById('btn-phrase-' + l); if(pBtn) pBtn.classList.toggle('hidden', type !== 'phrase_rebus');
 }
 
 /* --- BUILDERS --- */
@@ -385,6 +390,166 @@ function saveZones() {
     });
 }
 
+
+
+/* --- PHRASE-REBUS BUILDER --- */
+function phraseLevelData(level = phraseBuilderLevel) {
+    if (!phraseRebusData[level]) phraseRebusData[level] = { mode: 'word', items: [] };
+    if (!Array.isArray(phraseRebusData[level].items)) phraseRebusData[level].items = [];
+    return phraseRebusData[level];
+}
+function phraseSafe(v) { return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function phraseNewId() { return `pr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`; }
+function phraseImageKey(itemId, slot) { return `phrase_${phraseBuilderLevel}_${itemId}_${slot}`; }
+function phraseAudioKey(itemId) { return `phrase_${phraseBuilderLevel}_${itemId}_audio`; }
+function openPhraseRebusBuilder(level) {
+    phraseBuilderLevel = level || 'facile';
+    const data = phraseLevelData();
+    document.getElementById('phrase-builder-level-label').textContent = phraseBuilderLevel === 'facile' ? 'FACILE' : 'DIFFICILE';
+    document.getElementById('phrase-mode').value = data.mode || 'word';
+    document.getElementById('phrase-modal').classList.remove('hidden');
+    renderPhraseRebusBuilder();
+}
+function closePhraseRebusBuilder() {
+    document.getElementById('phrase-modal').classList.add('hidden');
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
+}
+function setPhraseMode(v) {
+    phraseLevelData().mode = v === 'image' ? 'image' : 'word';
+    renderPhraseRebusBuilder();
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
+}
+function addPhraseRebusItem() {
+    const data = phraseLevelData();
+    const id = phraseNewId();
+    data.items.push({ id, sentence:'Elle est ...', answer:'', distractors:['',''], mainImageKey:phraseImageKey(id,'main'), choices:[
+        {id:'c1',label:'',imageKey:phraseImageKey(id,'choice_1'),correct:true},
+        {id:'c2',label:'',imageKey:phraseImageKey(id,'choice_2'),correct:false},
+        {id:'c3',label:'',imageKey:phraseImageKey(id,'choice_3'),correct:false}
+    ], audioKey:phraseAudioKey(id) });
+    renderPhraseRebusBuilder();
+}
+function removePhraseRebusItem(id) {
+    const data = phraseLevelData();
+    data.items = data.items.filter(it => it.id !== id);
+    renderPhraseRebusBuilder();
+}
+function updatePhraseItem(id, field, value) {
+    const item = phraseLevelData().items.find(it => it.id === id); if(!item) return;
+    if (field.startsWith('distractor')) {
+        const i = Number(field.split(':')[1]); item.distractors[i] = value;
+    } else if (field.startsWith('choiceLabel')) {
+        const i = Number(field.split(':')[1]); if(item.choices[i]) item.choices[i].label = value;
+    } else item[field] = value;
+    if (field === 'answer' && item.choices?.[0] && !item.choices[0].label) item.choices[0].label = value;
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
+}
+function phraseAssetPreview(key, kind='image') {
+    const src = kind === 'audio' ? dbAud[key] : dbImg[key];
+    if (!src) return '<span class="text-gray-400 text-[10px]">Non caricato</span>';
+    if (kind === 'audio') return '<span class="text-emerald-700 font-bold text-[10px]">✓ Audio caricato</span>';
+    return `<img src="${src}" class="w-16 h-12 object-contain rounded border bg-white">`;
+}
+function renderPhraseRebusBuilder() {
+    const wrap = document.getElementById('phrase-items-container'); if(!wrap) return;
+    const data = phraseLevelData();
+    document.getElementById('phrase-mode-help').textContent = data.mode === 'word'
+        ? 'Lo studente trascina una parola sotto/nel visual.'
+        : 'Lo studente ascolta e trascina il visual corretto nella frase.';
+    if (!data.items.length) {
+        wrap.innerHTML = '<div class="p-8 text-center text-gray-400 font-bold">Nessun item. Premi “+ Aggiungi item”.</div>';
+        return;
+    }
+    wrap.innerHTML = data.items.map((it,idx) => {
+        const mainKey = it.mainImageKey || phraseImageKey(it.id,'main'); it.mainImageKey = mainKey;
+        it.audioKey = it.audioKey || phraseAudioKey(it.id);
+        if (!it.choices || it.choices.length < 3) it.choices = [
+            {id:'c1',label:it.answer||'',imageKey:phraseImageKey(it.id,'choice_1'),correct:true},
+            {id:'c2',label:'',imageKey:phraseImageKey(it.id,'choice_2'),correct:false},
+            {id:'c3',label:'',imageKey:phraseImageKey(it.id,'choice_3'),correct:false}
+        ];
+        const wordFields = `<div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+            <label class="text-[10px] font-bold text-gray-600">RISPOSTA CORRETTA<input value="${phraseSafe(it.answer)}" oninput="updatePhraseItem('${it.id}','answer',this.value)" class="mt-1 w-full border rounded p-2 text-xs"></label>
+            <label class="text-[10px] font-bold text-gray-600">DISTRATTORE 1<input value="${phraseSafe(it.distractors?.[0]||'')}" oninput="updatePhraseItem('${it.id}','distractor:0',this.value)" class="mt-1 w-full border rounded p-2 text-xs"></label>
+            <label class="text-[10px] font-bold text-gray-600">DISTRATTORE 2<input value="${phraseSafe(it.distractors?.[1]||'')}" oninput="updatePhraseItem('${it.id}','distractor:1',this.value)" class="mt-1 w-full border rounded p-2 text-xs"></label>
+        </div>`;
+        const imageFields = `<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">${it.choices.slice(0,3).map((c,i)=>`
+            <div class="border rounded-lg p-2 bg-slate-50">
+                <div class="flex justify-between items-center mb-2"><b class="text-[10px] ${i===0?'text-emerald-700':'text-gray-600'}">${i===0?'CORRETTA':'DISTRATTORE '+i}</b>${phraseAssetPreview(c.imageKey)}</div>
+                <input value="${phraseSafe(c.label||'')}" oninput="updatePhraseItem('${it.id}','choiceLabel:${i}',this.value)" placeholder="Etichetta (es. drôle)" class="w-full border rounded p-2 text-xs mb-2">
+                <button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci visual</button>
+            </div>`).join('')}</div>`;
+        return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between gap-3 mb-3"><h4 class="font-black text-violet-900">Item ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div>
+            <label class="text-[10px] font-bold text-gray-600 block">FRASE — usa ... per indicare la zona di drop
+                <input value="${phraseSafe(it.sentence||'')}" oninput="updatePhraseItem('${it.id}','sentence',this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="Elle est ...">
+            </label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <div class="border rounded-lg p-2 bg-slate-50"><div class="flex items-center justify-between mb-2"><b class="text-[10px] text-gray-600">VISUAL PRINCIPALE</b>${phraseAssetPreview(mainKey)}</div><button type="button" onclick="pickImg('${mainKey}')" class="w-full bg-white border border-violet-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci</button></div>
+                <div class="border rounded-lg p-2 bg-slate-50"><div class="flex items-center justify-between mb-2"><b class="text-[10px] text-gray-600">AUDIO ITEM</b>${phraseAssetPreview(it.audioKey,'audio')}</div><button type="button" onclick="pickAud('${it.audioKey}')" class="w-full bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica / sostituisci</button></div>
+            </div>
+            ${data.mode === 'word' ? wordFields : imageFields}
+        </div>`;
+    }).join('');
+}
+function getPhraseLevelData(level = curLvl) {
+    if (isPlayerMode()) return GAME_CONFIG.phraseRebusData?.[level] || {mode:'word',items:[]};
+    return phraseRebusData[level] || {mode:'word',items:[]};
+}
+function getPhraseItem(index = curStep) { return getPhraseLevelData().items?.[index] || null; }
+function phraseAsset(key, audio=false) { return isPlayerMode() ? (audio ? GAME_CONFIG.audio?.[key] : GAME_CONFIG.images?.[key]) : (audio ? dbAud[key] : dbImg[key]); }
+function phraseCompletedSentence(item) {
+    let sentence = String(item?.sentence || '...');
+    const answer = String(item?.answer || item?.choices?.find(c=>c.correct)?.label || '').trim();
+    sentence = sentence.includes('...') ? sentence.replace('...', answer) : `${sentence} ${answer}`;
+    sentence = sentence.replace(/\s+([,.;:!?…])/g,'$1').replace(/\s{2,}/g,' ').trim();
+    if (sentence && !/[.!?…:;]$/.test(sentence)) sentence += '.';
+    return sentence;
+}
+function continuePhraseRebus() {
+    const data = getPhraseLevelData();
+    if (data.items.length && data.items.every((_,i)=>status[i] === 'completed')) { showEndScreen(); return; }
+    let next=-1;
+    for(let i=curStep+1;i<data.items.length;i++){ if(status[i] !== 'completed'){ next=i; break; } }
+    if(next<0) for(let i=0;i<curStep;i++){ if(status[i] !== 'completed'){ next=i; break; } }
+    if(next>=0) loadStep(next);
+}
+function playPhraseRebusAudio(itemId) {
+    const data = getPhraseLevelData(); const item = data.items.find(it=>it.id===itemId); if(!item) return;
+    const src = phraseAsset(item.audioKey, true);
+    if(src){ new Audio(src).play().catch(()=>{}); return; }
+    const utter = new SpeechSynthesisUtterance(phraseCompletedSentence(item)); utter.lang='fr-FR'; utter.rate=.72; window.speechSynthesis.speak(utter);
+}
+function solvePhraseRebus(item, choiceEl) {
+    const target=document.getElementById('phrase-target'); if(!target) return;
+    const value=choiceEl.dataset.value || '';
+    const expected=String(item.answer || item.choices?.find(c=>c.correct)?.label || '').trim();
+    if(value.toLowerCase() !== expected.toLowerCase()){
+        choiceEl.classList.add('shake-error'); setTimeout(()=>choiceEl.classList.remove('shake-error'),450); validate(false); return false;
+    }
+    const mode=getPhraseLevelData().mode;
+    target.innerHTML='';
+    if(mode==='image'){
+        const img=choiceEl.querySelector('img'); if(img) target.innerHTML=`<img src="${img.src}" alt="" class="phrase-rebus-target-img">`;
+        else target.textContent=value;
+    } else target.textContent=value;
+    target.classList.add('phrase-rebus-target-solved');
+    document.querySelectorAll('.phrase-rebus-choice').forEach(el=>{el.setAttribute('aria-disabled','true'); el.classList.add('phrase-rebus-choice-disabled');});
+    status[curStep]='completed'; playSound('global_ok'); renderNav();
+    const btn=document.getElementById('phrase-continue-btn'); if(btn) btn.classList.remove('hidden');
+    if(isPlayerMode() && window.BSMART_SCORM) window.BSMART_SCORM.saveState({level:curLvl,step:curStep,status,errorTracker});
+    return true;
+}
+function setupPhraseRebusDnD(item) {
+    const pool=document.getElementById('pool'), target=document.getElementById('phrase-target'); if(!pool||!target) return;
+    createSortable(pool,{group:{name:'phrase-rebus',pull:'clone',put:false},sort:false,animation:150,onStart:()=>playSound('drag')});
+    createSortable(target,{group:{name:'phrase-rebus',put:true},sort:false,animation:150,onAdd:e=>{
+        const original=e.item; const ok=solvePhraseRebus(item,original);
+        if(!ok){ try{original.remove();}catch(_){} }
+        else { try{original.remove();}catch(_){} }
+    }});
+    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{ if(!el.classList.contains('phrase-rebus-choice-disabled')) solvePhraseRebus(item,el); }));
+}
 
 /* --- AUTOCOLLANTES BUILDER --- */
 function getAutoLevelBucket(level = autoBuilderLevel) {
@@ -712,6 +877,9 @@ function startGame() {
     if (type === 'autocollantes') {
         const levelData = isPlayerMode() ? (GAME_CONFIG.autocollantesData?.[curLvl] || {}) : (autocollantesData[curLvl] || {});
         items = Object.keys(levelData);
+    } else if (type === 'phrase_rebus') {
+        const data = getPhraseLevelData();
+        items = (data.items || []).map(it => it.id);
     }
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
@@ -902,7 +1070,7 @@ function buildCrosswordSolutionHtml() {
 
 function calculateScore(type) {
     const errs = errorTracker.reduce((a, b) => a + b, 0);
-    const stepBasedTypes = ['sentence_ordering', 'anagramme', 'rebus'];
+    const stepBasedTypes = ['sentence_ordering', 'anagramme', 'rebus', 'phrase_rebus'];
 
     if (stepBasedTypes.includes(type)) {
         const total = Math.max(1, getCurrentItems().length);
@@ -977,6 +1145,17 @@ function showEndScreen() {
                 <div class="sentence-ordering-solution-visual">${visual}</div>
                 <div class="sentence-ordering-solution-text">${correctSentence}</div>
             </div>`;
+        });
+        answersHtml += '</div></li>';
+    } else if (type === 'phrase_rebus') {
+        const data = getPhraseLevelData();
+        answersHtml += '<li class="list-none"><div class="phrase-rebus-solutions">';
+        (data.items || []).forEach(it => {
+            const main = phraseAsset(it.mainImageKey);
+            const correctChoice = it.choices?.find(c=>c.correct) || it.choices?.[0];
+            const answerImg = data.mode === 'image' && correctChoice ? phraseAsset(correctChoice.imageKey) : '';
+            const visual = main ? `<img src="${main}" alt="" class="phrase-rebus-solution-main">` : (answerImg ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-main">` : '<div class="phrase-rebus-solution-placeholder">📷</div>');
+            answersHtml += `<div class="phrase-rebus-solution-card"><div class="phrase-rebus-solution-visual">${visual}</div><div class="phrase-rebus-solution-text">${phraseSafe(phraseCompletedSentence(it))}</div>${answerImg && main ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-answer">` : ''}</div>`;
         });
         answersHtml += '</div></li>';
     } else if (type === 'anagramme') {
@@ -1245,6 +1424,35 @@ function loadStep(idx) {
         stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`;
         document.getElementById('nav-step').innerHTML = '';
         setTimeout(() => { const first = stage.querySelector('.cw-play-cell'); if (first) first.focus(); }, 0);
+        return;
+    }
+
+    if(type === 'phrase_rebus') {
+        const data = getPhraseLevelData();
+        const item = data.items?.[idx];
+        if(!item) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Phrase-rébus.</p>"; return; }
+        const mainSrc = phraseAsset(item.mainImageKey);
+        const mainClick = isPlayerMode() ? '' : ` onclick="pickImg('${item.mainImageKey}')"`;
+        const mainHtml = mainSrc ? `<img src="${mainSrc}" alt="" class="phrase-rebus-main-img">` : '<div class="phrase-rebus-main-placeholder">📷<br>Visual principale</div>';
+        const sentence = phraseSafe(item.sentence || '...');
+        const parts = sentence.split('...');
+        const sentenceHtml = `${parts[0] || ''}<span id="phrase-target" class="phrase-rebus-target" aria-label="Zone de réponse"></span>${parts.slice(1).join('...') || ''}`;
+        const audioBtn = (phraseAsset(item.audioKey,true) || data.mode === 'image') ? `<button type="button" onclick="playPhraseRebusAudio('${item.id}')" class="phrase-rebus-audio-btn"><span>▶</span> ÉCOUTE</button>` : '';
+        stage.innerHTML = `<div class="phrase-rebus-stage">${audioBtn}<div class="phrase-rebus-main"${mainClick}>${mainHtml}</div><div class="phrase-rebus-sentence">${sentenceHtml}</div><button id="phrase-continue-btn" type="button" onclick="continuePhraseRebus()" class="hidden phrase-rebus-continue">Continuer</button></div>`;
+        let choices=[];
+        if(data.mode === 'word') {
+            choices=[item.answer, ...(item.distractors||[])].filter(v=>String(v||'').trim()).map(v=>({value:String(v).trim(),html:phraseSafe(v)}));
+        } else {
+            choices=(item.choices||[]).filter(c=>c.imageKey).map(c=>{ const src=phraseAsset(c.imageKey); return src ? {value:String(c.label||'').trim(),html:`<img src="${src}" alt="${phraseSafe(c.label||'')}" class="phrase-rebus-choice-img"><span>${phraseSafe(c.label||'')}</span>`} : null; }).filter(Boolean);
+        }
+        choices.sort(()=>Math.random()-.5);
+        pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice ${data.mode==='image'?'phrase-rebus-choice-image':''}" data-value="${phraseSafe(c.value)}">${c.html}</button>`).join('');
+        if(status[idx] === 'completed') {
+            const expected=String(item.answer || item.choices?.find(c=>c.correct)?.label || '').trim();
+            const fake=document.createElement('div'); fake.dataset.value=expected;
+            if(data.mode==='image') { const cc=item.choices?.find(c=>c.correct)||item.choices?.[0]; const src=cc?phraseAsset(cc.imageKey):''; if(src) fake.innerHTML=`<img src="${src}">`; }
+            solvePhraseRebus(item,fake);
+        } else setupPhraseRebusDnD(item);
         return;
     }
 
@@ -1865,8 +2073,8 @@ function switchLvl(l) {
 
 function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
 function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
-function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
-function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; loadStep(curStep); alert("Audio Salvato!");}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) renderPhraseRebusBuilder(); loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) renderPhraseRebusBuilder(); loadStep(curStep);}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
 
 function playConsigne() { 
     const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
@@ -2069,7 +2277,7 @@ async function exportToZIP() {
     const itemsF = itemsFRaw.split(';').map(i=>i.trim()).filter(Boolean);
     const itemsD = itemsDRaw.split(';').map(i=>i.trim()).filter(Boolean);
 
-    if(itemsF.length === 0 && typeF !== 'crossword' && typeF !== 'autocollantes' && typeD !== 'crossword') { alert('Dati mancanti!'); return; }
+    if(itemsF.length === 0 && !['crossword','autocollantes','phrase_rebus'].includes(typeF) && typeD !== 'crossword') { alert('Dati mancanti!'); return; }
 
     const zip = new JSZip();
     const assetsFolder = zip.folder('assets');
@@ -2114,8 +2322,8 @@ async function exportToZIP() {
         expAud[k] = `assets/${name}`;
     }
 
-    const exportItemsF = typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : itemsF;
-    const exportItemsD = typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : itemsD;
+    const exportItemsF = typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : (typeF === 'phrase_rebus' ? (phraseRebusData.facile?.items || []).map(it=>it.id) : itemsF);
+    const exportItemsD = typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : (typeD === 'phrase_rebus' ? (phraseRebusData.difficile?.items || []).map(it=>it.id) : itemsD);
     const passingScore = 80;
     const gameConfig = {
         unite: document.getElementById('in-unite').value || '1',
@@ -2125,7 +2333,7 @@ async function exportToZIP() {
         titre: document.getElementById('in-titre').value || 'Jeu',
         scorm: { version: '2004 4th Edition', passingScore },
         domino: getDominoSettings(),
-        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData,
+        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData,
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
         levels: {
