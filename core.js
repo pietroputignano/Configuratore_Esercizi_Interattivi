@@ -13,6 +13,7 @@ let errorTracker = [];
 let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
 let cwVerbLabel = ""; let cwShowClues = true;
 let cwActiveEntryKey = ""; // parola/direzione attiva nel cruciverba
+const CW_BUILDER_SIZE = 16; // area di creazione piu' ampia; il player mostra solo quanto serve
 
 let autocollantesData = { facile: {}, difficile: {} };
 let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoDraftCrop = null, autoPointerState = null;
@@ -584,12 +585,41 @@ function setupAutocollantesBoard(boardConfigs) {
 }
 
 function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
-function buildCWGrid() { const gridEl = document.getElementById('cw-builder-grid'); if(!gridEl) return; let html = ''; for(let y=0; y<12; y++) { for(let x=0; x<12; x++) { html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`; } } gridEl.innerHTML = html; }
+function buildCWGrid() {
+    const gridEl = document.getElementById('cw-builder-grid');
+    if(!gridEl) return;
+    gridEl.style.gridTemplateColumns = `repeat(${CW_BUILDER_SIZE}, 35px)`;
+    let html = '';
+    for(let y=0; y<CW_BUILDER_SIZE; y++) {
+        for(let x=0; x<CW_BUILDER_SIZE; x++) {
+            html += `<div class="cw-cell-wrapper"><input type="text" maxlength="1" class="cw-cell" data-x="${x}" data-y="${y}"></div>`;
+        }
+    }
+    gridEl.innerHTML = html;
+}
 function findCWWords() {
-    let grid = []; for(let y=0; y<12; y++) { grid[y] = []; for(let x=0; x<12; x++) { grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase(); } }
+    let grid = [];
+    for(let y=0; y<CW_BUILDER_SIZE; y++) {
+        grid[y] = [];
+        for(let x=0; x<CW_BUILDER_SIZE; x++) {
+            grid[y][x] = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).value.trim().toUpperCase();
+        }
+    }
     let words = []; let counter = 1;
-    for(let y=0; y<12; y++) { let currWord = ""; let startX = -1; for(let x=0; x<=12; x++) { if(x<12 && grid[y][x]) { if(currWord === "") startX = x; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: startX, y: y, dir: 'h' }); currWord = ""; } } }
-    for(let x=0; x<12; x++) { let currWord = ""; let startY = -1; for(let y=0; y<=12; y++) { if(y<12 && grid[y][x]) { if(currWord === "") startY = y; currWord += grid[y][x]; } else { if(currWord.length > 1) words.push({ word: currWord, x: x, y: startY, dir: 'v' }); currWord = ""; } } }
+    for(let y=0; y<CW_BUILDER_SIZE; y++) {
+        let currWord = ""; let startX = -1;
+        for(let x=0; x<=CW_BUILDER_SIZE; x++) {
+            if(x<CW_BUILDER_SIZE && grid[y][x]) { if(currWord === "") startX = x; currWord += grid[y][x]; }
+            else { if(currWord.length > 1) words.push({ word: currWord, x: startX, y: y, dir: 'h' }); currWord = ""; }
+        }
+    }
+    for(let x=0; x<CW_BUILDER_SIZE; x++) {
+        let currWord = ""; let startY = -1;
+        for(let y=0; y<=CW_BUILDER_SIZE; y++) {
+            if(y<CW_BUILDER_SIZE && grid[y][x]) { if(currWord === "") startY = y; currWord += grid[y][x]; }
+            else { if(currWord.length > 1) words.push({ word: currWord, x: x, y: startY, dir: 'v' }); currWord = ""; }
+        }
+    }
     if(words.length === 0) return;
     let starts = {}; words.forEach(w => { let key = `${w.x}-${w.y}`; if(!starts[key]) starts[key] = counter++; w.num = starts[key]; });
     document.querySelectorAll('.cw-number').forEach(e => e.remove());
@@ -735,21 +765,74 @@ function getCWEntriesAt(x, y) {
     return getCWCellMeta().get(`${x}-${y}`)?.entries || [];
 }
 
+function getCWGridDimensions() {
+    let maxX = 11, maxY = 11; // compatibilita' visiva con i cruciverba 12x12 esistenti
+    cwData.forEach(c => { maxX = Math.max(maxX, Number(c.x) || 0); maxY = Math.max(maxY, Number(c.y) || 0); });
+    return { cols: Math.min(CW_BUILDER_SIZE, maxX + 1), rows: Math.min(CW_BUILDER_SIZE, maxY + 1) };
+}
+
+function clearCrosswordWordHighlight() {
+    document.querySelectorAll('.cw-play-wrapper.cw-word-active').forEach(el => el.classList.remove('cw-word-active'));
+    document.querySelectorAll('.cw-play-cell.cw-current-cell').forEach(el => el.classList.remove('cw-current-cell'));
+}
+
+function highlightCrosswordEntry(entry, currentInput = null) {
+    clearCrosswordWordHighlight();
+    if (!entry || !entry.clue) return;
+    const start = getCWClueStart(entry.clue);
+    if (!start) return;
+    const len = String(entry.clue.word || '').length;
+    for (let i = 0; i < len; i++) {
+        const x = start.x + (entry.clue.dir === 'h' ? i : 0);
+        const y = start.y + (entry.clue.dir === 'v' ? i : 0);
+        const cell = document.getElementById(`cw-${x}-${y}`);
+        if (cell) cell.closest('.cw-play-wrapper')?.classList.add('cw-word-active');
+    }
+    if (currentInput) currentInput.classList.add('cw-current-cell');
+}
+
+function chooseCrosswordEntry(inputEl, cycleAtIntersection = false) {
+    if (!inputEl) return null;
+    const x = parseInt(inputEl.dataset.x), y = parseInt(inputEl.dataset.y);
+    const entries = getCWEntriesAt(x, y);
+    if (!entries.length) return null;
+
+    let chosen = entries.find(e => getCWEntryKey(e) === cwActiveEntryKey);
+    if (cycleAtIntersection && entries.length > 1) {
+        const currentIndex = Math.max(-1, entries.findIndex(e => getCWEntryKey(e) === cwActiveEntryKey));
+        chosen = entries[(currentIndex + 1) % entries.length];
+    } else if (!chosen) {
+        // Se il clic e' sulla prima cella di una parola, privilegia quella parola.
+        const starting = entries.filter(e => e.index === 0);
+        chosen = starting[0] || entries[0];
+    }
+
+    cwActiveEntryKey = getCWEntryKey(chosen);
+    highlightCrosswordEntry(chosen, inputEl);
+    return chosen;
+}
+
+function handleCrosswordCellClick(inputEl) {
+    const x = parseInt(inputEl.dataset.x), y = parseInt(inputEl.dataset.y);
+    const entries = getCWEntriesAt(x, y);
+    const activeIsHere = entries.some(e => getCWEntryKey(e) === cwActiveEntryKey);
+    // Su un incrocio gia' appartenente alla parola attiva, un nuovo clic cambia asse.
+    chooseCrosswordEntry(inputEl, entries.length > 1 && activeIsHere);
+}
+
 function activateCrosswordCell(inputEl) {
     if (!inputEl) return;
     const x = parseInt(inputEl.dataset.x), y = parseInt(inputEl.dataset.y);
     const entries = getCWEntriesAt(x, y);
     if (!entries.length) return;
 
-    // Se siamo arrivati qui seguendo una parola, non cambiamo asse all'intersezione.
+    // Se arriviamo col focus seguendo una parola, conserviamo asse e highlight.
     const active = entries.find(e => getCWEntryKey(e) === cwActiveEntryKey);
-    if (active) return;
-
-    // Se la cella appartiene a una sola parola, quella diventa la direzione attiva.
-    // In una cella iniziale condivisa, privilegiamo una parola che parte proprio qui.
-    const starting = entries.find(e => e.index === 0);
-    const chosen = entries.length === 1 ? entries[0] : (starting || entries[0]);
-    cwActiveEntryKey = getCWEntryKey(chosen);
+    if (active) {
+        highlightCrosswordEntry(active, inputEl);
+        return;
+    }
+    chooseCrosswordEntry(inputEl, false);
 }
 
 function getCWActiveEntryForInput(inputEl) {
@@ -804,9 +887,10 @@ function getCWPronounHtml(x, y) {
 
 function buildCrosswordSolutionHtml() {
     const cellMap = new Map(cwData.map(c => [`${c.x}-${c.y}`, c]));
-    let html = '<div class="cw-solution-complete"><div class="cw-solution-title">Grille corrigée</div><div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm" style="grid-template-columns: repeat(12, 40px); width:max-content; margin:0 auto;">';
-    for (let y = 0; y < 12; y++) {
-        for (let x = 0; x < 12; x++) {
+    const dims = getCWGridDimensions();
+    let html = `<div class="cw-solution-complete"><div class="cw-solution-title">Grille corrigée</div><div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm" style="grid-template-columns: repeat(${dims.cols}, 40px); width:max-content; margin:0 auto;">`;
+    for (let y = 0; y < dims.rows; y++) {
+        for (let x = 0; x < dims.cols; x++) {
             const cell = cellMap.get(`${x}-${y}`);
             if (cell) {
                 html += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><div class="cw-play-cell cw-solution-cell font-mont">${cell.char}</div></div>`;
@@ -980,6 +1064,7 @@ function checkCrossword(inputEl) {
         } else {
             inputEl.value = inputEl.dataset.ans;
             inputEl.classList.add('correct');
+            inputEl.readOnly = true;
             playSound('drop');
             // Mantieni la direzione della parola attiva e salta eventuali incroci gia' compilati.
             focusNextCrosswordCell(inputEl);
@@ -1145,13 +1230,13 @@ function loadStep(idx) {
         cwActiveEntryKey = '';
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
         let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
-        // Preserve the exact v8.3 crossword grid: 12 columns and the original x/y positions.
-        let gridHtml = '<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200" style="grid-template-columns: repeat(12, 40px);">';
-        for(let y=0; y<12; y++) {
-            for(let x=0; x<12; x++) {
+        const dims = getCWGridDimensions();
+        let gridHtml = `<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 cw-play-grid" style="grid-template-columns: repeat(${dims.cols}, 40px);">`;
+        for(let y=0; y<dims.rows; y++) {
+            for(let x=0; x<dims.cols; x++) {
                 let cell = cwData.find(c => c.x === x && c.y === y);
                 if(cell) {
-                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" onfocus="activateCrosswordCell(this)" oninput="checkCrossword(this)"></div>`;
+                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" onfocus="activateCrosswordCell(this)" onclick="handleCrosswordCellClick(this)" oninput="checkCrossword(this)"></div>`;
                 } else gridHtml += `<div class="w-10 h-10"></div>`;
             }
         }
