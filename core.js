@@ -798,7 +798,8 @@ function showEndScreen() {
         });
     }
 
-    let answersHtml = '<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 max-h-48 overflow-y-auto custom-scrollbar">';
+    const solutionsMaxHeightClass = type === 'sentence_ordering' ? 'max-h-[430px]' : 'max-h-48';
+    let answersHtml = `<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 ${solutionsMaxHeightClass} overflow-y-auto custom-scrollbar">`;
     if (type === 'crossword') {
         answersHtml += `<li class="list-none">${buildCrosswordSolutionHtml()}</li>`;
         if (cwClues.length) {
@@ -829,10 +830,19 @@ function showEndScreen() {
         dominoSolutions += '</div>';
         answersHtml += `<li class="list-none">${dominoSolutions}</li>`;
     } else if (type === 'sentence_ordering') {
+        answersHtml += '<li class="list-none"><div class="sentence-ordering-solutions">';
         items.forEach(it => {
-            const correctSentence = it.split('/').map(w => w.trim()).join(' ');
-            answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-sm">${correctSentence}</li>`;
+            const correctSentence = formatSentenceOrderingText(it);
+            const imgSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images?.[it] : dbImg[it];
+            const visual = imgSrc
+                ? `<img src="${imgSrc}" alt="" class="sentence-ordering-solution-img" loading="lazy" decoding="async">`
+                : `<div class="sentence-ordering-solution-placeholder">📷</div>`;
+            answersHtml += `<div class="sentence-ordering-solution-card">
+                <div class="sentence-ordering-solution-visual">${visual}</div>
+                <div class="sentence-ordering-solution-text">${correctSentence}</div>
+            </div>`;
         });
+        answersHtml += '</div></li>';
     } else if (type === 'anagramme') {
         answersHtml += '<li class="list-none"><div class="anagram-solutions custom-scrollbar">';
         items.forEach(it => {
@@ -965,6 +975,30 @@ function getAnagramImage(key) {
     return (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
 }
 
+function formatSentenceOrderingText(rawItem) {
+    let text = String(rawItem || '')
+        .split('/')
+        .map(part => part.trim())
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+([,.;:!?…])/g, '$1')
+        .replace(/(['’])\s+/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    if (text && !/[.!?…:;]$/.test(text)) text += '.';
+    return text;
+}
+
+function renderSolvedSentence(target, rawItem) {
+    const solved = document.createElement('div');
+    solved.className = 'sentence-ordering-solved';
+    solved.textContent = formatSentenceOrderingText(rawItem);
+    target.innerHTML = '';
+    target.appendChild(solved);
+    target.classList.add('sentence-ordering-target-solved');
+}
+
 function checkOrder(mode) {
     const target = document.getElementById('target');
     const targetWord = items[curStep];
@@ -981,10 +1015,13 @@ function checkOrder(mode) {
     }
 
     if (isCorrect) {
-        Array.from(target.children).forEach(el => {
-            if(mode === 'anagramme') el.className = "anagram-solved-letter";
-            else el.className = "px-2 py-1 text-2xl md:text-3xl font-black bg-transparent border-none shadow-none text-blue-900 m-0 font-mont";
-        });
+        if (mode === 'sentence_ordering') {
+            renderSolvedSentence(target, targetWord);
+        } else {
+            Array.from(target.children).forEach(el => {
+                el.className = "anagram-solved-letter";
+            });
+        }
         target.style.border = "none"; target.style.background = "transparent";
         if (mode === 'anagramme') target.classList.add('anagram-target-solved');
         document.getElementById('check-btn').classList.add('hidden');
@@ -1580,10 +1617,11 @@ function validate(correct) {
     
     if(correct) { 
         status[curStep]='completed'; playSound('global_ok'); 
+        const successDelay = type === 'sentence_ordering' ? 2200 : 1500;
         setTimeout(() => { 
             if (['domino','autocollantes','crossword','dressing'].includes(type) || curStep >= itemsArr.length - 1) showEndScreen(); 
             else loadStep(curStep + 1); 
-        }, 1500); 
+        }, successDelay); 
     } else { 
         status[curStep]='error'; 
         if(!['domino','autocollantes','dressing'].includes(type)) errorTracker[curStep]++; 
