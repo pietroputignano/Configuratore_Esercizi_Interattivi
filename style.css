@@ -896,3 +896,9 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 .phrase-multi-row{white-space:pre-line;}
 #phrase-mode{min-width:360px;}
 @media(max-width:640px){#phrase-mode{min-width:0;width:100%;margin-left:0;margin-top:6px;}}
+
+
+/* Phrase-rebus v28: controlli audio completi */
+.phrase-multi-audio-controls { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.phrase-rebus-audio-secondary { width:44px; height:44px; border-radius:9999px; border:2px solid #f3c64d; background:#fff; color:#7c5a00; font-weight:900; font-size:18px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 5px rgba(15,23,42,.08); }
+.phrase-rebus-audio-secondary:hover { background:#fff8db; }
