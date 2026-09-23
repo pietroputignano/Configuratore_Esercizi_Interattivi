@@ -23,6 +23,11 @@ let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoD
 
 let isMuted = false;
 
+// Stato condiviso del player audio del testo completo Phrase-rebus.
+// Se esiste un audio caricato usa HTMLAudioElement; altrimenti usa lo stesso
+// SpeechSynthesis delle consegne (fr-FR, rate 0.6).
+let phraseMultiPlayback = { mode: '', audio: null, utterance: null, paused: false, text: '' };
+
 // Mantiene una sola serie di istanze Sortable attive per schermata.
 // Evita listener duplicati e rallentamenti quando l'anteprima viene ricaricata più volte.
 let activeSortables = [];
@@ -495,81 +500,108 @@ function phraseBuildCompleteText(data = phraseLevelData()) {
     return blocks.join('\n').replace(/[ \t]+\n/g, '\n').trim();
 }
 
-function phraseTtsNeedsRefresh(data = phraseLevelData()) {
-    return data.multiAudioSource === 'generated' && data.multiTtsSource !== phraseBuildCompleteText(data);
+function phraseGetPlaybackData() {
+    if (isPlayerMode()) return getPhraseLevelData(curLvl);
+    const modal = document.getElementById('phrase-modal');
+    if (modal && !modal.classList.contains('hidden')) return phraseLevelData(phraseBuilderLevel);
+    return phraseLevelData(curLvl);
 }
 
-function phraseSetTtsStatus(message, kind = 'info') {
-    const el = document.getElementById('phrase-tts-status');
-    if (!el) return;
-    el.textContent = message || '';
-    el.className = 'mt-2 text-[10px] font-bold ' + (kind === 'ok' ? 'text-emerald-700' : kind === 'error' ? 'text-red-700' : 'text-gray-500');
-}
-
-function phraseEnsureMeSpeakFrench() {
-    return new Promise((resolve, reject) => {
-        if (typeof meSpeak === 'undefined') {
-            reject(new Error('Motore TTS non disponibile. Controlla la connessione e ricarica il configuratore.'));
-            return;
-        }
-        const loadVoice = () => {
-            try {
-                if (meSpeak.isVoiceLoaded && meSpeak.isVoiceLoaded('fr')) { resolve(); return; }
-                meSpeak.loadVoice('https://cdn.jsdelivr.net/gh/btopro/mespeak@master/voices/fr.json', (ok, msg) => ok ? resolve() : reject(new Error('Voce francese non caricata: ' + msg)));
-            } catch (e) { reject(e); }
-        };
-        try {
-            if (meSpeak.isConfigLoaded && meSpeak.isConfigLoaded()) { loadVoice(); return; }
-            meSpeak.loadConfig('https://cdn.jsdelivr.net/gh/btopro/mespeak@master/mespeak_config.json', (ok, msg) => ok ? loadVoice() : reject(new Error('Configurazione TTS non caricata: ' + msg)));
-        } catch (e) { reject(e); }
-    });
-}
-
-async function generatePhraseMultiTTS() {
-    const data = phraseLevelData();
-    data.multiAudioKey = data.multiAudioKey || phraseMultiAudioKey();
-    const text = phraseBuildCompleteText(data);
-    if (!text) { alert('Inserisci prima il testo completo.'); return; }
-    if (text.includes('...')) { alert('Compila tutti i valori corretti dei drop prima di generare l’audio.'); return; }
-
-    const btn = document.getElementById('phrase-generate-tts');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Generazione audio…'; }
-    phraseSetTtsStatus('Caricamento voce francese…');
+function phraseStopMultiPlayback(reset = true) {
     try {
-        await phraseEnsureMeSpeakFrench();
-        phraseSetTtsStatus('Generazione WAV dal testo completo…');
-        const wavData = meSpeak.speak(text, {
-            rawdata: 'mime',
-            speed: 145,
-            pitch: 48,
-            amplitude: 100,
-            wordgap: 1,
-            variant: 'f2'
-        });
-        if (!wavData || typeof wavData !== 'string' || !wavData.startsWith('data:audio/')) throw new Error('Il motore TTS non ha restituito un file audio valido.');
-        dbAud[data.multiAudioKey] = wavData;
-        data.multiAudioSource = 'generated';
-        data.multiTtsSource = text;
-        phraseSetTtsStatus('✓ Audio generato e pronto per l’export SCORM.', 'ok');
-        renderPhraseRebusBuilder();
-        if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') loadStep(curStep);
-        try { new Audio(wavData).play(); } catch (_) {}
-    } catch (e) {
-        console.error(e);
-        phraseSetTtsStatus(e.message || 'Errore durante la generazione TTS.', 'error');
-        alert('Non sono riuscito a generare l’audio: ' + (e.message || e));
-    } finally {
-        const b = document.getElementById('phrase-generate-tts');
-        if (b) { b.disabled = false; b.textContent = '🔊 Genera audio dal testo completo'; }
+        if (phraseMultiPlayback.audio) {
+            phraseMultiPlayback.audio.pause();
+            if (reset) phraseMultiPlayback.audio.currentTime = 0;
+        }
+    } catch (_) {}
+    try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch (_) {}
+    phraseMultiPlayback = { mode: '', audio: null, utterance: null, paused: false, text: '' };
+}
+
+function phraseMultiAudioSource(data) {
+    const key = data.multiAudioKey || phraseMultiAudioKey(isPlayerMode() ? curLvl : phraseBuilderLevel);
+    return phraseAsset(key, true);
+}
+
+function playPhraseMultiAudio() {
+    const data = phraseGetPlaybackData();
+    const src = phraseMultiAudioSource(data);
+    const text = phraseBuildCompleteText(data);
+
+    if (src) {
+        // Audio manuale: riprende se in pausa, altrimenti parte dall'inizio.
+        if (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio) {
+            if (phraseMultiPlayback.audio.paused && phraseMultiPlayback.audio.currentTime > 0 && phraseMultiPlayback.audio.currentTime < phraseMultiPlayback.audio.duration) {
+                phraseMultiPlayback.audio.play().catch(()=>{});
+                phraseMultiPlayback.paused = false;
+                return;
+            }
+            phraseMultiPlayback.audio.pause();
+            phraseMultiPlayback.audio.currentTime = 0;
+        } else {
+            phraseStopMultiPlayback();
+        }
+        const a = new Audio(src);
+        a.onended = () => { phraseMultiPlayback.paused = false; };
+        phraseMultiPlayback = { mode: 'file', audio: a, utterance: null, paused: false, text: '' };
+        a.play().catch(()=>{});
+        return;
+    }
+
+    if (!text) { alert('Inserisci prima il testo completo.'); return; }
+    if (text.includes('...')) { alert('Compila tutti i valori corretti dei drop prima di ascoltare il testo completo.'); return; }
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+        alert('La sintesi vocale non è disponibile in questo browser. Puoi caricare un file audio manualmente.');
+        return;
+    }
+
+    // Se lo stesso TTS è in pausa, il tasto Play funge anche da Riprendi.
+    if (phraseMultiPlayback.mode === 'tts' && phraseMultiPlayback.paused && phraseMultiPlayback.text === text) {
+        window.speechSynthesis.resume();
+        phraseMultiPlayback.paused = false;
+        return;
+    }
+
+    phraseStopMultiPlayback();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'fr-FR';
+    u.rate = 0.6; // stesso valore usato per le consegne
+    u.onend = () => { phraseMultiPlayback.paused = false; };
+    u.onerror = () => { phraseMultiPlayback.paused = false; };
+    phraseMultiPlayback = { mode: 'tts', audio: null, utterance: u, paused: false, text };
+    window.speechSynthesis.speak(u);
+}
+
+function pausePhraseMultiAudio() {
+    if (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio) {
+        if (!phraseMultiPlayback.audio.paused) {
+            phraseMultiPlayback.audio.pause();
+            phraseMultiPlayback.paused = true;
+        } else {
+            phraseMultiPlayback.audio.play().catch(()=>{});
+            phraseMultiPlayback.paused = false;
+        }
+        return;
+    }
+    if (phraseMultiPlayback.mode === 'tts' && window.speechSynthesis) {
+        if (phraseMultiPlayback.paused) {
+            window.speechSynthesis.resume();
+            phraseMultiPlayback.paused = false;
+        } else if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause();
+            phraseMultiPlayback.paused = true;
+        }
     }
 }
 
-function previewPhraseMultiAudio() {
-    const data = phraseLevelData();
-    const src = dbAud[data.multiAudioKey || phraseMultiAudioKey()];
-    if (!src) { alert('Nessun audio disponibile. Genera il TTS oppure carica un file audio.'); return; }
-    new Audio(src).play().catch(() => {});
+function restartPhraseMultiAudio() {
+    phraseStopMultiPlayback();
+    playPhraseMultiAudio();
 }
+
+function previewPhraseMultiAudio() { playPhraseMultiAudio(); }
 
 function renderPhraseRebusBuilder() {
     const wrap = document.getElementById('phrase-items-container'); if(!wrap) return;
@@ -587,7 +619,7 @@ function renderPhraseRebusBuilder() {
         data.multiAudioKey = data.multiAudioKey || phraseMultiAudioKey();
         const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Blocco di testo ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">TESTO COMPLETO — Invio = nuova riga; usa ... in ogni punto in cui va inserita un'immagine<textarea oninput="updatePhraseItem('${it.id}','sentence',this.value)" onchange="renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-3 text-sm leading-relaxed min-h-[190px] font-mono" placeholder="Ma professeure de ... est ...\nMon professeur de ... est ...\nEt toi tu es comment Lupin ?\nOh moi, je suis ..., ..., ... et ...">${phraseSafe(it.sentence||'')}</textarea></label><p class="text-[10px] text-gray-500 mt-1">Puoi incollare tutto il testo in questo campo. Gli a-capo vengono mantenuti nell'esercizio.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">VALORE CORRETTO DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="es. français"></label>`).join('')}</div>${n===0?'<div class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Inserisci almeno un <b>...</b> nel testo per creare le zone di drop.</div>':''}</div>`; }).join('');
         const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">VISUAL ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Valore interno, es. français" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci immagine</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina visual</button></div>`).join('');
-        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità 2 — Trascina le immagini nel testo.</b> È un unico step: scrivi o incolla l'intero testo nel campo sotto. <b>Invio crea una nuova riga</b> e ogni <code>...</code> crea una zona di drop. Lo studente vede nel pool solo i visual caricati; il valore interno serve esclusivamente per associare ogni immagine al drop corretto.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2 gap-3"><div><h4 class="font-black text-yellow-900">Audio unico del testo</h4><p class="text-[10px] text-gray-500 mt-1">Genera automaticamente un WAV in francese usando il testo completo e i valori corretti dei drop. Il WAV viene incorporato nello SCORM.</p></div>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><div class="grid grid-cols-1 md:grid-cols-3 gap-2"><button id="phrase-generate-tts" type="button" onclick="generatePhraseMultiTTS()" class="bg-yellow-500 hover:bg-yellow-600 text-white rounded p-2 text-xs font-black">🔊 Genera audio dal testo completo</button><button type="button" onclick="previewPhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">▶ Ascolta audio</button><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica / sostituisci manualmente</button></div><div id="phrase-tts-status" class="mt-2 text-[10px] font-bold ${phraseTtsNeedsRefresh(data)?'text-amber-700':'text-gray-500'}">${phraseTtsNeedsRefresh(data)?'⚠ Il testo è cambiato dopo l’ultima generazione: rigenera l’audio.':(data.multiAudioSource==='generated'?'✓ Audio TTS generato dal testo completo.':'')}</div></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
+        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità 2 — Trascina le immagini nel testo.</b> È un unico step: scrivi o incolla l'intero testo nel campo sotto. <b>Invio crea una nuova riga</b> e ogni <code>...</code> crea una zona di drop. Lo studente vede nel pool solo i visual caricati; il valore interno serve esclusivamente per associare ogni immagine al drop corretto.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2 gap-3"><div><h4 class="font-black text-yellow-900">Audio unico del testo</h4><p class="text-[10px] text-gray-500 mt-1">Senza file audio usa automaticamente la stessa voce sintetica delle consegne (fr-FR). Se carichi un audio manuale, quello ha priorità.</p></div>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><div class="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onclick="playPhraseMultiAudio()" class="bg-yellow-500 hover:bg-yellow-600 text-white rounded p-2 text-xs font-black">▶ Ascolta</button><button type="button" onclick="pausePhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">⏸ Pausa / Riprendi</button><button type="button" onclick="restartPhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">↺ Ricomincia</button><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica audio</button></div><div class="mt-2 text-[10px] font-bold text-gray-500">${dbAud[data.multiAudioKey]?'✓ Audio manuale caricato. Verrà usato al posto della sintesi vocale.':'Voce automatica: SpeechSynthesis del browser, come per le consegne.'}</div></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
         return;
     }
     wrap.innerHTML = data.items.map((it,idx) => {
@@ -1521,12 +1553,6 @@ function phraseMultiSetTargetVisual(target, value, src){
     target.classList.add('phrase-rebus-target-solved');
     target.dataset.done='1';
 }
-function playPhraseMultiAudio(){
-    const data=getPhraseLevelData();
-    const key=data.multiAudioKey || phraseMultiAudioKey(curLvl);
-    const src=phraseAsset(key,true);
-    if(src) new Audio(src).play().catch(()=>{});
-}
 function setupPhraseMultiDnD(data){
     const pool=document.getElementById('pool'); if(!pool)return;
     createSortable(pool,{group:{name:'phrase-multi',pull:'clone',put:false},sort:false,animation:150,onStart:()=>playSound('drag')});
@@ -1540,9 +1566,8 @@ function finishPhraseMulti(){ if(status[0]==='completed') showEndScreen(); }
 function renderPhraseMulti(data,stage,pool){
     data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
     const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
-    const audioSrc=phraseAsset(data.multiAudioKey,true);
-    const audioBtn=audioSrc?`<button type="button" onclick="playPhraseMultiAudio()" class="phrase-rebus-audio-btn"><span>▶</span> ÉCOUTE</button>`:'';
-    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage">${audioBtn}<div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    const audioControls=`<div class="phrase-multi-audio-controls"><button type="button" onclick="playPhraseMultiAudio()" class="phrase-rebus-audio-btn"><span>▶</span> ÉCOUTE</button><button type="button" onclick="pausePhraseMultiAudio()" class="phrase-rebus-audio-secondary" title="Pause / reprendre">⏸</button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-secondary" title="Recommencer">↺</button></div>`;
+    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage">${audioControls}<div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
     const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
     pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${c.src}"><img src="${c.src}" alt="" class="phrase-rebus-choice-img"></button>`).join('');
     if(!choices.length) pool.innerHTML='<p class="text-gray-400 text-sm font-bold">Carica i visual nel pool dal configuratore.</p>';
@@ -1553,6 +1578,7 @@ function renderPhraseMulti(data,stage,pool){
 }
 
 function loadStep(idx) {
+    phraseStopMultiPlayback();
     destroyActiveSortables();
     curStep = idx; renderNav();
     if (isPlayerMode() && window.BSMART_SCORM) {
