@@ -507,6 +507,19 @@ function phraseGetPlaybackData() {
     return phraseLevelData(curLvl);
 }
 
+function updatePhraseMultiAudioUI() {
+    const btn = document.getElementById('phrase-multi-audio-main');
+    if (!btn) return;
+    const icon = btn.querySelector('.phrase-audio-icon');
+    const playing = phraseMultiPlayback.mode && !phraseMultiPlayback.paused && (
+        (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio && !phraseMultiPlayback.audio.paused) ||
+        (phraseMultiPlayback.mode === 'tts' && window.speechSynthesis && window.speechSynthesis.speaking)
+    );
+    if (icon) icon.textContent = playing ? '⏸' : '▶';
+    btn.setAttribute('aria-label', playing ? 'Mettre en pause la lecture' : (phraseMultiPlayback.paused ? 'Reprendre la lecture' : 'Écouter'));
+    btn.title = playing ? 'Pause' : (phraseMultiPlayback.paused ? 'Reprendre' : 'Écouter');
+}
+
 function phraseStopMultiPlayback(reset = true) {
     try {
         if (phraseMultiPlayback.audio) {
@@ -518,6 +531,7 @@ function phraseStopMultiPlayback(reset = true) {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch (_) {}
     phraseMultiPlayback = { mode: '', audio: null, utterance: null, paused: false, text: '' };
+    updatePhraseMultiAudioUI();
 }
 
 function phraseMultiAudioSource(data) {
@@ -536,6 +550,7 @@ function playPhraseMultiAudio() {
             if (phraseMultiPlayback.audio.paused && phraseMultiPlayback.audio.currentTime > 0 && phraseMultiPlayback.audio.currentTime < phraseMultiPlayback.audio.duration) {
                 phraseMultiPlayback.audio.play().catch(()=>{});
                 phraseMultiPlayback.paused = false;
+                updatePhraseMultiAudioUI();
                 return;
             }
             phraseMultiPlayback.audio.pause();
@@ -544,9 +559,12 @@ function playPhraseMultiAudio() {
             phraseStopMultiPlayback();
         }
         const a = new Audio(src);
-        a.onended = () => { phraseMultiPlayback.paused = false; };
+        a.onplay = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
+        a.onpause = () => { if (a.currentTime > 0 && !a.ended) phraseMultiPlayback.paused = true; updatePhraseMultiAudioUI(); };
+        a.onended = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
         phraseMultiPlayback = { mode: 'file', audio: a, utterance: null, paused: false, text: '' };
         a.play().catch(()=>{});
+        updatePhraseMultiAudioUI();
         return;
     }
 
@@ -561,6 +579,7 @@ function playPhraseMultiAudio() {
     if (phraseMultiPlayback.mode === 'tts' && phraseMultiPlayback.paused && phraseMultiPlayback.text === text) {
         window.speechSynthesis.resume();
         phraseMultiPlayback.paused = false;
+        updatePhraseMultiAudioUI();
         return;
     }
 
@@ -568,10 +587,12 @@ function playPhraseMultiAudio() {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'fr-FR';
     u.rate = 0.6; // stesso valore usato per le consegne
-    u.onend = () => { phraseMultiPlayback.paused = false; };
-    u.onerror = () => { phraseMultiPlayback.paused = false; };
+    u.onstart = () => updatePhraseMultiAudioUI();
+    u.onend = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
+    u.onerror = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
     phraseMultiPlayback = { mode: 'tts', audio: null, utterance: u, paused: false, text };
     window.speechSynthesis.speak(u);
+    updatePhraseMultiAudioUI();
 }
 
 function pausePhraseMultiAudio() {
@@ -583,6 +604,7 @@ function pausePhraseMultiAudio() {
             phraseMultiPlayback.audio.play().catch(()=>{});
             phraseMultiPlayback.paused = false;
         }
+        updatePhraseMultiAudioUI();
         return;
     }
     if (phraseMultiPlayback.mode === 'tts' && window.speechSynthesis) {
@@ -593,7 +615,15 @@ function pausePhraseMultiAudio() {
             window.speechSynthesis.pause();
             phraseMultiPlayback.paused = true;
         }
+        updatePhraseMultiAudioUI();
     }
+}
+
+function togglePhraseMultiAudio() {
+    const fileIsPlaying = phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio && !phraseMultiPlayback.audio.paused;
+    const ttsIsPlaying = phraseMultiPlayback.mode === 'tts' && window.speechSynthesis && window.speechSynthesis.speaking && !phraseMultiPlayback.paused;
+    if (fileIsPlaying || ttsIsPlaying || phraseMultiPlayback.paused) pausePhraseMultiAudio();
+    else playPhraseMultiAudio();
 }
 
 function restartPhraseMultiAudio() {
@@ -1566,8 +1596,9 @@ function finishPhraseMulti(){ if(status[0]==='completed') showEndScreen(); }
 function renderPhraseMulti(data,stage,pool){
     data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
     const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
-    const audioControls=`<div class="phrase-multi-audio-controls"><button type="button" onclick="playPhraseMultiAudio()" class="phrase-rebus-audio-btn"><span>▶</span> ÉCOUTE</button><button type="button" onclick="pausePhraseMultiAudio()" class="phrase-rebus-audio-secondary" title="Pause / reprendre">⏸</button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-secondary" title="Recommencer">↺</button></div>`;
+    const audioControls=`<div class="phrase-multi-audio-controls"><button id="phrase-multi-audio-main" type="button" onclick="togglePhraseMultiAudio()" class="phrase-rebus-audio-btn phrase-multi-audio-main" aria-label="Écouter" title="Écouter"><span class="phrase-audio-icon">▶</span><span>ÉCOUTE</span></button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-restart" title="Recommencer depuis le début" aria-label="Recommencer depuis le début">↺</button></div>`;
     stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage">${audioControls}<div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    updatePhraseMultiAudioUI();
     const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
     pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${c.src}"><img src="${c.src}" alt="" class="phrase-rebus-choice-img"></button>`).join('');
     if(!choices.length) pool.innerHTML='<p class="text-gray-400 text-sm font-bold">Carica i visual nel pool dal configuratore.</p>';
