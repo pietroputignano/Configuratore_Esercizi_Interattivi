@@ -898,7 +898,12 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
 @media(max-width:640px){#phrase-mode{min-width:0;width:100%;margin-left:0;margin-top:6px;}}
 
 
-/* Phrase-rebus v28: controlli audio completi */
-.phrase-multi-audio-controls { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-.phrase-rebus-audio-secondary { width:44px; height:44px; border-radius:9999px; border:2px solid #f3c64d; background:#fff; color:#7c5a00; font-weight:900; font-size:18px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 5px rgba(15,23,42,.08); }
-.phrase-rebus-audio-secondary:hover { background:#fff8db; }
+/* Phrase-rebus v29: player compatto ÉCOUTE + restart */
+.phrase-multi-audio-controls { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:nowrap; margin-bottom:14px; }
+.phrase-multi-audio-main { min-height:48px; padding:10px 22px; background:#fffaf0; }
+.phrase-audio-icon { width:20px; min-width:20px; display:inline-flex; align-items:center; justify-content:center; font-size:18px; line-height:1; }
+.phrase-rebus-audio-restart { width:48px; height:48px; border-radius:9999px; border:2px solid #f59e0b; background:#fffaf0; color:#c2410c; font-weight:900; font-size:21px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 3px 8px rgba(15,23,42,.08); transition:background .15s ease, transform .15s ease, box-shadow .15s ease; }
+.phrase-rebus-audio-restart:active { transform:translateY(1px); box-shadow:0 1px 4px rgba(15,23,42,.10); }
+@media (hover:hover) and (pointer:fine) {
+  .phrase-multi-audio-main:hover, .phrase-rebus-audio-restart:hover { background:#fff3d6; }
+}
