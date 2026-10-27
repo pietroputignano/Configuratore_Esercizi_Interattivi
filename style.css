@@ -980,3 +980,14 @@ html,body { max-width:100%; }
 .exercise-player .header-wrapper { padding: .3rem .65rem !important; }
 .exercise-player .exercise-stage { padding: .35rem .65rem !important; }
 .exercise-player .exercise-instruction #res-consigne { font-size: clamp(.78rem,1.25vw,.94rem) !important; }
+
+/* Ripristino delle dimensioni originali del primo header, senza alterare la consegna */
+.header-wrapper, .exercise-player .header-wrapper { padding: 20px 24px !important; gap: 1rem !important; }
+.header-wrapper .h-titre, .exercise-player .h-titre { font-size: 1.75rem !important; line-height: 1.2 !important; }
+.header-wrapper .unit-badge, .exercise-player .unit-badge { padding: 4px 12px !important; }
+.header-wrapper .unit-badge-num, .exercise-player .unit-badge-num { font-size: 29px !important; }
+.header-wrapper .lecon-ribbon, .exercise-player .lecon-ribbon { font-size: 11px !important; }
+/* Consegna ed etichetta ECOUTE della stessa dimensione */
+.exercise-instruction #res-consigne, .exercise-player .exercise-instruction #res-consigne,
+.phrase-multi-audio-main, .phrase-rebus-audio-btn { font-size: clamp(.78rem,1.25vw,.94rem) !important; }
+@media(max-width:700px) { .header-wrapper, .exercise-player .header-wrapper { padding: 12px 14px !important; } .header-wrapper .h-titre, .exercise-player .h-titre { font-size: 1.4rem !important; } }
