@@ -991,3 +991,33 @@ html,body { max-width:100%; }
 .exercise-instruction #res-consigne, .exercise-player .exercise-instruction #res-consigne,
 .phrase-multi-audio-main, .phrase-rebus-audio-btn { font-size: clamp(.78rem,1.25vw,.94rem) !important; }
 @media(max-width:700px) { .header-wrapper, .exercise-player .header-wrapper { padding: 12px 14px !important; } .header-wrapper .h-titre, .exercise-player .h-titre { font-size: 1.4rem !important; } }
+
+/* Ripristino effettivo header originale: prevale su tutte le precedenti regole compatte. */
+.header-wrapper, .exercise-player .header-wrapper { padding: 1rem 2rem !important; gap: 1rem !important; }
+.header-wrapper .h-titre, .exercise-player .header-wrapper .h-titre {font-size:2.25rem!important;line-height:1.25!important;}
+.header-wrapper .unit-badge, .exercise-player .header-wrapper .unit-badge {padding:6px 18px!important;}
+.header-wrapper .unit-badge-text, .exercise-player .header-wrapper .unit-badge-text {font-size:14px!important;}
+.header-wrapper .unit-badge-num, .exercise-player .header-wrapper .unit-badge-num {font-size:40px!important;}
+.header-wrapper .lecon-ribbon, .exercise-player .header-wrapper .lecon-ribbon {font-size:16px!important;padding:6px 30px 6px 20px!important;margin-top:12px!important;}
+.exercise-stage, .exercise-player .exercise-stage {padding-top:.5rem!important;}
+.exercise-instruction, .exercise-player .exercise-instruction {margin-bottom:.5rem!important;}
+@media(max-width:700px){.header-wrapper,.exercise-player .header-wrapper{padding:.75rem 1rem!important}.header-wrapper .h-titre,.exercise-player .header-wrapper .h-titre{font-size:clamp(1.35rem,5vw,2.25rem)!important}}
+
+/* Allineamento titolo unita e consegna: centratura rispetto all'intera larghezza del player. */
+.header-wrapper, .exercise-player .header-wrapper { position:relative!important; }
+@media (min-width:768px) {
+  .header-wrapper > div:nth-child(2), .exercise-player .header-wrapper > div:nth-child(2) {
+    position:absolute!important; left:50%!important; transform:translateX(-50%)!important;
+    width:min(48%, 650px)!important; padding:0!important; margin:0!important;
+    display:flex!important; justify-content:center!important; align-items:center!important;
+    pointer-events:none;
+  }
+  .header-wrapper > div:nth-child(3), .exercise-player .header-wrapper > div:nth-child(3) { margin-left:auto!important; }
+}
+/* La scritta ECOUTE usa esattamente la dimensione della consegna. */
+.exercise-stage .phrase-multi-audio-main, .exercise-stage .phrase-rebus-audio-btn,
+.exercise-player .phrase-multi-audio-main, .exercise-player .phrase-rebus-audio-btn {
+ font-size:clamp(.78rem,1.25vw,.94rem)!important; line-height:1.24!important;
+}
+.exercise-stage .phrase-multi-audio-main span, .exercise-stage .phrase-rebus-audio-btn span,
+.exercise-player .phrase-multi-audio-main span, .exercise-player .phrase-rebus-audio-btn span {font-size:inherit!important;line-height:inherit!important;}
