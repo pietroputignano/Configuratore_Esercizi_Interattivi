@@ -1021,3 +1021,19 @@ html,body { max-width:100%; }
 }
 .exercise-stage .phrase-multi-audio-main span, .exercise-stage .phrase-rebus-audio-btn span,
 .exercise-player .phrase-multi-audio-main span, .exercise-player .phrase-rebus-audio-btn span {font-size:inherit!important;line-height:inherit!important;}
+
+/* Correzione finale: centro geometrico comune a titolo e consegna.
+   La colonna centrale non dipende dalla larghezza asimmetrica dei controlli. */
+@media (min-width:768px) {
+  .header-wrapper, .exercise-player .header-wrapper { display:grid!important; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr)!important; align-items:center!important; }
+  .header-wrapper > div:nth-child(1), .exercise-player .header-wrapper > div:nth-child(1) { grid-column:1!important; justify-self:start!important; }
+  .header-wrapper > div:nth-child(2), .exercise-player .header-wrapper > div:nth-child(2) { position:static!important; left:auto!important; transform:none!important; width:100%!important; grid-column:2!important; justify-self:center!important; min-width:0!important; margin:0!important; padding:0!important; pointer-events:auto!important; }
+  .header-wrapper > div:nth-child(3), .exercise-player .header-wrapper > div:nth-child(3) { grid-column:3!important; justify-self:end!important; margin-left:0!important; }
+}
+/* Identica dimensione tipografica per la consegna e il comando audio dello step. */
+.exercise-stage .exercise-instruction #res-consigne,
+.exercise-stage .phrase-rebus-audio-btn,
+.exercise-stage .phrase-multi-audio-main,
+.exercise-player .exercise-instruction #res-consigne,
+.exercise-player .phrase-rebus-audio-btn,
+.exercise-player .phrase-multi-audio-main { font-size:clamp(.78rem,1.25vw,.94rem)!important; }
