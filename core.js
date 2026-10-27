@@ -2322,6 +2322,40 @@ function playConsigne() {
         const m = new SpeechSynthesisUtterance(consigneText); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); 
     } 
 }
+const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
+  'use strict';
+  const stage = document.querySelector('.exercise-stage');
+  if (!stage) return;
+  const content = document.getElementById('main-content');
+  const pool = document.getElementById('pool');
+  let queued = false;
+  function fit(){
+    queued = false;
+    if (!content || !pool) return;
+    content.style.zoom = '';
+    pool.style.zoom = '';
+    // Allow layout to settle, then scale oversized exercise content together.
+    const instruction = stage.querySelector('.exercise-instruction');
+    const available = stage.clientHeight - (instruction ? instruction.offsetHeight : 0) - 16;
+    const total = content.scrollHeight + pool.scrollHeight + 8;
+    if (available > 0 && total > available) {
+      const factor = Math.max(.58, Math.min(1, available / total));
+      content.style.zoom = String(factor);
+      pool.style.zoom = String(factor);
+    }
+    // Never silently hide material: on unusually dense content allow local
+    // scrolling rather than cutting off questions or answer controls.
+    const stillOverflows = stage.scrollHeight > stage.clientHeight + 5;
+    stage.style.overflowY = stillOverflows ? 'auto' : 'hidden';
+  }
+  function schedule(){ if(queued)return; queued=true; requestAnimationFrame(fit); }
+  if(typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(stage);
+  new MutationObserver(schedule).observe(stage,{childList:true,subtree:true,characterData:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('orientationchange',schedule,{passive:true});
+  schedule();
+})();`;
+
 /* --- EXPORT SCORM 2004 --- */
 function xmlEscape(value) {
     return String(value ?? '')
@@ -2374,6 +2408,7 @@ function makeScormManifest(title, passingScore = 80) {
       <file href="js/core.js"/>
       <file href="js/config.js"/>
       <file href="js/scorm.js"/>
+      <file href="js/responsive.js"/>
     </resource>
   </resources>
 </manifest>`;
@@ -2583,12 +2618,13 @@ async function exportToZIP() {
     zip.file('style.css', exportedStyle);
     jsFolder.file('config.js', `const GAME_CONFIG = ${JSON.stringify(gameConfig, null, 2)};`);
     jsFolder.file('scorm.js', makeScormBridge(passingScore));
+    jsFolder.file('responsive.js', RESPONSIVE_PLAYER_SCRIPT);
 
     const playerHTML = `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>bSmart | ${String(gameConfig.titre).replace(/[<>]/g,'')}</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -2597,9 +2633,10 @@ async function exportToZIP() {
 <script src="js/config.js"></script>
 <script src="js/scorm.js"></script>
 <script src="js/core.js" defer></script>
+<script src="js/responsive.js" defer></script>
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
-<div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
+<div class="w-full exercise-player max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-200">
     <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
         <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
             <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
@@ -2616,7 +2653,7 @@ async function exportToZIP() {
         <div class="flex-grow flex justify-center z-10 px-2 md:px-6"><h1 id="res-titre" class="h-titre text-2xl md:text-3xl lg:text-4xl text-center leading-tight break-words"></h1></div>
         <div class="flex items-center gap-3 z-10 shrink-0"><div class="flex bg-[#E6F0FD] rounded-full p-1 shadow-inner border border-blue-100"><button id="btn-f-view" onclick="switchLvl('facile')" class="px-5 py-2 rounded-full text-xs font-black bg-[#2753F4] text-white shadow-sm transition uppercase tracking-wide">FACILE</button><button id="btn-d-view" onclick="switchLvl('difficile')" class="px-5 py-2 rounded-full text-xs font-black text-[#2753F4] hover:bg-blue-100 transition uppercase tracking-wide bg-transparent">DIFFICILE</button></div><button id="mute-btn" onclick="toggleMute()" class="w-10 h-10 min-w-[40px] bg-white rounded-full flex items-center justify-center shadow-md border border-gray-200"><span id="mute-icon">🔊</span></button></div>
     </div>
-    <div class="p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50"><div class="flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full"><button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button><p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p></div><div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div><div id="pool" class="mt-auto pt-8 w-full flex flex-wrap justify-center gap-4"></div></div>
+    <div class="exercise-stage p-6 md:p-10 flex-grow flex flex-col items-center w-full bg-slate-50"><div class="exercise-instruction flex items-center gap-4 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-gray-100 w-fit max-w-full"><button onclick="playConsigne()" class="w-12 h-12 flex items-center justify-center rounded-full bg-pink-500 text-white text-2xl pl-1 border-b-[5px] border-pink-700 hover:bg-pink-400 active:border-b-0 active:translate-y-[5px] transition-all shrink-0 outline-none shadow-sm">▶</button><p id="res-consigne" class="text-gray-800 font-bold text-lg md:text-xl font-mont"></p></div><div id="main-content" class="w-full flex flex-col items-center gap-10 overflow-hidden text-center"></div><div id="pool" class="w-full flex flex-wrap justify-center gap-2"></div></div>
     <div id="nav-step" class="striped-footer flex justify-center gap-3 flex-wrap mt-auto"></div>
 </div>
 </body>
