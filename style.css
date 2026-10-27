@@ -963,3 +963,20 @@ html,body { max-width:100%; }
  .exercise-player .exercise-instruction button { width:1.8rem!important; height:1.8rem!important; }
  .exercise-player #pool { max-height:24%; }
 }
+
+/* FIX: applicare le stesse dimensioni anche all'anteprima del configuratore */
+.header-wrapper { padding: .3rem .65rem !important; gap: .3rem !important; }
+.header-wrapper .h-titre { font-size: clamp(.95rem,1.8vw,1.4rem) !important; }
+.header-wrapper .unit-badge { padding: 2px 9px !important; }
+.header-wrapper .unit-badge-num { font-size: 23px !important; }
+.header-wrapper .lecon-ribbon { font-size: 10px !important; }
+.exercise-stage { padding: .35rem .65rem !important; gap: .3rem !important; }
+.exercise-instruction { margin: 0 !important; padding: .25rem .65rem !important; gap: .45rem !important; }
+.exercise-instruction #res-consigne { font-size: clamp(.78rem,1.25vw,.94rem) !important; line-height: 1.24 !important; }
+.exercise-instruction button { width: 2rem !important; height: 2rem !important; font-size: .9rem !important; }
+.exercise-stage #pool { order: 0; margin: 0 !important; padding: .15rem 0 !important; }
+.exercise-stage #main-content { order: 1; gap: .55rem !important; }
+/* Le riduzioni valgono anche per l'output SCORM */
+.exercise-player .header-wrapper { padding: .3rem .65rem !important; }
+.exercise-player .exercise-stage { padding: .35rem .65rem !important; }
+.exercise-player .exercise-instruction #res-consigne { font-size: clamp(.78rem,1.25vw,.94rem) !important; }
