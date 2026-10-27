@@ -1,3 +1,16 @@
+
+// Selezione stabile di una voce francese disponibile sul dispositivo.
+function configureFrenchVoice(utterance, rate = 0.6) {
+    utterance.lang = 'fr-FR';
+    utterance.rate = rate;
+    utterance.pitch = 1;
+    const voices = window.speechSynthesis?.getVoices?.() || [];
+    const french = voices.filter(v => /^fr[-_]/i.test(v.lang || ''));
+    const preferred = french.find(v => /fr[-_]FR/i.test(v.lang) && /amelie|thomas|audrey|hortense|marie|google français|microsoft.*french/i.test(v.name))
+        || french.find(v => /^fr[-_]FR$/i.test(v.lang)) || french[0];
+    if (preferred) utterance.voice = preferred;
+    return utterance;
+}
 const types = [
     {id: 'sentence_ordering', n: 'Mise en ordre (Frasi)'},
     {id: 'dressing', n: 'Dressing Game (Mapper / Lavagna)'},
@@ -585,8 +598,7 @@ function playPhraseMultiAudio() {
 
     phraseStopMultiPlayback();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'fr-FR';
-    u.rate = 0.6; // stesso valore usato per le consegne
+    configureFrenchVoice(u, 0.6); // stesso valore usato per le consegne
     u.onstart = () => updatePhraseMultiAudioUI();
     u.onend = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
     u.onerror = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
@@ -710,7 +722,7 @@ function playPhraseRebusAudio(itemId) {
     const data = getPhraseLevelData(); const item = data.items.find(it=>it.id===itemId); if(!item) return;
     const src = phraseAsset(item.audioKey, true);
     if(src){ new Audio(src).play().catch(()=>{}); return; }
-    const utter = new SpeechSynthesisUtterance(phraseCompletedSentence(item)); utter.lang='fr-FR'; utter.rate=.72; window.speechSynthesis.speak(utter);
+    const utter = new SpeechSynthesisUtterance(phraseCompletedSentence(item)); configureFrenchVoice(utter, 0.72); window.speechSynthesis.speak(utter);
 }
 function solvePhraseRebus(item, choiceEl) {
     const target=document.getElementById('phrase-target'); if(!target) return;
@@ -2118,8 +2130,7 @@ function playStepAudio(btn) {
         }
         
         const m = new SpeechSynthesisUtterance(textToSpeak);
-        m.lang = 'fr-FR';
-        m.rate = 0.6;
+        configureFrenchVoice(m, 0.6);
         window.speechSynthesis.speak(m);
     }
 }
@@ -2319,7 +2330,7 @@ function playConsigne() {
     if(audioSrc) new Audio(audioSrc).play(); 
     else { 
         const consigneText = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].consigne : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value.trim() !== '' ? document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value : document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').placeholder);
-        const m = new SpeechSynthesisUtterance(consigneText); m.lang='fr-FR'; m.rate=0.6; window.speechSynthesis.speak(m); 
+        const m = new SpeechSynthesisUtterance(consigneText); configureFrenchVoice(m, 0.6); window.speechSynthesis.speak(m); 
     } 
 }
 const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
