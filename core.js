@@ -1,15 +1,35 @@
 
-// Selezione stabile di una voce francese disponibile sul dispositivo.
+// Preferire voci francesi maschili; non forzare una voce non francese.
 function configureFrenchVoice(utterance, rate = 0.6) {
     utterance.lang = 'fr-FR';
     utterance.rate = rate;
     utterance.pitch = 1;
     const voices = window.speechSynthesis?.getVoices?.() || [];
-    const french = voices.filter(v => /^fr[-_]/i.test(v.lang || ''));
-    const preferred = french.find(v => /fr[-_]FR/i.test(v.lang) && /amelie|thomas|audrey|hortense|marie|google français|microsoft.*french/i.test(v.name))
+    const french = voices.filter(v => /^fr(?:[-_]|$)/i.test(v.lang || ''));
+    const male = /\b(thomas|henri|paul|nicolas|pierre|mathieu|remy|r[ée]mi|alain|jean|daniel|antoine|louis|hugo)\b/i;
+    const preferred = french.find(v => /^fr[-_]FR$/i.test(v.lang) && male.test(v.name))
+        || french.find(v => male.test(v.name))
         || french.find(v => /^fr[-_]FR$/i.test(v.lang)) || french[0];
     if (preferred) utterance.voice = preferred;
     return utterance;
+}
+function speakFrench(text, rate = 0.6, callbacks = {}) {
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return null;
+    const synth = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(text);
+    configureFrenchVoice(u, rate);
+    if (callbacks.onstart) u.onstart = callbacks.onstart;
+    if (callbacks.onend) u.onend = callbacks.onend;
+    if (callbacks.onerror) u.onerror = callbacks.onerror;
+    // Alcuni browser caricano le voci solo dopo il primo accesso.
+    const voices = synth.getVoices();
+    if (!voices.length) {
+        let done = false;
+        const launch = () => { if (done) return; done = true; configureFrenchVoice(u, rate); synth.speak(u); };
+        synth.addEventListener?.('voiceschanged', launch, {once:true});
+        setTimeout(launch, 450);
+    } else synth.speak(u);
+    return u;
 }
 const types = [
     {id: 'sentence_ordering', n: 'Mise en ordre (Frasi)'},
@@ -597,13 +617,13 @@ function playPhraseMultiAudio() {
     }
 
     phraseStopMultiPlayback();
-    const u = new SpeechSynthesisUtterance(text);
-    configureFrenchVoice(u, 0.6); // stesso valore usato per le consegne
-    u.onstart = () => updatePhraseMultiAudioUI();
-    u.onend = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
-    u.onerror = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
+    const u = speakFrench(text, 0.6, {
+        onstart: () => updatePhraseMultiAudioUI(),
+        onend: () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); },
+        onerror: () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); }
+    });
     phraseMultiPlayback = { mode: 'tts', audio: null, utterance: u, paused: false, text };
-    window.speechSynthesis.speak(u);
+    // Avvio gestito da speakFrench.
     updatePhraseMultiAudioUI();
 }
 
@@ -722,7 +742,7 @@ function playPhraseRebusAudio(itemId) {
     const data = getPhraseLevelData(); const item = data.items.find(it=>it.id===itemId); if(!item) return;
     const src = phraseAsset(item.audioKey, true);
     if(src){ new Audio(src).play().catch(()=>{}); return; }
-    const utter = new SpeechSynthesisUtterance(phraseCompletedSentence(item)); configureFrenchVoice(utter, 0.72); window.speechSynthesis.speak(utter);
+    speakFrench(phraseCompletedSentence(item), 0.72);
 }
 function solvePhraseRebus(item, choiceEl) {
     const target=document.getElementById('phrase-target'); if(!target) return;
@@ -2129,9 +2149,7 @@ function playStepAudio(btn) {
             textToSpeak = sentence.replace(/[{}]/g, '');
         }
         
-        const m = new SpeechSynthesisUtterance(textToSpeak);
-        configureFrenchVoice(m, 0.6);
-        window.speechSynthesis.speak(m);
+        speakFrench(textToSpeak, 0.6);
     }
 }
 
@@ -2330,7 +2348,7 @@ function playConsigne() {
     if(audioSrc) new Audio(audioSrc).play(); 
     else { 
         const consigneText = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.levels[curLvl].consigne : (document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value.trim() !== '' ? document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').value : document.getElementById(curLvl === 'facile' ? 'con-f' : 'con-d').placeholder);
-        const m = new SpeechSynthesisUtterance(consigneText); configureFrenchVoice(m, 0.6); window.speechSynthesis.speak(m); 
+        speakFrench(consigneText, 0.6); 
     } 
 }
 const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
