@@ -1076,3 +1076,7 @@ html,body { max-width:100%; }
   .phrase-rebus-choice.phrase-rebus-choice-image { width: 98px; min-height: 90px; padding: 6px; }
   .phrase-rebus-choice.phrase-rebus-choice-image .phrase-rebus-choice-img { width: 80px; height: 60px; }
 }
+
+/* Mapper: remove a mistakenly created zone without reloading */
+.mapper-zone .mapper-delete { position:absolute; top:-11px; right:-11px; z-index:30; width:23px; height:23px; border-radius:50%; background:#dc2626; color:white; font-size:19px; font-weight:700; line-height:20px; text-align:center; border:2px solid white; cursor:pointer; box-shadow:0 1px 5px #0003; }
+.mapper-zone .mapper-delete:hover { background:#991b1b; }
