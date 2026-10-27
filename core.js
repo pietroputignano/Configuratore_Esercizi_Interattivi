@@ -342,6 +342,32 @@ function alignZones(prop) {
     saveZones();
 }
 
+function deleteSelectedZones() {
+    const selected = Array.from(document.querySelectorAll('#mapper-container .mapper-zone.selected-zone'));
+    if (!selected.length) { alert('Seleziona una o più tessere da eliminare.'); return; }
+    selected.forEach(zone => zone.remove());
+    saveZones();
+}
+
+function deleteMapperZone(zone, event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    zone.remove();
+    saveZones();
+}
+
+function attachMapperDeleteButton(zone) {
+    if (zone.querySelector('.mapper-delete')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mapper-delete';
+    button.title = 'Elimina questa tessera';
+    button.setAttribute('aria-label', 'Elimina questa tessera');
+    button.textContent = '×';
+    button.onclick = event => deleteMapperZone(zone, event);
+    button.onmousedown = event => event.stopPropagation();
+    zone.appendChild(button);
+}
+
 function addZone() {
     const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center rounded-md'; z.style.cssText = "width:25%; height:12%; left:35%; top:40%;";
     const word = items[mappedZones.length] || "verbo";
@@ -353,6 +379,7 @@ function addZone() {
 
 function makeDraggable(el) {
     let container = document.getElementById('mapper-container');
+    attachMapperDeleteButton(el);
     el.onmousedown = (e) => {
         if(e.target.tagName === 'INPUT' || e.target.classList.contains('resize-handle')) return;
         let sx = e.clientX, sy = e.clientY;
