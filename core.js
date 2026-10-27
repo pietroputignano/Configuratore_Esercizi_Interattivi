@@ -1629,6 +1629,11 @@ function loadStep(idx) {
     stage.innerHTML = '';
     pool.innerHTML = '';
     stage.classList.remove('domino-stage');
+    if (pool.closest('.domino-side-layout')) {
+        const layout = pool.closest('.domino-side-layout');
+        layout.parentNode.insertBefore(pool, layout.nextSibling);
+        layout.remove();
+    }
     pool.classList.remove('domino-pool');
     pool.style.removeProperty('--domino-scale');
    if(type === 'crossword') {
@@ -2032,6 +2037,15 @@ function loadStep(idx) {
             return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${dominoLabelHtml(entry.word)}</div></div>`;
         }).join('');
 
+        // Il pool rimane un unico contenitore Sortable: cambia solo la disposizione visiva.
+        const boardWrap = stage.querySelector('.domino-board-wrap');
+        if (boardWrap && pool.parentElement !== boardWrap.parentElement) {
+            const layout = document.createElement('div');
+            layout.className = 'domino-side-layout';
+            boardWrap.parentNode.insertBefore(layout, boardWrap);
+            layout.appendChild(boardWrap);
+            layout.appendChild(pool);
+        }
         document.getElementById('nav-step').innerHTML = '';
         requestAnimationFrame(() => {
             fitDominoTileText(document);
