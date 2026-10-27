@@ -1037,3 +1037,17 @@ html,body { max-width:100%; }
 .exercise-player .exercise-instruction #res-consigne,
 .exercise-player .phrase-rebus-audio-btn,
 .exercise-player .phrase-multi-audio-main { font-size:clamp(.78rem,1.25vw,.94rem)!important; }
+
+/* Domino: pool unico (compatibile con Sortable), ai lati della catena. */
+.domino-side-layout { width:100%; display:grid; grid-template-columns:minmax(120px,1fr) minmax(0,max-content) minmax(120px,1fr); align-items:start; gap:12px; position:relative; }
+.domino-side-layout > .domino-board-wrap { grid-column:2; grid-row:1; width:auto !important; min-width:0; padding:0 !important; position:relative; z-index:2; }
+.domino-side-layout > .domino-pool { grid-column:1 / 4; grid-row:1; display:grid !important; grid-template-columns:minmax(120px,1fr) minmax(0,var(--domino-center-width, 420px)) minmax(120px,1fr); gap:10px 12px !important; padding:0 !important; justify-items:center; align-content:start; position:relative; z-index:1; }
+.domino-side-layout > .domino-pool > .domino-tile { grid-column:1; max-width:100%; min-width:0; }
+.domino-side-layout > .domino-pool > .domino-tile:nth-child(even) { grid-column:3; }
+.domino-side-layout .domino-tile .tile-text { overflow:visible !important; min-width:0; }
+.domino-side-layout .domino-word { white-space:normal; overflow-wrap:anywhere; }
+@media (max-width: 900px) {
+ .domino-side-layout { display:flex; flex-direction:column; align-items:center; gap:10px; }
+ .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
+ .domino-side-layout > .domino-board-wrap { order:1; width:100% !important; }
+}
