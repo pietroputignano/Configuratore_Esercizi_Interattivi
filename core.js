@@ -94,8 +94,16 @@ function escapeDominoHtml(value) {
 }
 
 function dominoLabelHtml(value) {
-    const words = String(value ?? '').trim().split(/\s+/).filter(Boolean);
-    return `<span class="domino-label">${words.map(w => `<span class="domino-word">${escapeDominoHtml(w)}</span>`).join(' ')}</span>`;
+    // <br> is an editorial line break; &shy; or a soft hyphen marks an optional
+    // syllable break. Escape all other markup to keep authored labels safe.
+    const raw = String(value ?? '').trim();
+    const lines = raw.split(/<br\s*\/?\s*>/gi);
+    const renderLine = line => line.split(/(\s+)/).map(part => {
+        if (/^\s+$/.test(part)) return ' ';
+        const normalized = part.replace(/&shy;/gi, '\u00ad');
+        return `<span class="domino-word">${escapeDominoHtml(normalized)}</span>`;
+    }).join('');
+    return `<span class="domino-label" lang="fr">${lines.map(renderLine).join('<br>')}</span>`;
 }
 
 function fitDominoTileText(root = document) {
