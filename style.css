@@ -1051,3 +1051,11 @@ html,body { max-width:100%; }
  .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
  .domino-side-layout > .domino-board-wrap { order:1; width:100% !important; }
 }
+
+/* Domino: respect editorial <br>, allow French hyphenation, never split randomly. */
+.domino-side-layout .domino-word, .domino-word {
+  display:inline; white-space:normal; overflow-wrap:normal !important;
+  word-break:normal !important; hyphens:auto; -webkit-hyphens:auto;
+}
+.domino-label[lang="fr"] { hyphens:auto; -webkit-hyphens:auto; }
+.domino-side-layout .domino-word { overflow-wrap:normal !important; }
