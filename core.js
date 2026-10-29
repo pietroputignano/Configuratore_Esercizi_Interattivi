@@ -1654,6 +1654,8 @@ function loadStep(idx) {
     }
     const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
     const type = getCurrentType();
+    const exportedPlayer = stage.closest('.exercise-player');
+    if (exportedPlayer) exportedPlayer.classList.toggle('domino-player', type === 'domino');
     
     const resConsigne = document.getElementById('res-consigne');
     if (isPlayerMode()) {
@@ -1954,42 +1956,49 @@ function loadStep(idx) {
         }
 
         const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
-        // Measure the actual activity container, not the outer browser window.
-        const preview = document.getElementById('exercise-preview');
-        const viewportW = isPlayerMode() ? (stage?.clientWidth || window.innerWidth || 900) : (preview?.clientWidth || stage?.clientWidth || 900);
-        const mobileNow = viewportW <= 700;
-        const availableWidth = Math.max(260, stage?.clientWidth || viewportW);
-        const lateral = availableWidth >= 900;
-        const centerBudgetW = lateral ? availableWidth * .63 : availableWidth - 20;
-        const currentRun = centerBudgetW >= 740 ? 4 : (centerBudgetW >= 480 ? 3 : 2);
-        const desktopRun = currentRun;
-        const mobileRun = centerBudgetW >= 470 ? 3 : 2;
-        const currentVerticalRun = 1;
-
-        if (dominoSettings.autoFit) {
-            const viewportH = window.innerHeight || document.documentElement.clientHeight || 760;
-            const stageTop = Math.max(0, stage?.getBoundingClientRect?.().top || 0);
-            const activityBudgetH = Math.max(310, viewportH - stageTop - 35);
-            const sideTiles = Math.ceil(dominoTileCount / 2);
-            const sideBudgetH = Math.max(230, activityBudgetH - 10);
-            const fitsAt = scale => {
-                const circuit = buildDominoOpenSnake(dominoTileCount, mobileNow, scale, currentRun, currentVerticalRun);
-                const sideHeight = sideTiles * (94 * scale + 9);
-                return circuit.width <= centerBudgetW && circuit.height <= activityBudgetH && (!lateral || sideHeight <= sideBudgetH);
-            };
-            // Do not miniaturize the domino on large screens: permit a little overflow
-            // when the available space cannot accommodate readable pieces.
-            const minReadable = mobileNow ? .66 : .80;
-            let lo = minReadable, hi = 2.0;
-            if (!fitsAt(lo)) dominoScale = lo;
-            else {
-                for (let i = 0; i < 18; i++) {
-                    const mid = (lo + hi) / 2;
-                    if (fitsAt(mid)) lo = mid; else hi = mid;
-                }
-                dominoScale = lo;
-            }
+        // Misura il VERO contenitore che ospitera' il gioco, anche dentro un iframe LMS.
+        // Non legare la scala al numero di tessere del pool: i due lati utilizzano
+        // dimensioni proprie e non devono rimpicciolire il percorso centrale.
+        const stageWidth = Math.max(260, Math.floor(stage.getBoundingClientRect().width || stage.clientWidth || 800));
+        const gameArea = stage.closest('.exercise-stage');
+        const gameRect = stage.getBoundingClientRect();
+        const stageMeasuredHeight = Math.floor(gameRect.height);
+        const fallbackHeight = Math.floor((gameArea?.clientHeight || window.innerHeight || 760)
+            - (gameArea?.querySelector('.exercise-instruction')?.offsetHeight || 0) - 32);
+        const availableHeight = Math.max(240, stageMeasuredHeight > 180 ? stageMeasuredHeight - 10 : fallbackHeight);
+        const mobileNow = stageWidth <= 700;
+        const lateral = stageWidth >= 850;
+        const lateralGap = lateral ? 12 : 0;
+        // 14-18% per lato, ma mai lasciare colonne larghissime vuote.
+        const sideColumnWidth = lateral ? Math.max(145, Math.min(195, Math.round(stageWidth * .175))) : 0;
+        const centerBudgetW = lateral ? stageWidth - 2 * sideColumnWidth - 2 * lateralGap : stageWidth - 12;
+        const centerBudgetH = Math.max(240, availableHeight - (lateral ? 6 : 0));
+        const sideTileHeight = lateral ? Math.max(72, Math.min(96, Math.round(availableHeight / Math.max(5, Math.ceil(dominoTileCount / 2)) - 8))) : 0;
+        const minReadable = mobileNow ? .76 : .84;
+        const maxScale = dominoSettings.autoFit ? 1.85 : 1;
+        let bestRun = mobileNow ? 1 : 3;
+        let bestScale = minReadable;
+        let bestScore = -Infinity;
+        const maxRun = Math.min(dominoTileCount, mobileNow ? 3 : 6);
+        for (let run=(mobileNow ? 1 : 2); run<=maxRun; run++) {
+            const base = buildDominoOpenSnake(dominoTileCount, mobileNow, 1, run, 1);
+            const fitScale = Math.min(maxScale, centerBudgetW / base.width, centerBudgetH / base.height);
+            // La leggibilita' prevale sul vincolo "no scroll" su schermi piccoli.
+            const candidate = Math.max(minReadable, fitScale);
+            const fitsWidth = base.width * minReadable <= centerBudgetW;
+            const fit = fitScale >= minReadable;
+            const score = (fit ? 200 : 0) + (fitsWidth ? 100 : 0) + Math.min(fitScale, maxScale)
+                + (base.width * Math.min(fitScale, maxScale) / centerBudgetW) * .03;
+            if (score > bestScore) { bestScore=score; bestRun=run; bestScale=candidate; }
         }
+        dominoScale = bestScale;
+        const desktopRun = mobileNow ? 3 : bestRun;
+        const mobileRun = mobileNow ? bestRun : 2;
+        // Le tessere nel pool hanno una dimensione indipendente dalla scala
+        // della serpentina; altrimenti diventano minuscole sulle colonne laterali.
+        const poolTileWidth = lateral ? sideColumnWidth - 12 : Math.min(190, Math.max(128, Math.round(stageWidth * .39)));
+        const poolTileHeight = lateral ? sideTileHeight : Math.max(68, Math.min(90, Math.round(poolTileWidth * .49)));
+        const poolFontSize = Math.max(11, Math.min(16, Math.round(poolTileWidth / 11)));
         const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false, dominoScale, desktopRun, 1);
         const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true, dominoScale, mobileRun, 1);
         const desktopPath = desktopCircuit.path;
@@ -2021,7 +2030,7 @@ function loadStep(idx) {
         const desktopConnectorSvg = buildConnectorSvg(desktopPath, desktopGeo, false);
         const mobileConnectorSvg = buildConnectorSvg(mobilePath, mobileGeo, true);
         const dominoEffectiveFont = Math.max(10, dominoSettings.fontSize * dominoScale);
-        let dominoChainHtml = `<div class="domino-chain" id="domino-board" style="--domino-scale:${dominoScale}; --domino-effective-font:${dominoEffectiveFont}px; --d-h-w:${205*dominoScale}px; --d-h-h:${94*dominoScale}px; --d-v-w:${108*dominoScale}px; --d-v-h:${140*dominoScale}px; --m-h-w:${140*dominoScale}px; --m-h-h:${76*dominoScale}px; --m-v-w:${88*dominoScale}px; --m-v-h:${122*dominoScale}px; --d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
+        let dominoChainHtml = `<div class="domino-chain${mobileNow ? ' domino-mobile' : ''}" id="domino-board" style="--domino-scale:${dominoScale}; --domino-effective-font:${dominoEffectiveFont}px; --d-h-w:${205*dominoScale}px; --d-h-h:${94*dominoScale}px; --d-v-w:${108*dominoScale}px; --d-v-h:${140*dominoScale}px; --m-h-w:${140*dominoScale}px; --m-h-h:${76*dominoScale}px; --m-v-w:${88*dominoScale}px; --m-v-h:${122*dominoScale}px; --d-board-w:${desktopGeo.width}px; --d-board-h:${desktopGeo.height}px; --m-board-w:${mobileGeo.width}px; --m-board-h:${mobileGeo.height}px;">${desktopConnectorSvg}${mobileConnectorSvg}`;
 
         for (let i = 0; i < dominoTileCount; i++) {
             const d = desktopPath[i];
@@ -2051,9 +2060,9 @@ function loadStep(idx) {
         stage.insertAdjacentHTML('beforeend', `<div class="domino-board-wrap w-full flex justify-center px-1 md:px-4">${dominoChainHtml}</div>`);
         pool.classList.add('domino-pool');
         pool.style.setProperty('--domino-scale', dominoScale);
-        pool.style.setProperty('--domino-effective-font', `${dominoEffectiveFont}px`);
-        pool.style.setProperty('--pool-domino-w', `${(mobileNow ? 160 : 205)*dominoScale}px`);
-        pool.style.setProperty('--pool-domino-h', `${(mobileNow ? 76 : 94)*dominoScale}px`);
+        pool.style.setProperty('--domino-effective-font', `${poolFontSize}px`);
+        pool.style.setProperty('--pool-domino-w', `${poolTileWidth}px`);
+        pool.style.setProperty('--pool-domino-h', `${poolTileHeight}px`);
 
         // Nel pool restano le tessere dalla seconda parola in poi, piu' la tessera terminale.
         const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i]}));
@@ -2383,7 +2392,7 @@ const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
     if (!content || !pool) return;
     content.style.zoom = '';
     pool.style.zoom = '';
-    if (stage.querySelector('.domino-side-layout')) { stage.style.overflowY = stage.scrollHeight > stage.clientHeight + 5 ? 'auto' : 'hidden'; return; }
+    if (content.classList.contains('domino-stage') || stage.querySelector('.domino-side-layout') || (typeof getCurrentType === 'function' && getCurrentType() === 'domino')) { content.style.zoom = '1'; pool.style.zoom = '1'; stage.style.overflowY = stage.scrollHeight > stage.clientHeight + 5 ? 'auto' : 'hidden'; return; }
     // Allow layout to settle, then scale oversized exercise content together.
     const instruction = stage.querySelector('.exercise-instruction');
     const available = stage.clientHeight - (instruction ? instruction.offsetHeight : 0) - 16;
@@ -2733,21 +2742,39 @@ function setPreviewMode(mode) {
     if (getCurrentType() === 'domino') loadStep(curStep);
 }
 
-// Recalculate Domino geometry when the player or LMS iframe changes width.
+// Rebuild Domino only when the usable container size changes, keeping completed drops.
 (() => {
-  let lastWidth = 0, scheduled = false;
-  const refresh = () => {
+  let lastKey = '', scheduled = false;
+  function refresh() {
     scheduled = false;
     const stage = document.getElementById('main-content');
-    if (!stage || !stage.querySelector('.domino-side-layout')) return;
-    const width = Math.round(stage.getBoundingClientRect().width);
-    if (Math.abs(width - lastWidth) < 8) return;
-    lastWidth = width;
-    if (typeof loadStep === 'function' && typeof curStep !== 'undefined') loadStep(curStep);
-  };
-  const schedule = () => { if (!scheduled) { scheduled = true; requestAnimationFrame(refresh); } };
-  window.addEventListener('resize', schedule, {passive:true});
-  window.addEventListener('orientationchange', schedule, {passive:true});
+    if (!stage || !stage.querySelector('.domino-side-layout') || getCurrentType() !== 'domino') return;
+    const rect = stage.getBoundingClientRect();
+    const key = `${Math.round(rect.width / 8)}:${Math.round(rect.height / 30)}`;
+    if (!lastKey) { lastKey = key; return; }
+    if (key === lastKey) return;
+    lastKey = key;
+    const solved = Array.from(stage.querySelectorAll('.drop-target')).filter(t =>
+      t.querySelector('.domino-tile')).map(t => t.dataset.expected);
+    loadStep(curStep);
+    const pool = document.getElementById('pool');
+    solved.forEach(word => {
+      const target = Array.from(stage.querySelectorAll('.drop-target')).find(t => t.dataset.expected === word);
+      const tile = Array.from(pool?.children || []).find(t => t.dataset.word === word);
+      if (!target || !tile) return;
+      tile.classList.remove('domino-pool-tile','domino-finish-tile','shadow-lg','hover:shadow-xl','transition','cursor-grab');
+      tile.classList.add('domino-placed');
+      tile.style.setProperty('box-shadow','0 4px 0 var(--domino-accent, var(--hfle-blue)), 0 8px 14px rgba(0,0,0,.10)','important');
+      tile.style.cursor='default';
+      target.appendChild(tile);
+      target.style.border='none';
+      target.style.backgroundColor='transparent';
+    });
+    requestAnimationFrame(() => fitDominoTileText(stage));
+  }
+  const schedule = () => { if (!scheduled) { scheduled=true; requestAnimationFrame(refresh); } };
+  window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('orientationchange',schedule,{passive:true});
   if (typeof ResizeObserver !== 'undefined') {
     const stage = document.getElementById('main-content');
     if (stage) new ResizeObserver(schedule).observe(stage);
