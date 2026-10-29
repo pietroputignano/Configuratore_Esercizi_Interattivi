@@ -1661,14 +1661,15 @@ function loadStep(idx) {
         if (resConsigne && conInput) resConsigne.innerText = conInput.value.trim() !== '' ? conInput.value : conInput.placeholder;
     }
     
+    // Restore the pool to its permanent position BEFORE clearing the stage.
+    // In Domino the pool is temporarily moved inside the stage; clearing first
+    // detached it from the document and made the board and side tiles disappear.
+    if (pool.closest('.domino-side-layout') || pool.parentElement !== stage.parentElement) {
+        stage.parentElement.insertBefore(pool, stage.nextSibling);
+    }
     stage.innerHTML = '';
     pool.innerHTML = '';
     stage.classList.remove('domino-stage');
-    if (pool.closest('.domino-side-layout')) {
-        const layout = pool.closest('.domino-side-layout');
-        layout.parentNode.insertBefore(pool, layout.nextSibling);
-        layout.remove();
-    }
     pool.classList.remove('domino-pool');
     pool.style.removeProperty('--domino-scale');
    if(type === 'crossword') {
