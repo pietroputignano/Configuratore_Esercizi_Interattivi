@@ -1080,3 +1080,28 @@ html,body { max-width:100%; }
 /* Mapper: remove a mistakenly created zone without reloading */
 .mapper-zone .mapper-delete { position:absolute; top:-11px; right:-11px; z-index:30; width:23px; height:23px; border-radius:50%; background:#dc2626; color:white; font-size:19px; font-weight:700; line-height:20px; text-align:center; border:2px solid white; cursor:pointer; box-shadow:0 1px 5px #0003; }
 .mapper-zone .mapper-delete:hover { background:#991b1b; }
+
+/* Anteprima a larghezza controllata: non altera il player esportato. */
+.preview-column { align-items:stretch; }
+.preview-mode-toolbar { display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; font:700 12px 'Source Sans Pro',sans-serif; color:#334155; }
+.preview-mode-toolbar button { border:1px solid #cbd5e1; border-radius:999px; background:white; padding:6px 14px; }
+.preview-mode-toolbar button.active { background:#2753f4; color:white; border-color:#2753f4; }
+#exercise-preview { width:100%; align-self:center; transition:max-width .2s ease; }
+#exercise-preview[data-preview-mode="tablet"] { max-width:820px; }
+#exercise-preview[data-preview-mode="mobile"] { max-width:390px; }
+#exercise-preview[data-preview-mode="mobile"] .header-wrapper { flex-wrap:wrap; gap:10px; padding:12px; }
+#exercise-preview[data-preview-mode="mobile"] .header-wrapper #res-titre { font-size:19px; }
+#exercise-preview[data-preview-mode="mobile"] .exercise-stage { padding:12px; }
+#exercise-preview[data-preview-mode="mobile"] .exercise-instruction { padding:6px 10px; margin-bottom:12px; }
+#exercise-preview[data-preview-mode="mobile"] .exercise-instruction button { width:30px; height:30px; font-size:15px; }
+#exercise-preview[data-preview-mode="mobile"] #res-consigne { font-size:12px; }
+/* Domino: colonne reali riservate ai due gruppi di tessere. */
+.domino-side-layout { grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width,420px)) minmax(0,1fr) !important; width:100%; }
+.domino-side-layout > .domino-pool { grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width,420px)) minmax(0,1fr) !important; }
+.domino-side-layout > .domino-board-wrap { width:100% !important; justify-content:center; }
+.domino-side-layout > .domino-pool > .domino-tile { width:min(100%,var(--pool-domino-w,205px)) !important; box-sizing:border-box; }
+/* Nelle anteprime strette il pool passa sopra, senza sovrapporsi al circuito. */
+.domino-side-layout.domino-narrow { display:flex !important; flex-direction:column; align-items:center; gap:10px; }
+.domino-side-layout.domino-narrow > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
+.domino-side-layout.domino-narrow > .domino-board-wrap { order:1; width:100% !important; }
+@media (max-width:900px) { .domino-side-layout { display:flex !important; flex-direction:column; align-items:center; } .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; } .domino-side-layout > .domino-board-wrap { order:1; } }
