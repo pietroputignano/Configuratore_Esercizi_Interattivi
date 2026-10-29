@@ -1105,3 +1105,11 @@ html,body { max-width:100%; }
 .domino-side-layout.domino-narrow > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
 .domino-side-layout.domino-narrow > .domino-board-wrap { order:1; width:100% !important; }
 @media (max-width:900px) { .domino-side-layout { display:flex !important; flex-direction:column; align-items:center; } .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; } .domino-side-layout > .domino-board-wrap { order:1; } }
+
+/* Phrase-rebus: audio controls between instruction and image pool, above both pool and answers. */
+.exercise-stage:has(.phrase-multi-stage) > .phrase-multi-audio-controls {
+  order: 0; margin: 0 auto 8px; flex-shrink: 0;
+}
+.exercise-stage:has(.phrase-multi-stage) > #pool { order: 1; margin-bottom: 8px; }
+.exercise-stage:has(.phrase-multi-stage) > #main-content { order: 2; }
+.exercise-stage:has(.phrase-multi-stage) > .exercise-instruction { order: -1; }
