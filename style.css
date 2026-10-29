@@ -1158,3 +1158,60 @@ html,body { max-width:100%; }
 .domino-chain.domino-mobile .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction:column-reverse !important; }
 .domino-chain.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-img { width:100% !important; flex-basis:auto !important; height:40% !important; }
 .domino-chain.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-text { width:100% !important; flex-basis:auto !important; height:60% !important; }
+
+
+/* Phrase-rébus, tipologia 2 (testo unico + immagini): testo più compatto,
+   zone corrette bloccate e soluzioni ricostruite integralmente. */
+.phrase-multi-sheet { gap: 10px; padding: 16px 18px; }
+.phrase-multi-row {
+  font-size: clamp(14px, 1.35vw, 18px);
+  line-height: 1.75;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.phrase-multi-target[data-done="1"] {
+  cursor: default;
+  border-style: solid;
+  border-color: #8dc549;
+}
+.phrase-multi-drop-label { font-size: .9em; font-weight: 800; }
+.phrase-multi-solution-sheet {
+  width: 100%;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  text-align: left;
+}
+.phrase-multi-solution-row {
+  color: #1e3a8a;
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(14px, 1.35vw, 18px);
+  font-weight: 800;
+  line-height: 1.75;
+  white-space: pre-line;
+  margin-bottom: 12px;
+}
+.phrase-multi-solution-row:last-child { margin-bottom: 0; }
+.phrase-multi-solution-answer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  min-width: 66px;
+  min-height: 48px;
+  margin: 2px 4px;
+  padding: 3px 5px;
+  background: #f0fdf4;
+  border: 2px solid #8dc549;
+  border-radius: 10px;
+}
+.phrase-multi-solution-img { width: 76px; height: 50px; object-fit: contain; display: block; }
+.phrase-multi-solution-label { font-size: .85em; }
+@media (max-width: 640px) {
+  .phrase-multi-sheet { padding: 12px; gap: 8px; }
+  .phrase-multi-row { font-size: 14px; line-height: 1.8; }
+  .phrase-multi-solution-sheet { padding: 10px; }
+  .phrase-multi-solution-row { font-size: 14px; line-height: 1.8; }
+  .phrase-multi-solution-img { width: 60px; height: 44px; }
+}
