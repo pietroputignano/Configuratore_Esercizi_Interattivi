@@ -284,8 +284,16 @@
             <button onclick="exportToZIP()" class="w-full mt-3 bg-green-600 text-white py-4 rounded-xl font-black text-sm shadow-xl hover:bg-green-700 transition transform hover:-translate-y-1">📦 ESPORTA SCORM 2004</button>
         </div>
 
+        <!-- MODALITA DI ANTEPRIMA: solo configuratore -->
+        <div class="preview-column xl:w-2/3 min-w-0 flex flex-col gap-2">
+          <div class="preview-mode-toolbar" role="group" aria-label="Dimensione anteprima">
+            <span>ANTEPRIMA</span>
+            <button type="button" class="active" data-preview-mode="desktop" onclick="setPreviewMode('desktop')">Desktop</button>
+            <button type="button" data-preview-mode="tablet" onclick="setPreviewMode('tablet')">Tablet</button>
+            <button type="button" data-preview-mode="mobile" onclick="setPreviewMode('mobile')">Mobile</button>
+          </div>
         <!-- PANNELLO DI DESTRA (ANTEPRIMA GIOCO) -->
-        <div class="xl:w-2/3 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
+        <div id="exercise-preview" class="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[750px] relative border border-gray-200">
             
             <!-- SCHERMATA REPORT FINALE -->
             <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
@@ -342,6 +350,7 @@
             <!-- NAVIGATORE IN BASSO -->
             <div id="nav-step" class="striped-footer flex justify-center gap-3 flex-wrap mt-auto"></div>
         </div>
+        </div><!-- /preview-column -->
     </div>
 
     <!-- HIDDEN INPUTS -->
