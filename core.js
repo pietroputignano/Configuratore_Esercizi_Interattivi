@@ -1950,7 +1950,7 @@ function loadStep(idx) {
         }
 
         const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
-        const viewportW = window.innerWidth || document.documentElement.clientWidth || 900;
+        const viewportW = isPlayerMode() ? (window.innerWidth || 900) : (document.getElementById("exercise-preview")?.clientWidth || window.innerWidth || 900);
         const mobileNow = viewportW <= 700;
         const availableWidth = Math.max(270, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 16);
 
@@ -2078,6 +2078,8 @@ function loadStep(idx) {
         if (boardWrap && pool.parentElement !== boardWrap.parentElement) {
             const layout = document.createElement('div');
             layout.className = 'domino-side-layout';
+            layout.style.setProperty('--domino-center-width', `${Math.ceil(mobileNow ? mobileGeo.width : desktopGeo.width)}px`);
+            layout.classList.toggle('domino-narrow', mobileNow);
             boardWrap.parentNode.insertBefore(layout, boardWrap);
             layout.appendChild(boardWrap);
             layout.appendChild(pool);
@@ -2717,4 +2719,18 @@ async function exportToZIP() {
     const safeName = rawName.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_');
     const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
     saveAs(blob, `${safeName}_SCORM2004.zip`);
+}
+
+// Il selettore agisce soltanto nell'editor; non viene incluso nel player SCORM.
+function setPreviewMode(mode) {
+    if (isPlayerMode()) return;
+    if (!['desktop','tablet','mobile'].includes(mode)) return;
+    const panel = document.getElementById('exercise-preview');
+    if (!panel) return;
+    panel.dataset.previewMode = mode;
+    document.querySelectorAll('[data-preview-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.previewMode === mode);
+        btn.setAttribute('aria-pressed', String(btn.dataset.previewMode === mode));
+    });
+    if (getCurrentType() === 'domino') loadStep(curStep);
 }
