@@ -1297,6 +1297,9 @@ function buildCrosswordSolutionHtml() {
 
 function calculateScore(type) {
     const errs = errorTracker.reduce((a, b) => a + b, 0);
+    if (type === 'phrase_rebus' && getPhraseLevelData().layout === 'multi') {
+        return Math.max(0, Math.round((status[0] === 'completed' ? 100 : 0) - errs * 5));
+    }
     const stepBasedTypes = ['sentence_ordering', 'anagramme', 'rebus', 'phrase_rebus'];
 
     if (stepBasedTypes.includes(type)) {
@@ -1329,7 +1332,7 @@ function showEndScreen() {
         });
     }
 
-    const solutionsMaxHeightClass = type === 'sentence_ordering' ? 'max-h-[430px]' : 'max-h-48';
+    const solutionsMaxHeightClass = type === 'sentence_ordering' ? 'max-h-[430px]' : (type === 'phrase_rebus' && getPhraseLevelData().layout === 'multi' ? 'max-h-[65vh]' : 'max-h-48');
     let answersHtml = `<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 ${solutionsMaxHeightClass} overflow-y-auto custom-scrollbar">`;
     if (type === 'crossword') {
         answersHtml += `<li class="list-none">${buildCrosswordSolutionHtml()}</li>`;
@@ -1376,15 +1379,39 @@ function showEndScreen() {
         answersHtml += '</div></li>';
     } else if (type === 'phrase_rebus') {
         const data = getPhraseLevelData();
-        answersHtml += '<li class="list-none"><div class="phrase-rebus-solutions">';
-        (data.items || []).forEach(it => {
-            const main = phraseAsset(it.mainImageKey);
-            const correctChoice = it.choices?.find(c=>c.correct) || it.choices?.[0];
-            const answerImg = data.mode === 'image' && correctChoice ? phraseAsset(correctChoice.imageKey) : '';
-            const visual = main ? `<img src="${main}" alt="" class="phrase-rebus-solution-main">` : (answerImg ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-main">` : '<div class="phrase-rebus-solution-placeholder">📷</div>');
-            answersHtml += `<div class="phrase-rebus-solution-card"><div class="phrase-rebus-solution-visual">${visual}</div><div class="phrase-rebus-solution-text">${phraseSafe(phraseCompletedSentence(it))}</div>${answerImg && main ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-answer">` : ''}</div>`;
-        });
-        answersHtml += '</div></li>';
+        if (data.layout === 'multi') {
+            // Ricostruisce TUTTI i blocchi, conservando righe e immagini dentro ogni spazio.
+            answersHtml += '<li class="list-none"><div class="phrase-multi-solution-sheet">';
+            (data.items || []).forEach(it => {
+                phraseEnsureMulti(it);
+                let answerIndex=0;
+                const parts=phraseSafe(it.sentence||'').split('...');
+                let row='';
+                parts.forEach((part,i)=>{
+                    row+=part;
+                    if(i<parts.length-1){
+                        const answer=String(it.answers?.[answerIndex++]||'').trim();
+                        const choice=(data.pool||[]).find(c=>phraseMultiNormalize(c.label)===phraseMultiNormalize(answer));
+                        const src=choice?phraseAsset(choice.imageKey):'';
+                        row+=`<span class="phrase-multi-solution-answer">${src
+                            ? `<img src="${phraseSafe(src)}" alt="${phraseSafe(answer)}" title="${phraseSafe(answer)}" class="phrase-multi-solution-img">`
+                            : `<span class="phrase-multi-solution-label">${phraseSafe(answer||'—')}</span>`}</span>`;
+                    }
+                });
+                answersHtml+=`<div class="phrase-multi-solution-row">${row}</div>`;
+            });
+            answersHtml+='</div></li>';
+        } else {
+            answersHtml += '<li class="list-none"><div class="phrase-rebus-solutions">';
+            (data.items || []).forEach(it => {
+                const main = phraseAsset(it.mainImageKey);
+                const correctChoice = it.choices?.find(c=>c.correct) || it.choices?.[0];
+                const answerImg = data.mode === 'image' && correctChoice ? phraseAsset(correctChoice.imageKey) : '';
+                const visual = main ? `<img src="${main}" alt="" class="phrase-rebus-solution-main">` : (answerImg ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-main">` : '<div class="phrase-rebus-solution-placeholder">📷</div>');
+                answersHtml += `<div class="phrase-rebus-solution-card"><div class="phrase-rebus-solution-visual">${visual}</div><div class="phrase-rebus-solution-text">${phraseSafe(phraseCompletedSentence(it))}</div>${answerImg && main ? `<img src="${answerImg}" alt="" class="phrase-rebus-solution-answer">` : ''}</div>`;
+            });
+            answersHtml += '</div></li>';
+        }
     } else if (type === 'anagramme') {
         answersHtml += '<li class="list-none"><div class="anagram-solutions custom-scrollbar">';
         items.forEach(it => {
@@ -1612,40 +1639,107 @@ function checkOrder(mode) {
 
 
 function phraseMultiExpected(data){ return (data.items||[]).flatMap(it=>{phraseEnsureMulti(it); return it.answers||[];}).map(x=>String(x||'').trim()).filter(Boolean); }
+// Una risposta corretta e' definitiva: non e' possibile rimuoverla o sostituirla.
 function phraseMultiSetTargetVisual(target, value, src){
-    target.innerHTML = src ? `<img src="${src}" alt="" class="phrase-multi-drop-img">` : '';
+    if (target.dataset.done === '1') return false;
+    target.innerHTML = src
+        ? `<img src="${phraseSafe(src)}" alt="${phraseSafe(value)}" class="phrase-multi-drop-img">`
+        : `<span class="phrase-multi-drop-label">${phraseSafe(value)}</span>`;
     target.dataset.value = value;
+    target.dataset.done = '1';
+    target.setAttribute('aria-label', `Réponse correcte : ${value}`);
     target.classList.add('phrase-rebus-target-solved');
-    target.dataset.done='1';
+    return true;
+}
+function phraseMultiNormalize(value){ return String(value || '').trim().toLocaleLowerCase('fr'); }
+let phraseMultiFinishTimer = null;
+function phraseMultiHandleChoice(target, value, src, data){
+    if (!target || target.dataset.done === '1') return false;
+    if (phraseMultiNormalize(value) !== phraseMultiNormalize(target.dataset.answer)) {
+        playSound('global_ko');
+        target.classList.add('shake-error');
+        setTimeout(()=>target.classList.remove('shake-error'),450);
+        if (errorTracker.length) errorTracker[0] = (errorTracker[0] || 0) + 1;
+        return false;
+    }
+    phraseMultiSetTargetVisual(target, value, src);
+    playSound('global_ok');
+    phraseCheckMultiComplete(data);
+    return true;
 }
 function setupPhraseMultiDnD(data){
     const pool=document.getElementById('pool'); if(!pool)return;
     createSortable(pool,{group:{name:'phrase-multi',pull:'clone',put:false},sort:false,animation:150,onStart:()=>playSound('drag')});
     document.querySelectorAll('.phrase-multi-target').forEach(t=>{
-      createSortable(t,{group:{name:'phrase-multi',put:true},sort:false,animation:150,onAdd:e=>{ const el=e.item; const val=el.dataset.value||''; const exp=t.dataset.answer||''; const src=el.dataset.src||el.querySelector('img')?.src||''; if(val.toLowerCase()===exp.toLowerCase()){phraseMultiSetTargetVisual(t,val,src);playSound('global_ok');}else{playSound('global_ko');t.classList.add('shake-error');setTimeout(()=>t.classList.remove('shake-error'),450);} try{el.remove()}catch(_){ } phraseCheckMultiComplete(data); }});
+        createSortable(t,{
+            group:{name:'phrase-multi',put:()=>t.dataset.done !== '1'},
+            sort:false,animation:150,
+            onAdd:e=>{
+                const el=e.item;
+                const value=el.dataset.value||'';
+                const src=el.dataset.src||el.querySelector('img')?.src||'';
+                // Rimuove solo il clone trascinato; la risposta corretta e' resa permanente.
+                try{el.remove()}catch(_){}
+                phraseMultiHandleChoice(t,value,src,data);
+            }
+        });
     });
-    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{ const empty=[...document.querySelectorAll('.phrase-multi-target')].find(t=>t.dataset.done!=='1'); if(!empty)return; const val=el.dataset.value||''; const src=el.dataset.src||el.querySelector('img')?.src||''; if(val.toLowerCase()===(empty.dataset.answer||'').toLowerCase()){phraseMultiSetTargetVisual(empty,val,src);playSound('global_ok');phraseCheckMultiComplete(data);}else{playSound('global_ko');} }));
+    pool.querySelectorAll('.phrase-rebus-choice').forEach(el=>el.addEventListener('click',()=>{
+        const empty=[...document.querySelectorAll('.phrase-multi-target')].find(t=>t.dataset.done!=='1');
+        if(!empty)return;
+        phraseMultiHandleChoice(empty,el.dataset.value||'',el.dataset.src||el.querySelector('img')?.src||'',data);
+    }));
 }
-function phraseCheckMultiComplete(data){ const ts=[...document.querySelectorAll('.phrase-multi-target')]; if(ts.length&&ts.every(t=>t.dataset.done==='1')){status[0]='completed';renderNav();const b=document.getElementById('phrase-multi-finish');if(b)b.classList.remove('hidden');if(isPlayerMode()&&window.BSMART_SCORM)window.BSMART_SCORM.saveState({level:curLvl,step:0,status,errorTracker});} }
-function finishPhraseMulti(){ if(status[0]==='completed') showEndScreen(); }
+function phraseCheckMultiComplete(data){
+    const targets=[...document.querySelectorAll('.phrase-multi-target')];
+    if(!targets.length || !targets.every(t=>t.dataset.done==='1') || status[0]==='completed') return;
+    status[0]='completed';
+    renderNav();
+    if(isPlayerMode()&&window.BSMART_SCORM)window.BSMART_SCORM.saveState({level:curLvl,step:0,status,errorTracker});
+    // L'ultima tessera conclude l'esercizio: nessun pulsante di verifica o conferma.
+    const completedLevel=curLvl;
+    clearTimeout(phraseMultiFinishTimer);
+    phraseMultiFinishTimer=setTimeout(()=>{
+        phraseMultiFinishTimer=null;
+        if(curLvl===completedLevel && getCurrentType()==='phrase_rebus' && getPhraseLevelData().layout==='multi' && status[0]==='completed') showEndScreen();
+    },450);
+}
 function renderPhraseMulti(data,stage,pool){
     data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
-    const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
+    const rows=(data.items||[]).map(it=>{
+        phraseEnsureMulti(it);
+        let k=0;
+        const parts=phraseSafe(it.sentence||'').split('...');
+        let html='';
+        parts.forEach((part,i)=>{
+            html+=part;
+            if(i<parts.length-1){
+                const answer=String(it.answers?.[k++]||'').trim();
+                html+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(answer)}" aria-label="Zone de réponse"></span>`;
+            }
+        });
+        return `<div class="phrase-multi-row">${html}</div>`;
+    }).join('');
     const audioControls=`<div class="phrase-multi-audio-controls"><button id="phrase-multi-audio-main" type="button" onclick="togglePhraseMultiAudio()" class="phrase-rebus-audio-btn phrase-multi-audio-main" aria-label="Écouter" title="Écouter"><span class="phrase-audio-icon">▶</span><span>ÉCOUTE</span></button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-restart" title="Recommencer depuis le début" aria-label="Recommencer depuis le début">↺</button></div>`;
-    // Keep audio controls above the image pool, not inside the answer sheet.
-    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
-    stage.insertAdjacentHTML("beforebegin", audioControls);
+    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div></div>`;
+    stage.insertAdjacentHTML('beforebegin',audioControls);
     updatePhraseMultiAudioUI();
-    const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
-    pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${c.src}"><img src="${c.src}" alt="" class="phrase-rebus-choice-img"></button>`).join('');
-    if(!choices.length) pool.innerHTML='<p class="text-gray-400 text-sm font-bold">Carica i visual nel pool dal configuratore.</p>';
+    const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>({value:String(c.label||'').trim(),src:phraseAsset(c.imageKey)})).sort(()=>Math.random()-.5);
+    pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${phraseSafe(c.src)}"><img src="${phraseSafe(c.src)}" alt="${phraseSafe(c.value)}" class="phrase-rebus-choice-img"></button>`).join('');
+    if(!choices.length)pool.innerHTML='<p class="text-gray-400 text-sm font-bold">Carica i visual nel pool dal configuratore.</p>';
     if(status[0]==='completed'){
-        document.querySelectorAll('.phrase-multi-target').forEach(t=>{const c=(data.pool||[]).find(x=>String(x.label||'').trim().toLowerCase()===(t.dataset.answer||'').toLowerCase());const src=c?phraseAsset(c.imageKey):'';phraseMultiSetTargetVisual(t,t.dataset.answer||'',src)});
-        document.getElementById('phrase-multi-finish')?.classList.remove('hidden');
-    } else setupPhraseMultiDnD(data);
+        document.querySelectorAll('.phrase-multi-target').forEach(t=>{
+            const c=(data.pool||[]).find(x=>phraseMultiNormalize(x.label)===phraseMultiNormalize(t.dataset.answer));
+            phraseMultiSetTargetVisual(t,t.dataset.answer||'',c?phraseAsset(c.imageKey):'');
+        });
+        // Se l'LMS ripristina una sessione completata, mostra il risultato senza richiedere un clic.
+        setTimeout(()=>{if(status[0]==='completed' && getCurrentType()==='phrase_rebus' && getPhraseLevelData().layout==='multi')showEndScreen();},0);
+    }else setupPhraseMultiDnD(data);
 }
 
 function loadStep(idx) {
+    clearTimeout(phraseMultiFinishTimer);
+    phraseMultiFinishTimer = null;
     phraseStopMultiPlayback();
     destroyActiveSortables();
     curStep = idx; renderNav();
