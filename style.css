@@ -1113,3 +1113,9 @@ html,body { max-width:100%; }
 .exercise-stage:has(.phrase-multi-stage) > #pool { order: 1; margin-bottom: 8px; }
 .exercise-stage:has(.phrase-multi-stage) > #main-content { order: 2; }
 .exercise-stage:has(.phrase-multi-stage) > .exercise-instruction { order: -1; }
+
+/* Keep a stable three-column domino on sufficiently wide actual activity areas. */
+@media (min-width:901px) {
+  .domino-side-layout:not(.domino-narrow) { display:grid !important; }
+}
+.domino-side-layout:not(.domino-narrow) > .domino-pool { align-content:start; }
