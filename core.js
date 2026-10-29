@@ -1632,7 +1632,9 @@ function renderPhraseMulti(data,stage,pool){
     data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
     const rows=(data.items||[]).map((it,ri)=>{phraseEnsureMulti(it); let k=0; const parts=phraseSafe(it.sentence||'').split('...'); let h=''; parts.forEach((part,i)=>{h+=part;if(i<parts.length-1){const ans=String(it.answers?.[k++]||'').trim();h+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(ans)}" aria-label="Zone de réponse"></span>`;}});return `<div class="phrase-multi-row">${h}</div>`;}).join('');
     const audioControls=`<div class="phrase-multi-audio-controls"><button id="phrase-multi-audio-main" type="button" onclick="togglePhraseMultiAudio()" class="phrase-rebus-audio-btn phrase-multi-audio-main" aria-label="Écouter" title="Écouter"><span class="phrase-audio-icon">▶</span><span>ÉCOUTE</span></button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-restart" title="Recommencer depuis le début" aria-label="Recommencer depuis le début">↺</button></div>`;
-    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage">${audioControls}<div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    // Keep audio controls above the image pool, not inside the answer sheet.
+    stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div><button id="phrase-multi-finish" type="button" onclick="finishPhraseMulti()" class="hidden phrase-rebus-continue">Voir les solutions</button></div>`;
+    stage.insertAdjacentHTML("beforebegin", audioControls);
     updatePhraseMultiAudioUI();
     const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>{const v=String(c.label||'').trim();const src=phraseAsset(c.imageKey);return {value:v,src};}).sort(()=>Math.random()-.5);
     pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${c.src}"><img src="${c.src}" alt="" class="phrase-rebus-choice-img"></button>`).join('');
@@ -1667,6 +1669,8 @@ function loadStep(idx) {
     if (pool.closest('.domino-side-layout') || pool.parentElement !== stage.parentElement) {
         stage.parentElement.insertBefore(pool, stage.nextSibling);
     }
+    // Remove audio controls from a previous Phrase-rebus render before rebuilding.
+    document.querySelectorAll('.phrase-multi-audio-controls').forEach(el => el.remove());
     stage.innerHTML = '';
     pool.innerHTML = '';
     stage.classList.remove('domino-stage');
@@ -1955,7 +1959,7 @@ function loadStep(idx) {
         const availableWidth = Math.max(270, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 16);
 
         // Geometria adattiva: 4/3/2 tessere per riga in base allo spazio reale disponibile.
-        const desktopRun = availableWidth >= 980 ? 4 : (availableWidth >= 700 ? 3 : 2);
+        const desktopRun = availableWidth >= 1050 ? 3 : (availableWidth >= 700 ? 3 : 2);
         const mobileRun = availableWidth >= 520 ? 3 : 2;
         const currentRun = mobileNow ? mobileRun : desktopRun;
         const currentVerticalRun = 1;
@@ -1966,31 +1970,26 @@ function loadStep(idx) {
             const stageTop = Math.max(0, stage?.getBoundingClientRect?.().top || 0);
             const bottomSafety = 18;
             const activityBudgetH = Math.max(300, viewportH - stageTop - bottomSafety);
-            const poolCount = Math.max(1, items.length);
-
+            // Nel layout laterale il pool NON si somma all'altezza del percorso.
+            // Riserviamo una quota reale di larghezza per le tessere ai due lati.
+            const centerBudgetW = mobileNow ? availableWidth : Math.max(320, availableWidth - Math.min(420, availableWidth * 0.34));
             const fitsAt = (scale) => {
                 const circuit = buildDominoOpenSnake(dominoTileCount, mobileNow, scale, currentRun, currentVerticalRun);
-                const poolW = (mobileNow ? 160 : 205) * scale;
-                const poolH = (mobileNow ? 76 : 94) * scale;
-                const poolGap = Math.max(6, (mobileNow ? 8 : 10) * scale);
-                const cols = Math.max(1, Math.floor((availableWidth + poolGap) / (poolW + poolGap)));
-                const rows = Math.max(1, Math.ceil(poolCount / cols));
-                const poolBlockH = rows * poolH + Math.max(0, rows - 1) * poolGap + 12;
-                const totalH = circuit.height + poolBlockH + 18;
-                return circuit.width <= availableWidth + 1 && totalH <= activityBudgetH + 1;
+                return circuit.width <= centerBudgetW + 1 && circuit.height <= activityBudgetH + 1;
             };
-
-            // Ricerca della scala massima che tiene board + pool nello stesso viewport.
-            let lo = mobileNow ? 0.40 : 0.46;
+            const minimumReadable = mobileNow ? 0.58 : 0.72;
+            let lo = minimumReadable;
             let hi = 1;
             if (!fitsAt(lo)) {
-                dominoScale = lo; // limite di leggibilita': non riduciamo oltre.
+                // Preferiamo mantenere la leggibilita' e permettere un eventuale
+                // ingombro maggiore anziche' miniaturizzare l'intero esercizio.
+                dominoScale = lo;
             } else {
-                for (let i=0; i<14; i++) {
+                for (let i = 0; i < 14; i++) {
                     const mid = (lo + hi) / 2;
                     if (fitsAt(mid)) lo = mid; else hi = mid;
                 }
-                dominoScale = Math.max(mobileNow ? 0.40 : 0.46, Math.min(1, lo));
+                dominoScale = Math.min(1, lo);
             }
         }
         const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false, dominoScale, desktopRun, 1);
