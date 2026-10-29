@@ -1954,42 +1954,40 @@ function loadStep(idx) {
         }
 
         const dominoTileCount = items.length + 1; // starter + collegamenti + tessera finale
-        const viewportW = isPlayerMode() ? (window.innerWidth || 900) : (document.getElementById("exercise-preview")?.clientWidth || window.innerWidth || 900);
+        // Measure the actual activity container, not the outer browser window.
+        const preview = document.getElementById('exercise-preview');
+        const viewportW = isPlayerMode() ? (stage?.clientWidth || window.innerWidth || 900) : (preview?.clientWidth || stage?.clientWidth || 900);
         const mobileNow = viewportW <= 700;
-        const availableWidth = Math.max(270, (stage?.clientWidth || document.documentElement.clientWidth || 900) - 16);
-
-        // Geometria adattiva: 4/3/2 tessere per riga in base allo spazio reale disponibile.
-        const desktopRun = availableWidth >= 1050 ? 3 : (availableWidth >= 700 ? 3 : 2);
-        const mobileRun = availableWidth >= 520 ? 3 : 2;
-        const currentRun = mobileNow ? mobileRun : desktopRun;
+        const availableWidth = Math.max(260, stage?.clientWidth || viewportW);
+        const lateral = availableWidth >= 900;
+        const centerBudgetW = lateral ? availableWidth * .63 : availableWidth - 20;
+        const currentRun = centerBudgetW >= 740 ? 4 : (centerBudgetW >= 480 ? 3 : 2);
+        const desktopRun = currentRun;
+        const mobileRun = centerBudgetW >= 470 ? 3 : 2;
         const currentVerticalRun = 1;
 
         if (dominoSettings.autoFit) {
-            // Budget verticale reale: parte dal punto in cui inizia l'attivita', non da una stima fissa.
             const viewportH = window.innerHeight || document.documentElement.clientHeight || 760;
             const stageTop = Math.max(0, stage?.getBoundingClientRect?.().top || 0);
-            const bottomSafety = 18;
-            const activityBudgetH = Math.max(300, viewportH - stageTop - bottomSafety);
-            // Nel layout laterale il pool NON si somma all'altezza del percorso.
-            // Riserviamo una quota reale di larghezza per le tessere ai due lati.
-            const centerBudgetW = mobileNow ? availableWidth : Math.max(320, availableWidth - Math.min(420, availableWidth * 0.34));
-            const fitsAt = (scale) => {
+            const activityBudgetH = Math.max(310, viewportH - stageTop - 35);
+            const sideTiles = Math.ceil(dominoTileCount / 2);
+            const sideBudgetH = Math.max(230, activityBudgetH - 10);
+            const fitsAt = scale => {
                 const circuit = buildDominoOpenSnake(dominoTileCount, mobileNow, scale, currentRun, currentVerticalRun);
-                return circuit.width <= centerBudgetW + 1 && circuit.height <= activityBudgetH + 1;
+                const sideHeight = sideTiles * (94 * scale + 9);
+                return circuit.width <= centerBudgetW && circuit.height <= activityBudgetH && (!lateral || sideHeight <= sideBudgetH);
             };
-            const minimumReadable = mobileNow ? 0.58 : 0.72;
-            let lo = minimumReadable;
-            let hi = 1;
-            if (!fitsAt(lo)) {
-                // Preferiamo mantenere la leggibilita' e permettere un eventuale
-                // ingombro maggiore anziche' miniaturizzare l'intero esercizio.
-                dominoScale = lo;
-            } else {
-                for (let i = 0; i < 14; i++) {
+            // Do not miniaturize the domino on large screens: permit a little overflow
+            // when the available space cannot accommodate readable pieces.
+            const minReadable = mobileNow ? .66 : .80;
+            let lo = minReadable, hi = 2.0;
+            if (!fitsAt(lo)) dominoScale = lo;
+            else {
+                for (let i = 0; i < 18; i++) {
                     const mid = (lo + hi) / 2;
                     if (fitsAt(mid)) lo = mid; else hi = mid;
                 }
-                dominoScale = Math.min(1, lo);
+                dominoScale = lo;
             }
         }
         const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false, dominoScale, desktopRun, 1);
@@ -2078,7 +2076,7 @@ function loadStep(idx) {
             const layout = document.createElement('div');
             layout.className = 'domino-side-layout';
             layout.style.setProperty('--domino-center-width', `${Math.ceil(mobileNow ? mobileGeo.width : desktopGeo.width)}px`);
-            layout.classList.toggle('domino-narrow', mobileNow);
+            layout.classList.toggle('domino-narrow', !lateral);
             boardWrap.parentNode.insertBefore(layout, boardWrap);
             layout.appendChild(boardWrap);
             layout.appendChild(pool);
@@ -2385,6 +2383,7 @@ const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
     if (!content || !pool) return;
     content.style.zoom = '';
     pool.style.zoom = '';
+    if (stage.querySelector('.domino-side-layout')) { stage.style.overflowY = stage.scrollHeight > stage.clientHeight + 5 ? 'auto' : 'hidden'; return; }
     // Allow layout to settle, then scale oversized exercise content together.
     const instruction = stage.querySelector('.exercise-instruction');
     const available = stage.clientHeight - (instruction ? instruction.offsetHeight : 0) - 16;
@@ -2733,3 +2732,24 @@ function setPreviewMode(mode) {
     });
     if (getCurrentType() === 'domino') loadStep(curStep);
 }
+
+// Recalculate Domino geometry when the player or LMS iframe changes width.
+(() => {
+  let lastWidth = 0, scheduled = false;
+  const refresh = () => {
+    scheduled = false;
+    const stage = document.getElementById('main-content');
+    if (!stage || !stage.querySelector('.domino-side-layout')) return;
+    const width = Math.round(stage.getBoundingClientRect().width);
+    if (Math.abs(width - lastWidth) < 8) return;
+    lastWidth = width;
+    if (typeof loadStep === 'function' && typeof curStep !== 'undefined') loadStep(curStep);
+  };
+  const schedule = () => { if (!scheduled) { scheduled = true; requestAnimationFrame(refresh); } };
+  window.addEventListener('resize', schedule, {passive:true});
+  window.addEventListener('orientationchange', schedule, {passive:true});
+  if (typeof ResizeObserver !== 'undefined') {
+    const stage = document.getElementById('main-content');
+    if (stage) new ResizeObserver(schedule).observe(stage);
+  }
+})();
