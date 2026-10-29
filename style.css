@@ -1038,20 +1038,6 @@ html,body { max-width:100%; }
 .exercise-player .phrase-rebus-audio-btn,
 .exercise-player .phrase-multi-audio-main { font-size:clamp(.78rem,1.25vw,.94rem)!important; }
 
-/* Domino: pool unico (compatibile con Sortable), ai lati della catena. */
-.domino-side-layout { width:100%; display:grid; grid-template-columns:minmax(120px,1fr) minmax(0,max-content) minmax(120px,1fr); align-items:start; gap:12px; position:relative; }
-.domino-side-layout > .domino-board-wrap { grid-column:2; grid-row:1; width:auto !important; min-width:0; padding:0 !important; position:relative; z-index:2; }
-.domino-side-layout > .domino-pool { grid-column:1 / 4; grid-row:1; display:grid !important; grid-template-columns:minmax(120px,1fr) minmax(0,var(--domino-center-width, 420px)) minmax(120px,1fr); gap:10px 12px !important; padding:0 !important; justify-items:center; align-content:start; position:relative; z-index:1; }
-.domino-side-layout > .domino-pool > .domino-tile { grid-column:1; max-width:100%; min-width:0; }
-.domino-side-layout > .domino-pool > .domino-tile:nth-child(even) { grid-column:3; }
-.domino-side-layout .domino-tile .tile-text { overflow:visible !important; min-width:0; }
-.domino-side-layout .domino-word { white-space:normal; overflow-wrap:anywhere; }
-@media (max-width: 900px) {
- .domino-side-layout { display:flex; flex-direction:column; align-items:center; gap:10px; }
- .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
- .domino-side-layout > .domino-board-wrap { order:1; width:100% !important; }
-}
-
 /* Domino: respect editorial <br>, allow French hyphenation, never split randomly. */
 .domino-side-layout .domino-word, .domino-word {
   display:inline; white-space:normal; overflow-wrap:normal !important;
@@ -1095,17 +1081,6 @@ html,body { max-width:100%; }
 #exercise-preview[data-preview-mode="mobile"] .exercise-instruction { padding:6px 10px; margin-bottom:12px; }
 #exercise-preview[data-preview-mode="mobile"] .exercise-instruction button { width:30px; height:30px; font-size:15px; }
 #exercise-preview[data-preview-mode="mobile"] #res-consigne { font-size:12px; }
-/* Domino: colonne reali riservate ai due gruppi di tessere. */
-.domino-side-layout { grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width,420px)) minmax(0,1fr) !important; width:100%; }
-.domino-side-layout > .domino-pool { grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width,420px)) minmax(0,1fr) !important; }
-.domino-side-layout > .domino-board-wrap { width:100% !important; justify-content:center; }
-.domino-side-layout > .domino-pool > .domino-tile { width:min(100%,var(--pool-domino-w,205px)) !important; box-sizing:border-box; }
-/* Nelle anteprime strette il pool passa sopra, senza sovrapporsi al circuito. */
-.domino-side-layout.domino-narrow { display:flex !important; flex-direction:column; align-items:center; gap:10px; }
-.domino-side-layout.domino-narrow > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; gap:8px !important; }
-.domino-side-layout.domino-narrow > .domino-board-wrap { order:1; width:100% !important; }
-@media (max-width:900px) { .domino-side-layout { display:flex !important; flex-direction:column; align-items:center; } .domino-side-layout > .domino-pool { order:0; width:100%; display:flex !important; flex-wrap:wrap; justify-content:center; } .domino-side-layout > .domino-board-wrap { order:1; } }
-
 /* Phrase-rebus: audio controls between instruction and image pool, above both pool and answers. */
 .exercise-stage:has(.phrase-multi-stage) > .phrase-multi-audio-controls {
   order: 0; margin: 0 auto 8px; flex-shrink: 0;
@@ -1114,8 +1089,72 @@ html,body { max-width:100%; }
 .exercise-stage:has(.phrase-multi-stage) > #main-content { order: 2; }
 .exercise-stage:has(.phrase-multi-stage) > .exercise-instruction { order: -1; }
 
-/* Keep a stable three-column domino on sufficiently wide actual activity areas. */
-@media (min-width:901px) {
-  .domino-side-layout:not(.domino-narrow) { display:grid !important; }
+/* DOMINO RESPONSIVE: una sola geometria per editor, SCORM, desktop e LMS.
+   Il pool resta un singolo elemento Sortable, ma occupa due vere colonne laterali. */
+#main-content.domino-stage { overflow:visible !important; min-width:0; }
+.domino-side-layout {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width, 600px)) minmax(0,1fr);
+  column-gap:12px; row-gap:8px; align-items:start;
+  width:100%; max-width:100%; min-width:0;
+  position:relative;
 }
-.domino-side-layout:not(.domino-narrow) > .domino-pool { align-content:start; }
+.domino-side-layout > .domino-board-wrap {
+  grid-column:2; grid-row:1; width:100% !important;
+  min-width:0; padding:0 !important; justify-content:center;
+  position:relative; z-index:2;
+}
+.domino-side-layout > #pool.domino-pool {
+  grid-column:1 / -1; grid-row:1;
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,var(--domino-center-width, 600px)) minmax(0,1fr);
+  column-gap:12px !important; row-gap:8px !important;
+  padding:0 !important; margin:0 !important;
+  min-width:0; width:100%; max-height:none;
+  align-content:start; justify-items:center; position:relative; z-index:1;
+}
+.domino-side-layout > #pool.domino-pool > .domino-tile {
+  grid-column:1; width:min(100%, var(--pool-domino-w, 160px)) !important;
+  height:var(--pool-domino-h, 78px) !important;
+  margin:0 !important; box-sizing:border-box;
+}
+.domino-side-layout > #pool.domino-pool > .domino-tile:nth-child(even) { grid-column:3; }
+.domino-side-layout .domino-tile .tile-text { min-width:0; }
+/* Interrompe la disposizione laterale in base alla larghezza REALE del gioco,
+   non del browser. Utile anche nel pannello stretto del configuratore. */
+.domino-side-layout.domino-narrow {
+  display:flex !important; flex-direction:column; align-items:center; gap:10px;
+}
+.domino-side-layout.domino-narrow > #pool.domino-pool {
+  order:0; display:flex !important; flex-wrap:wrap; gap:8px !important;
+  justify-content:center; align-content:flex-start;
+  width:100%; max-height:none;
+}
+.domino-side-layout.domino-narrow > #pool.domino-pool > .domino-tile {
+  width:var(--pool-domino-w,150px) !important;
+  max-width:calc(50% - 5px); height:var(--pool-domino-h,75px) !important;
+}
+.domino-side-layout.domino-narrow > .domino-board-wrap {
+  order:1; width:100% !important; justify-content:center;
+}
+.exercise-stage:has(.domino-side-layout) { overflow-y:auto !important; overflow-x:hidden !important; }
+
+/* Il player SCORM del Domino usa l'ampiezza disponibile (non il cap 1100px).
+   Le altre attivita' conservano le dimensioni precedenti. */
+.exercise-player.domino-player { max-width:min(1560px, 100%) !important; }
+/* L'anteprima Mobile usa la geometria mobile anche quando la finestra
+   dell'editor e' larga: le media query globali da sole non sono sufficienti. */
+.domino-chain.domino-mobile { width:var(--m-board-w); height:var(--m-board-h); }
+.domino-chain.domino-mobile .domino-slot { left:var(--m-left); top:var(--m-top); width:var(--m-w); height:var(--m-h); }
+.domino-chain.domino-mobile .domino-connectors-desktop { display:none; }
+.domino-chain.domino-mobile .domino-connectors-mobile { display:block; }
+.domino-chain.domino-mobile .orient-m-h .domino-tile,
+.domino-chain.domino-mobile .orient-m-h .drop-target { width:var(--m-h-w,140px) !important; height:var(--m-h-h,76px) !important; }
+.domino-chain.domino-mobile .orient-m-v .domino-tile,
+.domino-chain.domino-mobile .orient-m-v .drop-target { width:var(--m-v-w,88px) !important; height:var(--m-v-h,122px) !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-h.flow-m-right .domino-tile { flex-direction:row !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-h.flow-m-left .domino-tile { flex-direction:row-reverse !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-v.flow-m-down .domino-tile { flex-direction:column !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-v.flow-m-up .domino-tile { flex-direction:column-reverse !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-img { width:100% !important; flex-basis:auto !important; height:40% !important; }
+.domino-chain.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-text { width:100% !important; flex-basis:auto !important; height:60% !important; }
