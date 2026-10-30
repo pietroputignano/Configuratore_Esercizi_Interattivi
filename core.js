@@ -1737,6 +1737,20 @@ function renderPhraseMulti(data,stage,pool){
     }else setupPhraseMultiDnD(data);
 }
 
+// Resize crossword cells to the actual game panel, including editor's Mobile preview.
+function updateCrosswordGridSize() {
+    const grid = document.querySelector('#main-content .cw-play-grid');
+    const stage = document.getElementById('main-content');
+    if (!grid || !stage) return;
+    const cols = Number(grid.style.getPropertyValue('--cw-cols')) || 1;
+    const rows = Number(grid.style.getPropertyValue('--cw-rows')) || 1;
+    const game = stage.closest('.exercise-stage');
+    const width = Math.max(160, stage.clientWidth - 50);
+    const height = Math.max(200, (game?.clientHeight || 700) - 175);
+    const size = Math.max(23, Math.min(52, Math.floor((width - (cols - 1) * 4) / cols), Math.floor((height - (rows - 1) * 4) / rows)));
+    grid.style.setProperty('--cw-cell-size', size + 'px');
+}
+
 function loadStep(idx) {
     clearTimeout(phraseMultiFinishTimer);
     phraseMultiFinishTimer = null;
@@ -1748,8 +1762,9 @@ function loadStep(idx) {
     }
     const stage = document.getElementById('main-content'); const pool = document.getElementById('pool');
     const type = getCurrentType();
+    // All activities now share the same responsive player width.
     const exportedPlayer = stage.closest('.exercise-player');
-    if (exportedPlayer) exportedPlayer.classList.toggle('domino-player', type === 'domino');
+    if (exportedPlayer) exportedPlayer.classList.remove('domino-player');
     
     const resConsigne = document.getElementById('res-consigne');
     if (isPlayerMode()) {
@@ -1777,7 +1792,7 @@ function loadStep(idx) {
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
         let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
         const dims = getCWGridDimensions();
-        let gridHtml = `<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 cw-play-grid" style="grid-template-columns: repeat(${dims.cols}, 40px);">`;
+        let gridHtml = `<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 cw-play-grid" style="--cw-cols:${dims.cols}; --cw-rows:${dims.rows}; grid-template-columns:repeat(${dims.cols}, var(--cw-cell-size, 40px));">`;
         for(let y=0; y<dims.rows; y++) {
             for(let x=0; x<dims.cols; x++) {
                 let cell = cwData.find(c => c.x === x && c.y === y);
@@ -1789,6 +1804,7 @@ function loadStep(idx) {
         gridHtml += '</div>';
         let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.pronoun ? c.pronoun + ' — ' : ''}${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
         stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`;
+        updateCrosswordGridSize();
         document.getElementById('nav-step').innerHTML = '';
         setTimeout(() => { const first = stage.querySelector('.cw-play-cell'); if (first) first.focus(); }, 0);
         return;
@@ -2476,7 +2492,10 @@ function playConsigne() {
 }
 const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
   'use strict';
-  const stage = document.querySelector('.exercise-stage');
+  // One viewport-fitting policy for EVERY exercise, including Domino.
+  // Never zoom the content: zoom made non-Domino exercises unreadably small
+  // and changed the hitboxes used by drag-and-drop libraries.
+  const stage = document.querySelector('.exercise-player .exercise-stage');
   if (!stage) return;
   const content = document.getElementById('main-content');
   const pool = document.getElementById('pool');
@@ -2484,26 +2503,23 @@ const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
   function fit(){
     queued = false;
     if (!content || !pool) return;
-    content.style.zoom = '';
-    pool.style.zoom = '';
-    if (content.classList.contains('domino-stage') || stage.querySelector('.domino-side-layout') || (typeof getCurrentType === 'function' && getCurrentType() === 'domino')) { content.style.zoom = '1'; pool.style.zoom = '1'; stage.style.overflowY = stage.scrollHeight > stage.clientHeight + 5 ? 'auto' : 'hidden'; return; }
-    // Allow layout to settle, then scale oversized exercise content together.
-    const instruction = stage.querySelector('.exercise-instruction');
-    const available = stage.clientHeight - (instruction ? instruction.offsetHeight : 0) - 16;
-    const total = content.scrollHeight + pool.scrollHeight + 8;
-    if (available > 0 && total > available) {
-      const factor = Math.max(.58, Math.min(1, available / total));
-      content.style.zoom = String(factor);
-      pool.style.zoom = String(factor);
-    }
-    // Never silently hide material: on unusually dense content allow local
-    // scrolling rather than cutting off questions or answer controls.
-    const stillOverflows = stage.scrollHeight > stage.clientHeight + 5;
-    stage.style.overflowY = stillOverflows ? 'auto' : 'hidden';
+    content.style.removeProperty('zoom');
+    pool.style.removeProperty('zoom');
+    const width = stage.clientWidth;
+    const height = stage.clientHeight;
+    stage.classList.toggle('activity-compact', width < 720 || height < 540);
+    const domino = content.classList.contains('domino-stage');
+    // Domino has its own geometry and dedicated overflow rules.
+    if (domino) return;
+    // Preserve readable text: allow scrolling only when actual content cannot fit.
+    stage.style.overflowY = stage.scrollHeight > height + 5 ? 'auto' : 'hidden';
   }
-  function schedule(){ if(queued)return; queued=true; requestAnimationFrame(fit); }
-  if(typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(stage);
-  new MutationObserver(schedule).observe(stage,{childList:true,subtree:true,characterData:true});
+  function schedule(){ if(queued) return; queued=true; requestAnimationFrame(fit); }
+  if(typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(schedule).observe(stage);
+    if (content) new ResizeObserver(schedule).observe(content);
+  }
+  new MutationObserver(schedule).observe(stage,{childList:true,subtree:true});
   window.addEventListener('resize',schedule,{passive:true});
   window.addEventListener('orientationchange',schedule,{passive:true});
   schedule();
@@ -2789,7 +2805,7 @@ async function exportToZIP() {
 <script src="js/responsive.js" defer></script>
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
-<div class="w-full exercise-player max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-200">
+<div class="w-full exercise-player bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-200">
     <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
         <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
             <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
@@ -2834,7 +2850,24 @@ function setPreviewMode(mode) {
         btn.setAttribute('aria-pressed', String(btn.dataset.previewMode === mode));
     });
     if (getCurrentType() === 'domino') loadStep(curStep);
+    if (getCurrentType() === 'crossword') requestAnimationFrame(updateCrosswordGridSize);
 }
+
+// Crossword dimensions are visual-only: resizing does not reset answers.
+(() => {
+  let queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; updateCrosswordGridSize(); });
+  }
+  window.addEventListener('resize', schedule, {passive:true});
+  window.addEventListener('orientationchange', schedule, {passive:true});
+  if (typeof ResizeObserver !== 'undefined') {
+    const stage = document.getElementById('main-content');
+    if (stage) new ResizeObserver(schedule).observe(stage);
+  }
+})();
 
 // Rebuild Domino only when the usable container size changes, keeping completed drops.
 (() => {
