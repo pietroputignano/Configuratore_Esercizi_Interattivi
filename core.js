@@ -316,121 +316,129 @@ function openRebusBuilder() {
 }
 function closeRebusBuilder() { document.querySelectorAll('.rebus-input').forEach(inp => { rebusData[inp.dataset.word] = inp.value; }); document.getElementById('rebus-modal').classList.add('hidden'); startGame(); }
 
-function openMapper() { document.getElementById('mapper-modal').classList.remove('hidden'); }
-function closeMapper() { 
-    document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone'));
-    document.getElementById('mapper-modal').classList.add('hidden'); 
-    startGame(); 
+function escapeMapperText(value) {
+    return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-
+function mapperZoneMarkup(z) {
+    if (z.kind === 'static') {
+        const size = Math.max(12,Math.min(48,Number(z.fontSize)||22));
+        return `<div class="mapper-fixed-editor">
+            <input class="mapper-static-text w-full rounded border border-blue-200 bg-white/95 px-1 text-center font-bold text-blue-900" type="text" aria-label="Testo etichetta fissa" placeholder="Scrivi etichetta fissa" value="${escapeMapperText(z.label||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
+            <label class="mapper-size-control">Font <input type="number" min="12" max="48" value="${size}" aria-label="Dimensione font etichetta" onmousedown="event.stopPropagation()" oninput="saveZones()"></label>
+        </div><div class="resize-handle"></div>`;
+    }
+    return `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (usa ... per buco)" value="${escapeMapperText(z.label||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
+        <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${escapeMapperText(z.word||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
+        <div class="resize-handle"></div>`;
+}
+function appendMapperZone(z, persist = true) {
+    const el=document.createElement('div');
+    el.className='mapper-zone flex flex-col p-1 gap-1 justify-center rounded-md'+(z.kind==='static'?' mapper-zone-static':'');
+    el.dataset.kind=z.kind==='static'?'static':'answer';
+    el.style.left=z.left||'35%'; el.style.top=z.top||'40%';
+    el.style.width=z.width||(z.kind==='static'?'28%':'25%');
+    el.style.height=z.height||(z.kind==='static'?'13%':'12%');
+    el.innerHTML=mapperZoneMarkup(z);
+    document.getElementById('mapper-container').appendChild(el);
+    makeDraggable(el);
+    if(persist)saveZones();
+    return el;
+}
+function openMapper() {
+    const container=document.getElementById('mapper-container');
+    container.querySelectorAll('.mapper-zone').forEach(z=>z.remove());
+    (mappedZones||[]).forEach(z=>appendMapperZone(z,false));
+    const src=dbImg.mapper_bg;
+    const preview=document.getElementById('mapper-preview');
+    const hint=document.getElementById('mapper-hint');
+    if(src){preview.src=src;preview.classList.remove('hidden');hint.classList.add('hidden');}
+    document.getElementById('mapper-modal').classList.remove('hidden');
+}
+function closeMapper() {
+    saveZones();
+    document.querySelectorAll('.selected-zone').forEach(el=>el.classList.remove('ring-4','ring-blue-500','selected-zone'));
+    document.getElementById('mapper-modal').classList.add('hidden');
+    startGame();
+}
 function clearSelection(e) {
     if (e.target.id === 'mapper-container' || e.target.id === 'mapper-preview' || e.target.id === 'mapper-hint') {
-        document.querySelectorAll('.selected-zone').forEach(el => el.classList.remove('ring-4', 'ring-blue-500', 'selected-zone'));
+        document.querySelectorAll('.selected-zone').forEach(el=>el.classList.remove('ring-4','ring-blue-500','selected-zone'));
     }
 }
 function alignZones(prop) {
-    const selected = Array.from(document.querySelectorAll('.mapper-zone.selected-zone'));
-    if(selected.length < 2) { alert("Clicca su almeno 2 blocchi per selezionarli (bordo azzurro) prima di allinearli!"); return; }
-    const ref = selected[0]; 
-    selected.forEach((el, i) => {
-        if(i === 0) return;
-        if(prop === 'left') el.style.left = ref.style.left;
-        if(prop === 'top') el.style.top = ref.style.top;
-        if(prop === 'width') el.style.width = ref.style.width;
-        if(prop === 'height') el.style.height = ref.style.height;
-    });
+    const selected=Array.from(document.querySelectorAll('#mapper-container .mapper-zone.selected-zone'));
+    if(selected.length<2){alert('Seleziona almeno due elementi prima di allinearli.');return;}
+    const ref=selected[0];
+    selected.slice(1).forEach(el=>el.style[prop]=ref.style[prop]);
     saveZones();
 }
-
 function deleteSelectedZones() {
-    const selected = Array.from(document.querySelectorAll('#mapper-container .mapper-zone.selected-zone'));
-    if (!selected.length) { alert('Seleziona una o più tessere da eliminare.'); return; }
-    selected.forEach(zone => zone.remove());
-    saveZones();
+    const selected=Array.from(document.querySelectorAll('#mapper-container .mapper-zone.selected-zone'));
+    if(!selected.length){alert('Seleziona una o più tessere da eliminare.');return;}
+    selected.forEach(z=>z.remove());saveZones();
 }
-
-function deleteMapperZone(zone, event) {
-    if (event) { event.preventDefault(); event.stopPropagation(); }
-    zone.remove();
-    saveZones();
+function deleteMapperZone(zone,event) {
+    if(event){event.preventDefault();event.stopPropagation();}
+    zone.remove();saveZones();
 }
-
 function attachMapperDeleteButton(zone) {
-    if (zone.querySelector('.mapper-delete')) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'mapper-delete';
-    button.title = 'Elimina questa tessera';
-    button.setAttribute('aria-label', 'Elimina questa tessera');
-    button.textContent = '×';
-    button.onclick = event => deleteMapperZone(zone, event);
-    button.onmousedown = event => event.stopPropagation();
-    zone.appendChild(button);
+    if(zone.querySelector('.mapper-delete'))return;
+    const button=document.createElement('button');button.type='button';button.className='mapper-delete';
+    button.title='Elimina questo elemento';button.setAttribute('aria-label','Elimina questo elemento');
+    button.textContent='×';button.onclick=event=>deleteMapperZone(zone,event);
+    button.onmousedown=event=>event.stopPropagation();zone.appendChild(button);
 }
-
 function addZone() {
-    const z = document.createElement('div'); z.className = 'mapper-zone flex flex-col p-1 gap-1 justify-center rounded-md'; z.style.cssText = "width:25%; height:12%; left:35%; top:40%;";
-    const word = items[mappedZones.length] || "verbo";
-    z.innerHTML = `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (usa ... per buco)" value="" onmousedown="event.stopPropagation()">
-                   <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${word.replace(/"/g, '&quot;')}" onmousedown="event.stopPropagation()">
-                   <div class="resize-handle"></div>`;
-    document.getElementById('mapper-container').appendChild(z); makeDraggable(z);
+    const answerCount=(mappedZones||[]).filter(z=>z.kind!=='static').length;
+    const word=items[answerCount]||'verbo';
+    appendMapperZone({kind:'answer',label:'',word,left:'35%',top:'40%',width:'25%',height:'12%'});
 }
-
+function addFixedMapperLabel() {
+    appendMapperZone({kind:'static',label:'Nuova etichetta',fontSize:22,left:'35%',top:'40%',width:'28%',height:'13%'});
+}
 function makeDraggable(el) {
-    let container = document.getElementById('mapper-container');
+    const container=document.getElementById('mapper-container');
     attachMapperDeleteButton(el);
-    el.onmousedown = (e) => {
-        if(e.target.tagName === 'INPUT' || e.target.classList.contains('resize-handle')) return;
-        let sx = e.clientX, sy = e.clientY;
-        let moved = false;
-        document.onmousemove = (ev) => { 
-            moved = true;
-            let dx = ev.clientX-sx, dy = ev.clientY-sy; sx=ev.clientX; sy=ev.clientY; 
-            
-            if (el.classList.contains('selected-zone')) {
-                document.querySelectorAll('.selected-zone').forEach(sel => {
-                    sel.style.left = (sel.offsetLeft + dx)/container.offsetWidth*100 + '%'; 
-                    sel.style.top = (sel.offsetTop + dy)/container.offsetHeight*100 + '%'; 
-                });
-            } else {
-                el.style.left = (el.offsetLeft + dx)/container.offsetWidth*100 + '%'; 
-                el.style.top = (el.offsetTop + dy)/container.offsetHeight*100 + '%'; 
-            }
+    el.onmousedown=e=>{
+        if(e.target.closest('input,button,.resize-handle'))return;
+        let sx=e.clientX,sy=e.clientY,moved=false;
+        document.onmousemove=ev=>{
+            moved=true;const dx=ev.clientX-sx,dy=ev.clientY-sy;sx=ev.clientX;sy=ev.clientY;
+            const selected=el.classList.contains('selected-zone')?
+                Array.from(document.querySelectorAll('#mapper-container .mapper-zone.selected-zone')):[el];
+            selected.forEach(sel=>{
+                sel.style.left=Math.max(0,Math.min(100-sel.offsetWidth/container.clientWidth*100,(sel.offsetLeft+dx)/container.clientWidth*100))+'%';
+                sel.style.top=Math.max(0,Math.min(100-sel.offsetHeight/container.clientHeight*100,(sel.offsetTop+dy)/container.clientHeight*100))+'%';
+            });
         };
-        document.onmouseup = () => { 
-            document.onmousemove = null; 
-            document.onmouseup = null; 
-            if (!moved) { 
-                el.classList.toggle('ring-4'); 
-                el.classList.toggle('ring-blue-500'); 
-                el.classList.toggle('selected-zone'); 
-            }
-            saveZones(); 
+        document.onmouseup=()=>{
+            document.onmousemove=null;document.onmouseup=null;
+            if(!moved)el.classList.toggle('selected-zone');
+            el.classList.toggle('ring-4',el.classList.contains('selected-zone'));
+            el.classList.toggle('ring-blue-500',el.classList.contains('selected-zone'));
+            saveZones();
         };
     };
-    el.querySelector('.resize-handle').onmousedown = (e) => { 
-        e.stopPropagation(); 
-        document.onmousemove = (ev) => { 
-            el.style.width = (ev.clientX - el.getBoundingClientRect().left)/container.offsetWidth*100 + '%'; 
-            el.style.height = (ev.clientY - el.getBoundingClientRect().top)/container.offsetHeight*100 + '%'; 
-        }; 
-        document.onmouseup = () => { document.onmousemove = null; document.onmouseup = null; saveZones(); }; 
+    el.querySelector('.resize-handle').onmousedown=e=>{
+        e.stopPropagation();
+        document.onmousemove=ev=>{
+            el.style.width=Math.max(8,Math.min(100,(ev.clientX-el.getBoundingClientRect().left)/container.clientWidth*100))+'%';
+            el.style.height=Math.max(7,Math.min(100,(ev.clientY-el.getBoundingClientRect().top)/container.clientHeight*100))+'%';
+        };
+        document.onmouseup=()=>{document.onmousemove=null;document.onmouseup=null;saveZones();};
     };
 }
-
-function saveZones() { 
-    mappedZones = Array.from(document.querySelectorAll('.mapper-zone')).map(z => {
-        const inputs = z.getElementsByTagName('input');
-        return {
-            label: inputs[0] ? inputs[0].value : '',
-            word: inputs[1] ? inputs[1].value : '',
-            left: z.style.left, top: z.style.top, width: z.style.width, height: z.style.height
-        };
+function saveZones() {
+    mappedZones=Array.from(document.querySelectorAll('#mapper-container .mapper-zone')).map(z=>{
+        const inputs=z.getElementsByTagName('input');
+        const isStatic=z.dataset.kind==='static';
+        return {kind:isStatic?'static':'answer',label:inputs[0]?.value||'',
+            word:isStatic?'':(inputs[1]?.value||''),
+            ...(isStatic?{fontSize:Math.max(12,Math.min(48,Number(inputs[1]?.value)||22))}:{}),
+            left:z.style.left,top:z.style.top,width:z.style.width,height:z.style.height};
     });
 }
-
-
 
 /* --- PHRASE-REBUS BUILDER --- */
 function phraseLevelData(level = phraseBuilderLevel) {
@@ -1426,7 +1434,7 @@ function showEndScreen() {
         answersHtml += '</div></li>';
     } else if (type === 'dressing') {
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? (GAME_CONFIG.mappedZones || []) : mappedZones;
-        const completionZones = zoneList.filter(z => z.label && z.label.includes('...'));
+        const completionZones = zoneList.filter(z => z.kind !== 'static' && z.label && z.label.includes('...'));
         if (completionZones.length > 0) {
             completionZones.forEach(z => {
                 const completed = z.label.split('...').join(z.word || '');
@@ -1738,17 +1746,112 @@ function renderPhraseMulti(data,stage,pool){
 }
 
 // Resize crossword cells to the actual game panel, including editor's Mobile preview.
+function fitPhraseRebusToViewport() {
+    const area=document.querySelector('.exercise-stage[data-activity-type="phrase_rebus"]');
+    const main=document.getElementById('main-content');
+    const pool=document.getElementById('pool');
+    if(!area||!main||!pool||!main.querySelector('.phrase-rebus-stage'))return;
+    const contentEl=main.querySelector('.phrase-rebus-stage');
+    const multi=!!main.querySelector('.phrase-multi-stage');
+    // Adjust real element dimensions, never zoom: drag-and-drop hitboxes remain correct.
+    const sizes=multi?[100,92,84,76,68,62]:[116,104,94,84,74,66];
+    const fonts=multi?[17,16,15,14,13,12]:[22,20,18,16,15,14];
+    const instruction=area.querySelector('.exercise-instruction');
+    const audio=area.querySelector('.phrase-multi-audio-controls');
+    const available=Math.max(0,area.clientHeight-(instruction?.offsetHeight||0)-(audio?.offsetHeight||0)-30);
+    area.style.overflowY='hidden';
+    for(let i=0;i<sizes.length;i++){
+        area.style.setProperty('--phrase-choice-w',sizes[i]+'px');
+        area.style.setProperty('--phrase-choice-h',Math.round(sizes[i]*.86)+'px');
+        area.style.setProperty('--phrase-img-w',Math.round(sizes[i]*.79)+'px');
+        area.style.setProperty('--phrase-img-h',Math.round(sizes[i]*.58)+'px');
+        area.style.setProperty('--phrase-font',fonts[i]+'px');
+        area.style.setProperty('--phrase-gap',Math.max(3,10-i)+'px');
+        area.style.setProperty('--phrase-drop-h',Math.max(34,52-i*4)+'px');
+        area.style.setProperty('--phrase-drop-img-h',Math.max(28,48-i*3)+'px');
+        area.style.setProperty('--phrase-single-main-h',Math.max(85,160-i*14)+'px');
+        // Force layout measurement after CSS variables change.
+        const contentHeight=contentEl?.getBoundingClientRect().height||0;
+        const needed=pool.offsetHeight+contentHeight;
+        if(needed<=available-8 && contentHeight<=main.clientHeight+2 && area.scrollHeight<=area.clientHeight+2)break;
+    }
+    const contentHeight=contentEl?.getBoundingClientRect().height||0;
+    const required=pool.offsetHeight+contentHeight;
+    area.style.overflowY=(required>available+2 || contentHeight>main.clientHeight+2 || area.scrollHeight>area.clientHeight+2)?'auto':'hidden';
+}
+let phraseFitScheduled=false;
+function schedulePhraseFit() {
+    if(phraseFitScheduled)return;
+    phraseFitScheduled=true;
+    requestAnimationFrame(()=>{phraseFitScheduled=false;fitPhraseRebusToViewport();});
+}
+let cwCluesPage=0;
+let cwCluesPages=[];
+function updateCrosswordCluesPagination() {
+    const panel=document.querySelector('#main-content .cw-clues-panel');
+    if(!panel)return;
+    const clues=Array.from(panel.querySelectorAll('.cw-clue'));
+    const nav=panel.querySelector('.cw-clues-nav');
+    const title=panel.querySelector('h3');
+    clues.forEach(el=>el.style.removeProperty('display'));
+    // Fit entire clues, or paginate them without introducing a scrollbar.
+    const room=Math.max(90,panel.clientHeight-(title?.offsetHeight||0)-(nav?.offsetHeight||0)-32);
+    const gap=6;
+    let pages=[],page=[],height=0;
+    clues.forEach(el=>{
+        const needed=el.offsetHeight+gap;
+        if(page.length && height+needed>room){pages.push(page);page=[];height=0;}
+        page.push(el);height+=needed;
+    });
+    if(page.length)pages.push(page);
+    cwCluesPages=pages;
+    cwCluesPage=Math.min(cwCluesPage,Math.max(0,pages.length-1));
+    clues.forEach(el=>el.style.display='none');
+    (pages[cwCluesPage]||[]).forEach(el=>el.style.removeProperty('display'));
+    if(nav){nav.style.display=pages.length>1?'flex':'none';
+      const counter=nav.querySelector('.cw-clues-counter');
+      if(counter)counter.textContent=`${cwCluesPage+1} / ${pages.length}`;
+      const buttons=nav.querySelectorAll('button');
+      if(buttons[0])buttons[0].disabled=cwCluesPage===0;
+      if(buttons[1])buttons[1].disabled=cwCluesPage>=pages.length-1;
+    }
+}
+function changeCrosswordCluePage(direction) {
+    cwCluesPage=Math.max(0,Math.min(cwCluesPages.length-1,cwCluesPage+direction));
+    updateCrosswordCluesPagination();
+}
+function toggleCrosswordClues() {
+    const layout=document.querySelector('#main-content .cw-play-layout');
+    if(!layout)return;
+    const expanded=layout.classList.toggle('cw-clues-open');
+    layout.querySelector('.cw-clues-toggle')?.setAttribute('aria-expanded',String(expanded));
+    if(expanded)requestAnimationFrame(updateCrosswordCluesPagination);
+}
 function updateCrosswordGridSize() {
-    const grid = document.querySelector('#main-content .cw-play-grid');
-    const stage = document.getElementById('main-content');
-    if (!grid || !stage) return;
-    const cols = Number(grid.style.getPropertyValue('--cw-cols')) || 1;
-    const rows = Number(grid.style.getPropertyValue('--cw-rows')) || 1;
-    const game = stage.closest('.exercise-stage');
-    const width = Math.max(160, stage.clientWidth - 50);
-    const height = Math.max(200, (game?.clientHeight || 700) - 175);
-    const size = Math.max(23, Math.min(52, Math.floor((width - (cols - 1) * 4) / cols), Math.floor((height - (rows - 1) * 4) / rows)));
-    grid.style.setProperty('--cw-cell-size', size + 'px');
+    const grid=document.querySelector('#main-content .cw-play-grid');
+    const stage=document.getElementById('main-content');
+    if(!grid||!stage)return;
+    const cols=Number(grid.style.getPropertyValue('--cw-cols'))||1;
+    const rows=Number(grid.style.getPropertyValue('--cw-rows'))||1;
+    const layout=grid.closest('.cw-play-layout');
+    const board=grid.closest('.cw-play-board');
+    if(!board||!layout)return;
+    const wide=stage.clientWidth>=840 && layout.classList.contains('cw-with-clues');
+    layout.classList.toggle('cw-side-clues',wide);
+    const gap=stage.clientWidth<520?2:3;
+    const pad=stage.clientWidth<520?5:9;
+    const label=board.querySelector('.cw-verb-label');
+    const toggle=board.querySelector('.cw-clues-toggle');
+    const extra=(label?.offsetHeight||0)+(toggle&&getComputedStyle(toggle).display!=='none'?toggle.offsetHeight:0)+20;
+    const width=Math.max(150,board.clientWidth-2*pad-24);
+    const height=Math.max(150,stage.clientHeight-extra-2*pad-8);
+    const maxW=Math.floor((width-gap*(cols-1))/cols);
+    const maxH=Math.floor((height-gap*(rows-1))/rows);
+    const size=Math.max(17,Math.min(52,maxW,maxH));
+    grid.style.setProperty('--cw-cell-size',size+'px');
+    grid.style.setProperty('--cw-gap',gap+'px');
+    grid.style.setProperty('--cw-padding',pad+'px');
+    requestAnimationFrame(updateCrosswordCluesPagination);
 }
 
 function loadStep(idx) {
@@ -1785,12 +1888,14 @@ function loadStep(idx) {
     stage.innerHTML = '';
     pool.innerHTML = '';
     stage.classList.remove('domino-stage');
+    const exerciseArea=stage.closest('.exercise-stage');
+    if(exerciseArea){exerciseArea.dataset.activityType=type;exerciseArea.style.removeProperty('overflow-y');}
     pool.classList.remove('domino-pool');
     pool.style.removeProperty('--domino-scale');
    if(type === 'crossword') {
         cwActiveEntryKey = '';
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
-        let labelHtml = cwVerbLabel ? `<div class="mb-6 px-10 py-3 bg-white border-2 border-blue-600 text-blue-900 rounded-full font-black text-3xl shadow-md font-mont uppercase">${cwVerbLabel}</div>` : '';
+        let labelHtml = cwVerbLabel ? `<div class="cw-verb-label">${escapeMapperText(cwVerbLabel)}</div>` : '';
         const dims = getCWGridDimensions();
         let gridHtml = `<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 cw-play-grid" style="--cw-cols:${dims.cols}; --cw-rows:${dims.rows}; grid-template-columns:repeat(${dims.cols}, var(--cw-cell-size, 40px));">`;
         for(let y=0; y<dims.rows; y++) {
@@ -1802,9 +1907,12 @@ function loadStep(idx) {
             }
         }
         gridHtml += '</div>';
-        let cluesHtml = (cwShowClues && cwClues.length > 0) ? `<div class="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mt-6"><h3 class="font-black text-blue-900 border-b border-gray-100 pb-2 mb-4 uppercase font-mont">Définitions</h3><div class="flex flex-col md:flex-row flex-wrap gap-4 text-sm text-gray-700">` + cwClues.map(c => `<div class="w-full md:w-[45%] bg-slate-50 p-3 rounded-lg"><b class="text-blue-800">${c.num}. ${c.pronoun ? c.pronoun + ' — ' : ''}${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${c.clue}</div>`).join('') + `</div></div>` : '';
-        stage.innerHTML = `<div class="flex flex-col items-center w-full">${labelHtml}${gridHtml}${cluesHtml}</div>`;
-        updateCrosswordGridSize();
+        const hasClues=cwShowClues && cwClues.length>0;
+        let cluesHtml=hasClues?`<aside id="cw-clues-panel" class="cw-clues-panel" aria-label="Définitions"><h3>Définitions</h3><div class="cw-clues-list">`+
+            cwClues.map(c=>`<div class="cw-clue"><b>${escapeMapperText(c.num)}. ${escapeMapperText(c.pronoun ? c.pronoun+' — ':'')}${c.dir==='h'?'Horizontal':'Vertical'} :</b> ${escapeMapperText(c.clue)}</div>`).join('')+`</div><div class="cw-clues-nav"><button type="button" onclick="changeCrosswordCluePage(-1)" aria-label="Définitions précédentes">‹</button><span class="cw-clues-counter"></span><button type="button" onclick="changeCrosswordCluePage(1)" aria-label="Définitions suivantes">›</button></div></aside>`:'';
+        stage.innerHTML=`<div class="cw-play-layout${hasClues?' cw-with-clues':''}"><div class="cw-play-board">${labelHtml}${hasClues?'<button type="button" class="cw-clues-toggle" onclick="toggleCrosswordClues()" aria-expanded="false">Définitions ▾</button>':''}${gridHtml}</div>${cluesHtml}</div>`;
+        cwCluesPage=0;
+        requestAnimationFrame(updateCrosswordGridSize);
         document.getElementById('nav-step').innerHTML = '';
         setTimeout(() => { const first = stage.querySelector('.cw-play-cell'); if (first) first.focus(); }, 0);
         return;
@@ -1812,7 +1920,7 @@ function loadStep(idx) {
 
     if(type === 'phrase_rebus') {
         const data = getPhraseLevelData();
-        if(data.layout === 'multi') { renderPhraseMulti(data,stage,pool); document.getElementById('nav-step').innerHTML=''; return; }
+        if(data.layout === 'multi') { renderPhraseMulti(data,stage,pool); document.getElementById('nav-step').innerHTML=''; schedulePhraseFit(); return; }
         const item = data.items?.[idx];
         if(!item) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Phrase-rébus.</p>"; return; }
         const mainSrc = phraseAsset(item.mainImageKey);
@@ -1847,6 +1955,7 @@ function loadStep(idx) {
             if(data.mode==='image') { const cc=item.choices?.find(c=>c.correct)||item.choices?.[0]; const src=cc?phraseAsset(cc.imageKey):''; if(src) fake.innerHTML=`<img src="${src}">`; }
             solvePhraseRebus(item,fake);
         } else setupPhraseRebusDnD(item);
+        schedulePhraseFit();
         return;
     }
 
@@ -1902,6 +2011,11 @@ function loadStep(idx) {
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
         
         zoneList.forEach(z => {
+            if (z.kind === 'static') {
+                const size = Math.max(12,Math.min(48,Number(z.fontSize)||22));
+                zonesHtml += `<div class="mapper-static-display" style="left:${z.left};top:${z.top};width:${z.width};height:${z.height};--mapper-label-size:${size}"><span>${escapeMapperText(z.label||'')}</span></div>`;
+                return;
+            }
             const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
             const isInlineCompletion = !!(z.label && z.label.includes('...'));
             let targetDiv = isInlineCompletion
@@ -2301,7 +2415,7 @@ function setupSortable(mode, targetWord) {
         
         const itemArray = getCurrentItems();
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
-        const targetWords = mode === 'domino' ? itemArray.slice(1).concat('__DOMINO_END__') : (mode === 'autocollantes' ? itemArray : zoneList.map(z => z.word));
+        const targetWords = mode === 'domino' ? itemArray.slice(1).concat('__DOMINO_END__') : (mode === 'autocollantes' ? itemArray : zoneList.filter(z => z.kind !== 'static').map(z => z.word));
 
         targetWords.forEach(w => {
             const tgt = document.getElementById('target-' + w);
@@ -2512,6 +2626,8 @@ const RESPONSIVE_PLAYER_SCRIPT = String.raw`(function(){
     // Domino has its own geometry and dedicated overflow rules.
     if (domino) return;
     // Preserve readable text: allow scrolling only when actual content cannot fit.
+    if (stage.dataset.activityType === 'phrase_rebus') { if(typeof fitPhraseRebusToViewport === 'function') fitPhraseRebusToViewport(); return; }
+    if (stage.dataset.activityType === 'crossword') { if(typeof updateCrosswordGridSize === 'function') updateCrosswordGridSize(); return; }
     stage.style.overflowY = stage.scrollHeight > height + 5 ? 'auto' : 'hidden';
   }
   function schedule(){ if(queued) return; queued=true; requestAnimationFrame(fit); }
@@ -2852,6 +2968,16 @@ function setPreviewMode(mode) {
     if (getCurrentType() === 'domino') loadStep(curStep);
     if (getCurrentType() === 'crossword') requestAnimationFrame(updateCrosswordGridSize);
 }
+
+// Keep Phrase-rébus in the available height when possible (editor and SCORM).
+(() => {
+    window.addEventListener('resize',schedulePhraseFit,{passive:true});
+    window.addEventListener('orientationchange',schedulePhraseFit,{passive:true});
+    if(typeof ResizeObserver!=='undefined') {
+        const area=document.querySelector('.exercise-stage');
+        if(area)new ResizeObserver(schedulePhraseFit).observe(area);
+    }
+})();
 
 // Crossword dimensions are visual-only: resizing does not reset answers.
 (() => {
