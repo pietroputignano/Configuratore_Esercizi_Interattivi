@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- IL NOSTRO NUOVO FILE DEGLI STILI -->
-    <link rel="stylesheet" href="style.css?v=30-domino-fluid">
+    <link rel="stylesheet" href="style.css?v=31-scroll-mapper-labels">
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 
@@ -25,13 +25,14 @@
                 <button onclick="pickImg('mapper_bg')" class="bg-white border-2 border-blue-200 px-3 py-1.5 rounded font-bold text-xs">1. Carica Sfondo</button>
                 <button onclick="deleteSelectedZones()" class="bg-red-50 border-2 border-red-200 px-3 py-1.5 rounded font-bold text-xs text-red-700">Elimina selezionate</button>
                 <button onclick="addZone()" class="bg-white border-2 border-orange-200 px-3 py-1.5 rounded font-bold text-xs text-orange-700">+ 2. Aggiungi Zona</button>
+                <button onclick="addFixedMapperLabel()" class="bg-white border-2 border-blue-300 px-3 py-1.5 rounded font-bold text-xs text-blue-800" title="Testo sempre visibile, senza risposta da completare">+ Etichetta fissa</button>
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
                 <span class="text-[10px] font-bold text-gray-500 uppercase">Allinea/Ridimensiona:</span>
                 <button onclick="alignZones('width')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Larghezza">↔️ Largh.</button>
                 <button onclick="alignZones('height')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Stessa Altezza">↕️ Alt.</button>
                 <button onclick="alignZones('left')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Allinea a Sinistra">⬅️ Sinistra</button>
                 <button onclick="alignZones('top')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold text-[10px] shadow-sm transition" title="Allinea in Alto">⬆️ Sopra</button>
-                <span class="text-[9px] text-gray-400 italic ml-1">(Clicca sui blocchi per selezionarli)</span>
+                <span class="text-[9px] text-gray-400 italic ml-1">(Seleziona, trascina o ridimensiona; le etichette fisse non sono risposte)</span>
             </div>
             <div class="flex-grow overflow-auto p-10 bg-slate-300 flex justify-center items-center" onclick="clearSelection(event)">
                 <div id="mapper-container" class="relative bg-white shadow-xl w-[900px] max-w-full aspect-[9/5]">
@@ -360,6 +361,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=30-domino-fluid"></script>
+    <script src="core.js?v=31-scroll-mapper-labels"></script>
 </body>
 </html>
