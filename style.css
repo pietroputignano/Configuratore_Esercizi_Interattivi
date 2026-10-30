@@ -1359,3 +1359,159 @@ body:has(> .exercise-player) > .exercise-player {
   .phrase-rebus-choice.phrase-rebus-choice-image .phrase-rebus-choice-img { width: 70px; height: 52px; }
   .exercise-stage #pool { max-height: none; }
 }
+
+/* ============================================================
+   v31 - Cruciverba / Phrase-rebus viewport-fit + Mapper labels
+   Scope only the affected activities. No global CSS zoom.
+   ============================================================ */
+/* Visual Mapper: labels that are printed on the image and are never answers. */
+.mapper-zone-static {
+  background: rgba(219,234,254,.88);
+  border: 2px solid #2563eb;
+  color: #1e3a8a;
+}
+.mapper-fixed-editor { width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:0; }
+.mapper-fixed-editor .mapper-static-text { font-size:clamp(10px,1.2vw,15px); min-width:0; }
+.mapper-size-control { display:flex; align-items:center; justify-content:center; gap:4px; font-size:9px; font-weight:700; color:#1e40af; }
+.mapper-size-control input { width:43px; font-size:10px; background:#fff; border:1px solid #93c5fd; border-radius:3px; padding:1px 2px; }
+.mapper-static-display {
+  position:absolute;
+  display:flex; align-items:center; justify-content:center;
+  padding:2px 4px; box-sizing:border-box;
+  color:#fff; font-family:'Montserrat',sans-serif; font-weight:900;
+  text-shadow:0 1px 3px #000, 0 0 5px #0009;
+  font-size:clamp(10px,calc(var(--mapper-label-size,22) * .09cqw),42px);
+  line-height:1.13; text-align:center; overflow-wrap:break-word;
+  pointer-events:none; z-index:3;
+}
+.mapper-static-display > span { max-width:100%; }
+.exercise-stage[data-activity-type="dressing"] #main-content > .relative { container-type:inline-size; }
+
+/* Crossword: grid and clues share the available area instead of stacking
+   a full-height clue list underneath the grid. */
+.exercise-stage[data-activity-type="crossword"] #main-content {
+  height:100%; min-height:0; flex:1 1 auto;
+  overflow:hidden !important; align-items:stretch;
+}
+.cw-play-layout {
+  display:grid; grid-template-columns:minmax(0,1fr);
+  align-items:stretch; gap:clamp(6px,1cqw,16px);
+  width:100%; height:100%; min-height:0; position:relative;
+}
+.cw-play-layout.cw-side-clues { grid-template-columns:minmax(0,1fr) minmax(200px,29%); }
+.cw-play-board {
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  width:100%; min-width:0; min-height:0; gap:6px;
+}
+.cw-play-board .cw-play-grid {
+  display:grid; width:max-content; min-width:0; max-width:100%;
+  gap:var(--cw-gap,3px) !important;
+  padding:var(--cw-padding,9px) !important;
+  margin:0 auto; flex-shrink:0;
+}
+.cw-verb-label {
+  max-width:100%; padding:5px 14px; margin:0;
+  border:2px solid var(--hfle-blue); border-radius:999px;
+  color:#1e3a8a; background:white; font-weight:900;
+  font-family:'Montserrat',sans-serif; font-size:clamp(12px,1.3cqw,20px);
+}
+.cw-clues-panel {
+  min-width:0; max-height:100%; overflow:auto;
+  padding:10px; background:#fff; border:1px solid #cbd5e1;
+  border-radius:12px; text-align:left;
+}
+.cw-clues-panel h3 { color:#1e3a8a; font-weight:900; font-size:13px; margin-bottom:7px; }
+.cw-clues-list { display:grid; grid-template-columns:1fr; gap:6px; }
+.cw-clue { padding:6px; border-radius:6px; background:#f8fafc; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
+.cw-clues-toggle { display:none; border:1px solid #93c5fd; border-radius:8px; background:#eff6ff; color:#1e40af; font-size:12px; font-weight:800; padding:5px 12px; }
+.cw-play-layout:not(.cw-side-clues) .cw-clues-toggle { display:inline-flex; }
+.cw-play-layout:not(.cw-side-clues) .cw-clues-panel { display:none; }
+.cw-play-layout:not(.cw-side-clues).cw-clues-open .cw-clues-panel {
+  display:block; position:absolute; inset:38px 4px 4px; z-index:35;
+  max-height:calc(100% - 42px); box-shadow:0 8px 25px #0002;
+}
+.cw-play-grid .cw-number { font-size:clamp(8px,.9cqw,11px); }
+.cw-play-grid .cw-pronoun-label { font-size:clamp(9px,1.1cqw,15px); }
+
+/* Phrase-rebus: shrink image tiles, answer images and line spacing together.
+   All dimensions are controlled by the measured viewport, not transforms. */
+.exercise-stage[data-activity-type="phrase_rebus"] #main-content {
+  flex:1 1 auto; min-height:0; overflow:visible;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] #pool {
+  flex:0 0 auto; min-height:0; max-height:none; padding:0!important;
+  gap:var(--phrase-gap,8px)!important;
+  align-content:center;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-choice.phrase-rebus-choice-image {
+  width:var(--phrase-choice-w,100px)!important;
+  height:var(--phrase-choice-h,86px)!important;
+  min-height:0!important; padding:4px!important; flex:0 0 auto;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-choice-img {
+  width:var(--phrase-img-w,79px)!important;
+  height:var(--phrase-img-h,58px)!important;
+  max-width:100%; object-fit:contain;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-stage {
+  gap:var(--phrase-gap,8px)!important; width:100%; max-width:100%;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-sheet {
+  padding:clamp(6px,1cqw,12px)!important;
+  gap:var(--phrase-gap,8px)!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-row {
+  font-size:var(--phrase-font,16px)!important;
+  line-height:1.42!important;
+  white-space:pre-line;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-row .phrase-multi-target {
+  min-width:clamp(64px,8cqw,100px)!important;
+  min-height:var(--phrase-drop-h,48px)!important;
+  padding:2px 5px!important; margin:1px 3px!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-drop-img {
+  width:auto; max-width:100%; height:var(--phrase-drop-img-h,44px)!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-main,
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-main-img {
+  min-height:0!important; height:var(--phrase-single-main-h,160px)!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-sentence {
+  padding:clamp(8px,1.1cqw,15px)!important;
+  font-size:var(--phrase-font,20px)!important; line-height:1.4!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-target {
+  min-height:var(--phrase-drop-h,48px); padding:3px 6px;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] > .phrase-multi-audio-controls {
+  margin:0 auto!important; flex:0 0 auto;
+}
+@media(max-width:520px) {
+  .cw-play-layout { gap:4px; }
+  .cw-play-board { gap:4px; }
+  .cw-play-grid .cw-pronoun-label { font-size:9px; }
+  .exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-row { line-height:1.38!important; }
+}
+
+/* Crossword definitions are paginated instead of scrolling inside a panel. */
+.cw-clues-panel { display:flex; flex-direction:column; overflow:hidden; }
+.cw-clues-list { flex:1 1 auto; min-height:0; overflow:hidden; align-content:start; }
+.cw-clues-nav { flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:12px; margin-top:7px; }
+.cw-clues-nav button { background:#dbeafe; border:1px solid #93c5fd; color:#1e40af; border-radius:7px; padding:2px 11px; font-size:18px; font-weight:900; }
+.cw-clues-nav button:disabled { opacity:.3; cursor:default; }
+.cw-clues-counter { font-size:11px; font-weight:800; color:#1e3a8a; }
+
+/* Reserve room for pronouns to the left of the first crossword column. */
+.cw-play-board .cw-play-grid { padding-left:calc(var(--cw-padding,9px) + 18px)!important; }
+/* The same compact policy applies to Phrase-rébus with text choices. */
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-choice-text {
+  min-width:clamp(76px,12cqw,135px)!important;
+  min-height:var(--phrase-drop-h,48px)!important;
+  font-size:var(--phrase-font,17px)!important;
+  padding:5px 10px!important;
+}
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-rebus-target-img {
+  max-width:100%; height:var(--phrase-drop-img-h,44px)!important;
+  object-fit:contain;
+}
