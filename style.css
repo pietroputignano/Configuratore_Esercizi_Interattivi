@@ -1215,3 +1215,147 @@ html,body { max-width:100%; }
   .phrase-multi-solution-row { font-size: 14px; line-height: 1.8; }
   .phrase-multi-solution-img { width: 60px; height: 44px; }
 }
+
+
+/* ===============================================================
+   RESPONSIVE UNIFICATO v1: una sola ampiezza e una sola politica di
+   adattamento per tutte le tipologie, in anteprima e in SCORM 2004.
+   Nessuno zoom globale: si adatta il layout e, solo se necessario,
+   si consente lo scorrimento dell'area di esercizio.
+   =============================================================== */
+.exercise-player {
+  width: 100% !important;
+  max-width: min(1560px, 100%) !important;
+  min-width: 0;
+  container-type: inline-size;
+}
+/* The preview is a real responsive container, not just a narrow mock-up. */
+#exercise-preview {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+.exercise-player .exercise-stage, #exercise-preview .exercise-stage {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+}
+.exercise-player #main-content, #exercise-preview #main-content,
+.exercise-player #pool, #exercise-preview #pool {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.exercise-player #main-content, #exercise-preview #main-content {
+  overflow-x: hidden;
+}
+/* Preserve Domino's dedicated overflow/geometry and the correct lateral pool. */
+.exercise-player #main-content.domino-stage,
+#exercise-preview #main-content.domino-stage { overflow: visible !important; }
+
+/* Give other activities the same usable horizontal canvas as Domino,
+   while keeping individual pedagogical layouts and proportions. */
+.exercise-player .phrase-rebus-stage, #exercise-preview .phrase-rebus-stage,
+.exercise-player .phrase-multi-stage, #exercise-preview .phrase-multi-stage {
+  width: 100%; max-width: min(1200px, 100%);
+}
+.exercise-player .phrase-multi-sheet, #exercise-preview .phrase-multi-sheet,
+.exercise-player .phrase-rebus-sentence, #exercise-preview .phrase-rebus-sentence {
+  max-width: 100%; min-width: 0;
+}
+.exercise-player .auto-activity-all, #exercise-preview .auto-activity-all {
+  width: 100%; max-width: 100%;
+}
+.exercise-player .auto-activity-all .auto-game-board,
+#exercise-preview .auto-activity-all .auto-game-board {
+  max-width: min(960px, 100%);
+}
+.exercise-player .anagram-answer-wrap, #exercise-preview .anagram-answer-wrap {
+  max-width: min(980px, 100%);
+}
+/* Crossword cells grow on large displays and shrink on narrow ones. */
+.exercise-player .cw-play-grid, #exercise-preview .cw-play-grid {
+  grid-template-columns: repeat(var(--cw-cols, 1), var(--cw-cell-size, 40px))) !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: clamp(5px, 1.2cqw, 20px) !important;
+}
+.exercise-player .cw-play-wrapper, #exercise-preview .cw-play-wrapper,
+.exercise-player .cw-play-grid > div:not(.cw-play-wrapper),
+#exercise-preview .cw-play-grid > div:not(.cw-play-wrapper) {
+  width: var(--cw-cell-size, 40px) !important;
+  height: var(--cw-cell-size, 40px) !important;
+}
+.exercise-player .cw-play-cell, #exercise-preview .cw-play-cell {
+  font-size: clamp(14px, 1.5cqw, 20px);
+}
+/* Adapt internal image panels, but never stretch the actual images. */
+.exercise-player #main-content > div > .w-40.h-40,
+#exercise-preview #main-content > div > .w-40.h-40 {
+  width: clamp(140px, 17cqw, 225px) !important;
+  height: clamp(140px, 17cqw, 225px) !important;
+}
+.exercise-player #main-content > div > .w-48.h-32,
+#exercise-preview #main-content > div > .w-48.h-32 {
+  width: clamp(170px, 20cqw, 280px) !important;
+  height: clamp(110px, 13cqw, 185px) !important;
+}
+.exercise-player #main-content .rebus-gap, #exercise-preview #main-content .rebus-gap {
+  max-width: 100%;
+}
+/* The exercise takes the available iframe/window height, not viewport + body padding. */
+body:has(> .exercise-player) {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0 !important;
+  padding: clamp(0px, 1vw, 12px) !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+body:has(> .exercise-player) > .exercise-player {
+  height: 100%; max-height: none;
+}
+/* Container queries also work for Mobile/Tablet preview inside a wide desktop. */
+@container (max-width: 700px) {
+  .header-wrapper {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+  .header-wrapper > div:nth-child(2) {
+    position: static !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    order: 3 !important;
+    pointer-events: auto !important;
+  }
+  .header-wrapper > div:nth-child(3) { margin-left: auto !important; }
+  .header-wrapper .h-titre { font-size: clamp(17px, 4cqw, 25px) !important; }
+  .exercise-stage { padding: 8px !important; gap: 6px !important; }
+  .exercise-stage .exercise-instruction { max-width: 100%; }
+  .exercise-stage #pool { gap: 5px !important; }
+  .phrase-rebus-stage { gap: 10px; }
+  .phrase-rebus-sentence { padding: 12px !important; font-size: clamp(16px, 3.8cqw, 22px) !important; }
+  .phrase-rebus-target { min-width: 75px; min-height: 42px; padding: 3px 5px; }
+  .phrase-multi-sheet { padding: 12px !important; }
+  .phrase-multi-row { font-size: 14px !important; }
+  .auto-activity-all { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .auto-sticker-piece { height: 82px; min-width: 65px; }
+  .anagram-answer-wrap { width: 100%; }
+  .anagram-target { padding: 8px; }
+  .letter-tile { width: 34px; height: 38px; }
+}
+@container (max-width: 430px) {
+  .header-wrapper .unit-badge-num { font-size: 28px !important; }
+  .header-wrapper .unit-badge-text { font-size: 11px !important; }
+  .header-wrapper .lecon-ribbon { font-size: 11px !important; padding: 4px 18px 4px 12px !important; }
+  .header-wrapper #btn-f-view, .header-wrapper #btn-d-view { font-size: 10px !important; padding: 6px 9px !important; }
+  .phrase-rebus-choice.phrase-rebus-choice-image { width: 88px; min-height: 82px; }
+  .phrase-rebus-choice.phrase-rebus-choice-image .phrase-rebus-choice-img { width: 70px; height: 52px; }
+  .exercise-stage #pool { max-height: none; }
+}
