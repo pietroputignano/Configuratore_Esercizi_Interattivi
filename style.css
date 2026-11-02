@@ -1515,3 +1515,45 @@ body:has(> .exercise-player) > .exercise-player {
   max-width:100%; height:var(--phrase-drop-img-h,44px)!important;
   object-fit:contain;
 }
+
+
+/* v32 - Anagramme: image a little smaller, responsive to both width and height.
+   Scope to Anagramme only: the shared image rule above must not enlarge it.
+   Keep letter hitboxes and drag/drop behaviour unchanged. */
+.exercise-stage[data-activity-type="anagramme"] #main-content .anagram-play-layout {
+  width:100%;
+  max-width:100%;
+  gap:clamp(8px,1.4dvh,13px) !important;
+  min-height:0;
+  align-items:center;
+  justify-content:flex-start;
+}
+.exercise-stage[data-activity-type="anagramme"] #main-content .anagram-play-image {
+  width:clamp(108px,min(16cqw,19dvh),166px) !important;
+  height:clamp(108px,min(16cqw,19dvh),166px) !important;
+  max-width:100%;
+  flex:0 0 auto;
+}
+.exercise-stage[data-activity-type="anagramme"] #main-content .anagram-answer-wrap {
+  gap:clamp(4px,.8dvh,8px);
+}
+.exercise-stage[data-activity-type="anagramme"] #main-content .anagram-target {
+  min-height:56px;
+  padding:8px 12px;
+}
+.exercise-stage[data-activity-type="anagramme"] #main-content #check-btn {
+  padding:9px 25px;
+  flex:0 0 auto;
+}
+@container (max-width:700px) {
+  .exercise-stage[data-activity-type="anagramme"] #main-content .anagram-play-image {
+    width:clamp(96px,28cqw,126px) !important;
+    height:clamp(96px,28cqw,126px) !important;
+  }
+}
+@media (max-height:650px) {
+  .exercise-stage[data-activity-type="anagramme"] #main-content .anagram-play-image {
+    width:min(116px,18dvh) !important;
+    height:min(116px,18dvh) !important;
+  }
+}
