@@ -6,7 +6,11 @@ const types = [
     {id: 'autocollantes', n: 'Autocollantes (Stickers)'},
     {id: 'rebus', n: 'Texte à trous (Rebus)'},
     {id: 'crossword', n: 'Mots Croisés (Cruciverba)'},
-    {id: 'phrase_rebus', n: 'Phrase-rébus (Glisser-déposer)'}
+    {id: 'phrase_rebus', n: 'Phrase-rébus (Glisser-déposer)'},
+    {id: 'loto_directions', n: 'Hourra 3 — Le loto des directions'},
+    {id: 'hourra_tense', n: 'Hourra 3 — Présent / Futur'},
+    {id: 'hourra_memory', n: 'Hourra 3 — Le memory des maux'},
+    {id: 'hourra_timeline', n: 'Hourra 3 — Ligne du temps'}
 ];
 
 let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status = [], activeKey = "";
@@ -200,6 +204,7 @@ function syncPlayerConfig() {
     cwShowClues = GAME_CONFIG.cwShowClues !== false;
     autocollantesData = GAME_CONFIG.autocollantesData || { facile: {}, difficile: {} };
     phraseRebusData = GAME_CONFIG.phraseRebusData || { facile: { mode: 'word', items: [] }, difficile: { mode: 'word', items: [] } };
+    hourraData = GAME_CONFIG.hourraData || makeDefaultHourraData();
 
     const badge = document.getElementById('res-badge');
     if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
@@ -302,6 +307,13 @@ function toggleToolBtns(l) {
     const rBtn = document.getElementById('btn-rebus-' + l); if(rBtn) rBtn.classList.toggle('hidden', type !== 'rebus'); 
     const aBtn = document.getElementById('btn-auto-' + l); if(aBtn) aBtn.classList.toggle('hidden', type !== 'autocollantes');
     const pBtn = document.getElementById('btn-phrase-' + l); if(pBtn) pBtn.classList.toggle('hidden', type !== 'phrase_rebus');
+    const hBtn = document.getElementById('btn-hourra-' + l); if(hBtn) hBtn.classList.toggle('hidden', !hourraIsType(type));
+    const instruction=document.getElementById('con-'+l);
+    if(instruction) {
+        if(!instruction.dataset.originalPlaceholder) instruction.dataset.originalPlaceholder=instruction.placeholder;
+        if(!instruction.value.trim()) instruction.placeholder=hourraIsType(type) ? hourraDefaultConsigne(type,l==='f'?'facile':'difficile') : instruction.dataset.originalPlaceholder;
+    }
+    const extra = document.getElementById('level-extra-' + l); if(extra) extra.classList.toggle('hidden', hourraIsType(type));
 }
 
 /* --- BUILDERS --- */
@@ -1115,6 +1127,11 @@ function startGame() {
     } else if (type === 'phrase_rebus') {
         const data = getPhraseLevelData();
         items = data.layout === 'multi' ? ['phrase_multi'] : (data.items || []).map(it => it.id);
+    } else if (hourraIsType(type)) {
+        items = hourraSteps(type,curLvl);
+        hourraBoardState = {};
+        hourraSelectedEvent='';
+        hourraSelectedToken='';
     }
     status = new Array(items.length).fill('pending'); 
     if(type === 'domino' || type === 'dressing' || type === 'crossword') errorTracker = [0]; 
@@ -1127,6 +1144,10 @@ function startGame() {
             if (Array.isArray(saved.status) && saved.status.length === status.length) status = saved.status.slice();
             if (Array.isArray(saved.errorTracker)) errorTracker = saved.errorTracker.slice();
             if (Number.isInteger(saved.step)) initialStep = Math.max(0, Math.min(saved.step, Math.max(0, items.length - 1)));
+            if(hourraIsType(type) && hourraIsBoard(type,curLvl) && saved.hourraBoard) {
+                hourraBoardState=saved.hourraBoard;
+                if(type==='hourra_memory') {hourraBoardState.open=[];hourraBoardState.locked=false;}
+            }
         }
     }
     loadStep(initialStep);
@@ -1309,6 +1330,10 @@ function calculateScore(type) {
         return Math.max(0, Math.round((status[0] === 'completed' ? 100 : 0) - errs * 5));
     }
     const stepBasedTypes = ['sentence_ordering', 'anagramme', 'rebus', 'phrase_rebus'];
+    if(hourraIsType(type)) {
+        const total=Math.max(1,status.length),done=status.filter(s=>s==='completed').length;
+        return Math.max(0,Math.round(done/total*100-errs*5));
+    }
 
     if (stepBasedTypes.includes(type)) {
         const total = Math.max(1, getCurrentItems().length);
@@ -1342,7 +1367,9 @@ function showEndScreen() {
 
     const solutionsMaxHeightClass = type === 'sentence_ordering' ? 'max-h-[430px]' : (type === 'phrase_rebus' && getPhraseLevelData().layout === 'multi' ? 'max-h-[65vh]' : 'max-h-48');
     let answersHtml = `<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 ${solutionsMaxHeightClass} overflow-y-auto custom-scrollbar">`;
-    if (type === 'crossword') {
+    if (hourraIsType(type)) {
+        answersHtml += `<li class="list-none"><div class="hourra-solutions">${hourraSolutions(type,curLvl)}</div></li>`;
+    } else if (type === 'crossword') {
         answersHtml += `<li class="list-none">${buildCrosswordSolutionHtml()}</li>`;
         if (cwClues.length) {
             answersHtml += `<li class="list-none mt-3"><div class="cw-solution-conjugation">` + cwClues.map(c => {
@@ -1858,6 +1885,7 @@ function loadStep(idx) {
     clearTimeout(phraseMultiFinishTimer);
     phraseMultiFinishTimer = null;
     phraseStopMultiPlayback();
+    if(hourraAudio) { try{hourraAudio.pause();hourraAudio.currentTime=0;}catch(_){}hourraAudio=null; }
     destroyActiveSortables();
     curStep = idx; renderNav();
     if (isPlayerMode() && window.BSMART_SCORM) {
@@ -1892,6 +1920,8 @@ function loadStep(idx) {
     if(exerciseArea){exerciseArea.dataset.activityType=type;exerciseArea.style.removeProperty('overflow-y');}
     pool.classList.remove('domino-pool');
     pool.style.removeProperty('--domino-scale');
+    stage.classList.remove('hourra-stage');
+    if(hourraIsType(type)) { hourraRenderStep(stage,pool); return; }
    if(type === 'crossword') {
         cwActiveEntryKey = '';
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
@@ -2548,7 +2578,12 @@ function validate(correct) {
 function renderNav() { 
     const type = getCurrentType();
     const itemsArr = getCurrentItems();
-    if(['crossword','domino','dressing'].includes(type)) { document.getElementById('nav-step').innerHTML = ''; return; }
+    if(['crossword','domino','dressing'].includes(type) || (hourraIsType(type) && hourraIsBoard(type,curLvl))) { document.getElementById('nav-step').innerHTML = ''; return; }
+    if(hourraIsType(type)) {
+        const dots=itemsArr.map((_,i)=>`<button type="button" class="nav-square ${i===curStep?'active':''} ${status[i]||''}" onclick="loadStep(${i})" aria-label="Item ${i+1}">${i+1}</button>`).join('');
+        document.getElementById('nav-step').innerHTML=`<div class="hourra-step-dots">${dots}</div><div class="hourra-step-nav"><button type="button" onclick="hourraGoStep(-1)" aria-label="Item précédent" ${curStep===0?'disabled':''}>‹</button><span>${curStep+1} / ${itemsArr.length}</span><button type="button" onclick="hourraGoStep(1)" aria-label="Item suivant" ${curStep>=itemsArr.length-1?'disabled':''}>›</button></div>`;
+        return;
+    }
     document.getElementById('nav-step').innerHTML = itemsArr.map((_, i) => `<div class="nav-square ${i===curStep?'active':''} ${status[i] || ''}" onclick="loadStep(${i})">${i+1}</div>`).join(''); 
 }
 
@@ -2592,8 +2627,8 @@ function switchLvl(l) {
 
 function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
 function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
-function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) renderPhraseRebusBuilder(); loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
-function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) { const d=phraseLevelData(); if(activeKey === (d.multiAudioKey || phraseMultiAudioKey())) { d.multiAudioSource='uploaded'; d.multiTtsSource=''; } renderPhraseRebusBuilder(); } loadStep(curStep);}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) renderPhraseRebusBuilder(); if(String(activeKey).startsWith('hourra_') && !document.getElementById('hourra-modal')?.classList.contains('hidden')) hourraRenderBuilder(); loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) { const d=phraseLevelData(); if(activeKey === (d.multiAudioKey || phraseMultiAudioKey())) { d.multiAudioSource='uploaded'; d.multiTtsSource=''; } renderPhraseRebusBuilder(); } if(String(activeKey).startsWith('hourra_') && !document.getElementById('hourra-modal')?.classList.contains('hidden')) hourraRenderBuilder(); loadStep(curStep);}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
 
 function playConsigne() { 
     const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
@@ -2651,7 +2686,7 @@ function xmlEscape(value) {
         .replace(/'/g, '&apos;');
 }
 
-function makeScormManifest(title, passingScore = 80) {
+function makeScormManifest(title, passingScore = 80, assetFiles = []) {
     const safeTitle = xmlEscape(title || 'bSmart Interactive Exercise');
     const scaled = Math.max(0, Math.min(100, Number(passingScore) || 80)) / 100;
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -2694,6 +2729,7 @@ function makeScormManifest(title, passingScore = 80) {
       <file href="js/config.js"/>
       <file href="js/scorm.js"/>
       <file href="js/responsive.js"/>
+      ${assetFiles.map(path => `<file href="${xmlEscape(path)}"/>`).join("\n      ")}
     </resource>
   </resources>
 </manifest>`;
@@ -2834,7 +2870,7 @@ async function exportToZIP() {
     const itemsF = itemsFRaw.split(';').map(i=>i.trim()).filter(Boolean);
     const itemsD = itemsDRaw.split(';').map(i=>i.trim()).filter(Boolean);
 
-    if(itemsF.length === 0 && !['crossword','autocollantes','phrase_rebus'].includes(typeF) && typeD !== 'crossword') { alert('Dati mancanti!'); return; }
+    if(itemsF.length === 0 && !['crossword','autocollantes','phrase_rebus',...HOURRA_TYPES].includes(typeF) && typeD !== 'crossword') { alert('Dati mancanti!'); return; }
 
     const zip = new JSZip();
     const assetsFolder = zip.folder('assets');
@@ -2879,8 +2915,8 @@ async function exportToZIP() {
         expAud[k] = `assets/${name}`;
     }
 
-    const exportItemsF = typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : (typeF === 'phrase_rebus' ? (phraseRebusData.facile?.items || []).map(it=>it.id) : itemsF);
-    const exportItemsD = typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : (typeD === 'phrase_rebus' ? (phraseRebusData.difficile?.items || []).map(it=>it.id) : itemsD);
+    const exportItemsF = hourraIsType(typeF) ? hourraSteps(typeF,'facile') : typeF === 'autocollantes' ? Object.keys(autocollantesData.facile || {}) : (typeF === 'phrase_rebus' ? (phraseRebusData.facile?.items || []).map(it=>it.id) : itemsF);
+    const exportItemsD = hourraIsType(typeD) ? hourraSteps(typeD,'difficile') : typeD === 'autocollantes' ? Object.keys(autocollantesData.difficile || {}) : (typeD === 'phrase_rebus' ? (phraseRebusData.difficile?.items || []).map(it=>it.id) : itemsD);
     const passingScore = 80;
     const gameConfig = {
         unite: document.getElementById('in-unite').value || '1',
@@ -2890,12 +2926,12 @@ async function exportToZIP() {
         titre: document.getElementById('in-titre').value || 'Jeu',
         scorm: { version: '2004 4th Edition', passingScore },
         domino: getDominoSettings(),
-        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData,
+        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData, hourraData,
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
         levels: {
-            facile: { type: typeF, consigne: document.getElementById('con-f').value, items: exportItemsF, readEachSentence: document.getElementById('read-step-f') ? document.getElementById('read-step-f').checked : true },
-            difficile: { type: typeD, consigne: document.getElementById('con-d').value, items: exportItemsD, readEachSentence: document.getElementById('read-step-d') ? document.getElementById('read-step-d').checked : true }
+            facile: { type: typeF, consigne: document.getElementById('con-f').value || (hourraIsType(typeF) ? hourraDefaultConsigne(typeF,'facile') : ''), items: exportItemsF, readEachSentence: document.getElementById('read-step-f') ? document.getElementById('read-step-f').checked : true },
+            difficile: { type: typeD, consigne: document.getElementById('con-d').value || (hourraIsType(typeD) ? hourraDefaultConsigne(typeD,'difficile') : ''), items: exportItemsD, readEachSentence: document.getElementById('read-step-d') ? document.getElementById('read-step-d').checked : true }
         }
     };
 
@@ -2945,7 +2981,7 @@ async function exportToZIP() {
 </html>`;
 
     zip.file('index.html', playerHTML);
-    zip.file('imsmanifest.xml', makeScormManifest(gameConfig.titre, passingScore));
+    zip.file('imsmanifest.xml', makeScormManifest(gameConfig.titre, passingScore, [...Object.values(expImg),...Object.values(expAud)]));
     zip.file('metadata.xml', makeScormMetadata(gameConfig.titre));
 
     const rawName = document.getElementById('in-filename')?.value.trim() || gameConfig.titre || 'esercizio';
@@ -3033,3 +3069,431 @@ function setPreviewMode(mode) {
     if (stage) new ResizeObserver(schedule).observe(stage);
   }
 })();
+
+/* =============================================================
+   HOURRA 3 — FOUR REUSABLE ACTIVITY ENGINES (UNITÉS 3 & 4)
+   All editorial images/audio are uploaded in the builder.
+   This module runs unchanged in the editor preview and SCORM 2004.
+   ============================================================= */
+const HOURRA_TYPES = ['loto_directions', 'hourra_tense', 'hourra_memory', 'hourra_timeline'];
+const hourraIsType = type => HOURRA_TYPES.includes(type);
+let hourraData = makeDefaultHourraData();
+let hourraEditorType = 'loto_directions';
+let hourraEditorLevel = 'facile';
+let hourraSelectedToken = '';
+let hourraSelectedEvent = '';
+let hourraBoardState = {};
+let hourraAudio = null;
+let hourraBusy = false;
+
+function makeDefaultHourraData() {
+    const signs = ['Tout droit', 'À gauche', 'Devant le magasin', 'Traverser la rue', 'Ici', 'À droite', 'Autre panneau']
+        .map((label,i) => ({label,imageKey:`hourra_loto_sign_${i}`}));
+    const tokens = [{id:'solo',label:'Lupin',imageKey:'hourra_loto_token_solo'}, {id:'duo',label:'Lupin + Rose',imageKey:'hourra_loto_token_duo'}];
+    const easyLoto = [
+        ['Continue tout droit.',0,'solo'],['Tournez à gauche.',1,'duo'],['Passe devant le magasin.',2,'solo'],
+        ['Traverse la rue.',3,'solo'],['Vous êtes ici.',4,'duo'],['Tourne à droite.',5,'solo'],
+        ['Passez devant le magasin.',2,'duo'],['Continuez tout droit.',0,'duo'],['Traversez la rue.',3,'duo'],['Tu es ici.',4,'solo']
+    ].map(([text,sign,token],i)=>({id:`lf${i}`,text,sign,token,audioKey:`hourra_loto_f_audio_${i}`}));
+    const hardLoto = [
+        ['Continue tout droit.','solo',0],['Passez devant le magasin.','duo',2],['Tu es ici.','solo',4],
+        ['Traversez la rue.','duo',3],['Tourne à gauche.','solo',1],['Continuez tout droit !','duo',0],
+        ['Vous êtes ici !','duo',4],['Tournez à gauche.','duo',1],['Passe devant le magasin.','solo',2],['Tourne à droite !','solo',5]
+    ].map(([answer,token,sign],i)=>({id:`ld${i}`,text:answer,answer,token,sign,audioKey:`hourra_loto_d_audio_${i}`}));
+    const tenseEasy = [
+        ['Je vais visiter l’Atomium.','future'],['Nous goûtons des pralines.','present'],
+        ['On va jouer dans le parc.','future'],['Il va acheter des billets.','future'],
+        ['Elle joue dans le parc.','present'],['Vous mangez des frites.','present'],
+        ['Nous visitons le musée.','present'],['Ils vont manger des gaufres.','future']
+    ].map(([text,answer],i)=>({id:`tf${i}`,text,answer,imageKey:`hourra_tense_item_${i}`,audioKey:`hourra_tense_f_audio_${i}`}));
+    const tensePairs = [
+        ['Nous','allons visiter l’Atomium.'],['Tu','vas acheter des billets au guichet.'],
+        ['Vous','allez goûter des pralines.'],['Il','va manger des frites.'],
+        ['Elles','vont faire des gaufres.'],['Je','vais jouer dans le parc.']
+    ].map(([left,right],i)=>({id:`tp${i}`,left,right}));
+    const symptoms = ['Attraper un virus','Avoir un rhume','Avoir une allergie','Avoir mal au coude',
+        'Glisser','Tousser','Avoir de la fièvre','Avoir mal à la gorge'];
+    const memoryEasy = symptoms.map((text,i)=>({id:`mf${i}`,text,imageKey:`hourra_memory_image_${i}`,audioKey:`hourra_memory_audio_${i}`}));
+    const memoryPairs = symptoms.map((text,i)=>({id:`mp${i}`,text,imageKey:`hourra_memory_image_${i}`}));
+    const events = [
+        'La semaine dernière, j’ai eu de la fièvre.',
+        'Le week-end dernier, je suis tombé de la poutre.',
+        'Hier, j’ai glissé dans le parc.',
+        'Aujourd’hui, j’ai eu des allergies.'
+    ].map((text,i)=>({id:`ev${i}`,text,imageKey:`hourra_timeline_event_${i}`}));
+    const hardTimeline = [
+        ['La semaine dernière, je suis tombé de la poutre.','La semaine dernière, je vais tomber de la poutre.','La semaine dernière, je tombe de la poutre.',0],
+        ['Hier, j’ai de la fièvre.','Hier, je suis de la fièvre.','Hier j’ai eu de la fièvre.',2],
+        ['Le week-end dernier, je visite l’Atomium.','Le week-end dernier, j’ai visité l’Atomium.','Le week-end dernier, je vais visiter l’Atomium.',1],
+        ['Hier, tu as toussé.','Hier, tu tousses.','Hier, tu vas tousser.',0],
+        ['Hier, nous allons au vestiaire.','Hier, nous sommes allés au vestiaire.','Hier, nous avons allé au vestiaire.',1],
+        ['La semaine dernière, il monte tout en haut de la corde.','La semaine dernière, il va monter tout en haut de la corde.','La semaine dernière, il est monté tout en haut de la corde.',2]
+    ].map(([a,b,c,correct],i)=>({id:`th${i}`,imageKey:`hourra_timeline_question_${i}`,options:[a,b,c],correct}));
+    return {
+        loto_directions: {
+            facile:{signs:structuredClone(signs),tokens:structuredClone(tokens),items:easyLoto},
+            difficile:{signs:structuredClone(signs),tokens:structuredClone(tokens),items:hardLoto,
+                labels:['Continue tout droit.','Tourne à gauche.','Continuez tout droit !','Tournez à gauche.','Tourne à droite !','Passe devant le magasin.','Traverse la rue.','Vous êtes ici !']}
+        },
+        hourra_tense: {
+            facile:{signs:[{id:'present',label:'PRÉSENT',imageKey:'hourra_tense_present'},
+                {id:'future',label:'FUTUR',imageKey:'hourra_tense_future'}],items:tenseEasy},
+            difficile:{pairs:tensePairs,backgroundKey:'hourra_tense_reveal_bg'}
+        },
+        hourra_memory: {facile:{items:memoryEasy},difficile:{pairs:memoryPairs}},
+        hourra_timeline: {facile:{events},difficile:{items:hardTimeline}}
+    };
+}
+function hourraLevelData(type=getCurrentType(), level=curLvl) { return hourraData[type]?.[level] || {}; }
+function hourraSteps(type=getCurrentType(),level=curLvl) {
+    const d=hourraLevelData(type,level);
+    if((type==='hourra_tense' && level==='difficile') ||
+       (type==='hourra_memory' && level==='difficile') ||
+       (type==='hourra_timeline' && level==='facile')) return ['board'];
+    return (d.items||[]).map((it,i)=>String(it.id ?? `step_${i}`));
+}
+function hourraIsBoard(type=getCurrentType(),level=curLvl) {return hourraSteps(type,level).length===1 && hourraSteps(type,level)[0]==='board';}
+function hourraEsc(s) {return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function hourraAsset(key,audio=false) {return isPlayerMode() ? (audio?GAME_CONFIG.audio?.[key]:GAME_CONFIG.images?.[key]) : (audio?dbAud[key]:dbImg[key]);}
+function hourraImage(key,label,klass='') {const src=hourraAsset(key);return src
+    ? `<img src="${hourraEsc(src)}" class="${klass}" alt="${hourraEsc(label)}" draggable="false" loading="lazy">`
+    : `<span class="hourra-image-placeholder" role="img" aria-label="Visuel da caricare">${hourraEsc(label||'📷 Image')}</span>`;}
+function hourraShuffle(a) {const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function hourraSpeak(text) {
+    if(!('speechSynthesis' in window))return;
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(String(text||''));u.lang='fr-FR';u.rate=.6;
+    const voices=window.speechSynthesis.getVoices();
+    const voice=voices.find(v=>/^fr[-_]/i.test(v.lang)&&/male|thomas|henri|nicolas/i.test(v.name))||voices.find(v=>/^fr[-_]/i.test(v.lang));
+    if(voice)u.voice=voice;
+    window.speechSynthesis.speak(u);
+}
+function hourraPlayAudio() {
+    const d=hourraLevelData(),it=(d.items||[])[curStep];if(!it)return;
+    if(hourraAudio){hourraAudio.pause();hourraAudio=null;}
+    const src=hourraAsset(it.audioKey,true);
+    if(src){hourraAudio=new Audio(src);hourraAudio.play().catch(()=>{});}else hourraSpeak(it.text);
+}
+function hourraSaveProgress() {
+    if(isPlayerMode() && window.BSMART_SCORM) window.BSMART_SCORM.saveState({level:curLvl,step:curStep,status,errorTracker,
+        hourraBoard:hourraIsBoard()?JSON.parse(JSON.stringify(hourraBoardState)):null});
+}
+function hourraRecordError() {
+    errorTracker[Math.min(curStep,errorTracker.length-1)]=(errorTracker[Math.min(curStep,errorTracker.length-1)]||0)+1;
+    playSound('global_ko');hourraSaveProgress();
+}
+function hourraCorrectStep() {
+    if(status[curStep]==='completed')return;
+    hourraBusy=true;status[curStep]='completed';playSound('global_ok');renderNav();hourraSaveProgress();
+    document.querySelectorAll('.hourra-answer,.hourra-sign,.hourra-token,.hourra-card').forEach(el=>el.disabled=true);
+    setTimeout(()=>{
+        hourraBusy=false;
+        if(!hourraIsType(getCurrentType()))return;
+        const next=status.findIndex((s,i)=>s!=='completed' && i>curStep);
+        const earlier=status.findIndex(s=>s!=='completed');
+        if(next>=0)loadStep(next);else if(earlier>=0)loadStep(earlier);else showEndScreen();
+    },850);
+}
+function hourraCompleteBoard() {
+    if(status[0]==='completed')return;
+    status[0]='completed';playSound('global_ok');renderNav();hourraSaveProgress();
+    setTimeout(()=>{if(hourraIsType(getCurrentType())&&status[0]==='completed')showEndScreen();},700);
+}
+function hourraFeedback(ok,element) {
+    const fb=document.getElementById('hourra-feedback');if(fb)fb.textContent=ok?'Bravo !':'Essaie encore.';
+    if(element){element.classList.add(ok?'hourra-right':'hourra-wrong');if(!ok)setTimeout(()=>element.classList.remove('hourra-wrong'),550);}
+}
+function hourraSelectAnswer(value,el) {
+    if(hourraBusy||status[curStep]==='completed')return;
+    const type=getCurrentType(), d=hourraLevelData(),it=(d.items||[])[curStep];if(!it)return;
+    let correct=false;
+    if(type==='hourra_tense') correct=String(it.answer)===String(value);
+    else if(type==='hourra_memory')correct=String(it.id)===String(value);
+    else if(type==='hourra_timeline')correct=Number(it.correct)===Number(value);
+    else if(type==='loto_directions')correct=String(it.answer).trim()===String(value).trim();
+    hourraFeedback(correct,el);
+    if(correct)hourraCorrectStep();else hourraRecordError();
+}
+function hourraChooseToken(id) {
+    if(hourraBusy||status[curStep]==='completed')return;
+    hourraSelectedToken=id;
+    document.querySelectorAll('.hourra-token').forEach(el=>el.classList.toggle('hourra-selected',el.dataset.token===id));
+}
+function hourraDropToken(sign,el) {
+    if(hourraBusy||status[curStep]==='completed'||!hourraSelectedToken)return;
+    const it=(hourraLevelData().items||[])[curStep];if(!it)return;
+    const correct=Number(it.sign)===Number(sign)&&it.token===hourraSelectedToken;
+    hourraFeedback(correct,el);hourraSelectedToken='';
+    document.querySelectorAll('.hourra-token').forEach(el=>el.classList.remove('hourra-selected'));
+    if(correct)hourraCorrectStep();else hourraRecordError();
+}
+// Pointer dragging works with touch and mouse; click-then-click is a keyboard-friendly fallback.
+function hourraTokenPointer(event,id) {
+    if(event.button!==0 && event.pointerType==='mouse')return;
+    hourraChooseToken(id);
+    const source=event.currentTarget, startX=event.clientX,startY=event.clientY;
+    let ghost=null;
+    const move=e=>{
+        if(!ghost && Math.hypot(e.clientX-startX,e.clientY-startY)>9){
+            ghost=source.cloneNode(true);ghost.classList.add('hourra-drag-ghost');ghost.style.width=`${source.getBoundingClientRect().width}px`;
+            document.body.appendChild(ghost);
+        }
+        if(ghost){ghost.style.left=`${e.clientX+10}px`;ghost.style.top=`${e.clientY+10}px`;}
+    };
+    const stop=e=>{
+        window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',cancel);
+        if(ghost){ghost.remove();const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.hourra-sign');
+            if(target)hourraDropToken(Number(target.dataset.sign),target);}
+    };
+    const cancel=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);window.removeEventListener('pointercancel',cancel);ghost?.remove();};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true});window.addEventListener('pointercancel',cancel,{once:true});
+}
+function hourraRenderStep(stage,pool) {
+    const type=getCurrentType(),d=hourraLevelData(),it=(d.items||[])[curStep];
+    stage.classList.add('hourra-stage');pool.innerHTML='';hourraBusy=false;hourraSelectedToken='';
+    const progress=hourraIsBoard()?'' : `<span class="hourra-progress">${curStep+1} / ${items.length}</span>`;
+    const play=it?.text?`<button type="button" class="hourra-audio" onclick="hourraPlayAudio()">▶ ÉCOUTE</button>`:'';
+    let html='';
+    if(type==='loto_directions'){
+        if(!it){stage.innerHTML='<p>Apri il Costruttore Hourra e inserisci gli item.</p>';return;}
+        if(curLvl==='facile'){
+            const tokens=(d.tokens||[]).map(t=>`<button type="button" class="hourra-token" data-token="${hourraEsc(t.id)}" onclick="hourraChooseToken('${hourraEsc(t.id)}')" onpointerdown="hourraTokenPointer(event,'${hourraEsc(t.id)}')">${hourraImage(t.imageKey,t.label,'hourra-token-image')}<span>${hourraEsc(t.label)}</span></button>`).join('');
+            const signs=(d.signs||[]).map((s,i)=>`<button type="button" class="hourra-sign" data-sign="${i}" onclick="hourraDropToken(${i},this)">${hourraImage(s.imageKey,s.label,'hourra-sign-image')}<small>${hourraEsc(s.label)}</small><span class="hourra-drop-label">Dépose ici</span></button>`).join('');
+            html=`<div class="hourra-toolbar">${play}${progress}</div><div class="hourra-loto-layout"><div class="hourra-token-bank">${tokens}</div><div class="hourra-sign-grid">${signs}</div></div>`;
+        }else{
+            const sign=d.signs?.[Number(it.sign)],tok=d.tokens?.find(t=>t.id===it.token);
+            const all=[...new Set([it.answer,...(d.labels||[]),...(d.items||[]).map(x=>x.answer)].map(x=>String(x||'').trim()).filter(Boolean))];
+            const opts=hourraShuffle([String(it.answer||''),...hourraShuffle(all.filter(x=>x!==it.answer)).slice(0,7)]);
+            html=`<div class="hourra-toolbar">${play}${progress}</div><div class="hourra-loto-prompt">${hourraImage(tok?.imageKey,tok?.label,'hourra-prompt-image')}${hourraImage(sign?.imageKey,sign?.label,'hourra-prompt-image')}</div><div class="hourra-choice-grid">${opts.map(v=>`<button class="hourra-answer" type="button" onclick="hourraSelectAnswer(this.dataset.value,this)" data-value="${hourraEsc(v)}">${hourraEsc(v)}</button>`).join('')}</div>`;
+        }
+    }else if(type==='hourra_tense'){
+        if(curLvl==='facile'){
+            const itemImage=hourraAsset(it?.imageKey)?`<div class="hourra-tense-item-visual">${hourraImage(it.imageKey,it.text,'hourra-tense-item-image')}</div>`:'';
+            html=`<div class="hourra-toolbar">${play}${progress}</div>${itemImage}<div class="hourra-tense-choices">${(d.signs||[]).map(s=>`<button class="hourra-answer hourra-tense-sign" onclick="hourraSelectAnswer('${hourraEsc(s.id)}',this)">${hourraImage(s.imageKey,s.label,'hourra-prompt-image')}<strong>${hourraEsc(s.label)}</strong></button>`).join('')}</div>`;
+        }else{
+            if(!Array.isArray(hourraBoardState.matched))hourraBoardState={matched:[],selected:null};
+            const pairs=d.pairs||[];
+            if(!Array.isArray(hourraBoardState.rightOrder))hourraBoardState.rightOrder=hourraShuffle(pairs.map(p=>p.id));
+            const right=hourraBoardState.rightOrder.map(id=>pairs.find(p=>p.id===id)).filter(Boolean);
+            const bg=hourraAsset(d.backgroundKey);
+            html=`<div class="hourra-pairs-layout"><div class="hourra-pair-columns"><div class="hourra-pair-column">${pairs.map(p=>`<button class="hourra-pair-left ${hourraBoardState.matched.includes(p.id)?'hourra-matched':''}" data-id="${hourraEsc(p.id)}" onclick="hourraChoosePair('${hourraEsc(p.id)}')" ${hourraBoardState.matched.includes(p.id)?'disabled':''}>${hourraEsc(p.left)}</button>`).join('')}</div><div class="hourra-pair-column">${right.map(p=>`<button class="hourra-pair-right ${hourraBoardState.matched.includes(p.id)?'hourra-matched':''}" data-id="${hourraEsc(p.id)}" onclick="hourraMatchPair('${hourraEsc(p.id)}')" ${hourraBoardState.matched.includes(p.id)?'disabled':''}>${hourraEsc(p.right)}</button>`).join('')}</div></div><div class="hourra-reveal" style="${bg?`background-image:url('${hourraEsc(bg)}')`:''}">${!bg?'<span class="hourra-reveal-hint">Carica il disegno da svelare nel costruttore</span>':''}<div class="hourra-reveal-cover">${pairs.map(p=>`<div class="hourra-reveal-cell ${hourraBoardState.matched.includes(p.id)?'revealed':''}"></div>`).join('')}</div></div></div>`;
+        }
+    }else if(type==='hourra_memory'){
+        if(curLvl==='facile'){
+            const options=hourraLevelData().items||[];
+            html=`<div class="hourra-toolbar">${play}${progress}</div><div class="hourra-image-choice-grid">${options.map(p=>`<button type="button" class="hourra-answer hourra-image-answer" onclick="hourraSelectAnswer('${hourraEsc(p.id)}',this)">${hourraImage(p.imageKey,p.text,'hourra-choice-image')}</button>`).join('')}</div>`;
+        }else{
+            const pairs=d.pairs||[];
+            if(!Array.isArray(hourraBoardState.cards))hourraBoardState={cards:hourraShuffle(pairs.flatMap(p=>[{id:p.id,kind:'image'},{id:p.id,kind:'text'}])),matched:[],open:[],locked:false};
+            html=`<div class="hourra-memory-grid">${hourraBoardState.cards.map((c,i)=>{
+                const p=pairs.find(p=>p.id===c.id)||{};
+                const shown=hourraBoardState.open.includes(i)||hourraBoardState.matched.includes(c.id);
+                return `<button type="button" class="hourra-card hourra-card-type-${c.kind} ${shown?'hourra-flipped':''} ${hourraBoardState.matched.includes(c.id)?'hourra-card-matched':''}" data-card="${i}" onclick="hourraFlipCard(${i})" ${hourraBoardState.matched.includes(c.id)?'disabled':''}>${shown?(c.kind==='image'?hourraImage(p.imageKey,p.text,'hourra-memory-image'):`<span>${hourraEsc(p.text)}</span>`):'<span class="hourra-card-back">?</span>'}</button>`;
+            }).join('')}</div>`;
+        }
+    }else if(type==='hourra_timeline'){
+        if(curLvl==='facile'){
+            if(!Array.isArray(hourraBoardState.placements))hourraBoardState={placements:Array((d.events||[]).length).fill(null)};
+            const events=d.events||[],placed=new Set(hourraBoardState.placements.filter(Boolean));
+            const bank=hourraShuffle(events.filter(e=>!placed.has(e.id)));
+            html=`<p class="hourra-hint">Glisse les images sur la ligne du temps, ou choisis une image puis une case.</p><div id="hourra-event-bank" class="hourra-event-bank">${bank.map(e=>`<button type="button" class="hourra-event-tile" data-event="${hourraEsc(e.id)}" onclick="hourraChooseEvent('${hourraEsc(e.id)}')">${hourraImage(e.imageKey,e.text,'hourra-event-image')}<small>${hourraEsc(e.text)}</small></button>`).join('')}</div><div class="hourra-timeline"><div class="hourra-timeline-line"></div>${hourraBoardState.placements.map((id,i)=>{
+                const e=events.find(e=>e.id===id);
+                return `<button type="button" class="hourra-timeline-slot" data-slot="${i}" onclick="hourraPlaceEvent(${i})"><span class="hourra-slot-number">${i+1}</span>${e?hourraImage(e.imageKey,e.text,'hourra-event-image'):'<span>+</span>'}</button>`;
+            }).join('')}</div><button type="button" class="hourra-verify" onclick="hourraVerifyTimeline()">VÉRIFIER</button>`;
+        }else{
+            if(!it){stage.innerHTML='<p>Ajoute des questions dans le constructeur.</p>';return;}
+            html=`<div class="hourra-toolbar">${progress}</div><div class="hourra-timeline-question">${hourraImage(it.imageKey,'Image de la question','hourra-timeline-main-image')}</div><div class="hourra-phrase-options">${(it.options||[]).map((opt,i)=>`<button class="hourra-answer" type="button" onclick="hourraSelectAnswer(${i},this)">${hourraEsc(opt)}</button>`).join('')}</div>`;
+        }
+    }
+    stage.innerHTML=`<div class="hourra-activity hourra-${type} hourra-${curLvl}">${html}<p id="hourra-feedback" class="hourra-feedback" aria-live="polite"></p></div>`;
+    if(type==='hourra_tense'&&curLvl==='difficile'&&hourraBoardState.selected){
+        stage.querySelector(`.hourra-pair-left[data-id="${CSS.escape(hourraBoardState.selected)}"]`)?.classList.add('hourra-selected');
+    }
+    if(type==='hourra_timeline'&&curLvl==='facile')hourraInitTimelineDrag();
+}
+function hourraChoosePair(id) {
+    if(hourraBoardState.matched?.includes(id))return;
+    hourraBoardState.selected=id;
+    document.querySelectorAll('.hourra-pair-left').forEach(el=>el.classList.toggle('hourra-selected',el.dataset.id===id));
+}
+function hourraMatchPair(id) {
+    const selected=hourraBoardState.selected;
+    if(!selected||hourraBoardState.matched?.includes(id))return;
+    if(selected===id){
+        hourraBoardState.matched.push(id);hourraBoardState.selected=null;playSound('global_ok');
+        hourraSaveProgress();hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));
+        if(hourraBoardState.matched.length===(hourraLevelData().pairs||[]).length)hourraCompleteBoard();
+    }else{hourraRecordError();hourraFeedback(false);}
+}
+function hourraFlipCard(index) {
+    const s=hourraBoardState,c=s.cards?.[index];
+    if(!c||s.locked||s.matched.includes(c.id)||s.open.includes(index))return;
+    s.open.push(index);hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));
+    if(s.open.length===2){
+        const [a,b]=s.open.map(i=>s.cards[i]);
+        if(a.id===b.id&&a.kind!==b.kind){
+            s.matched.push(a.id);s.open=[];playSound('global_ok');hourraSaveProgress();
+            setTimeout(()=>{
+                if(getCurrentType()!=='hourra_memory'||curLvl!=='difficile')return;
+                hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));
+                if(s.matched.length===(hourraLevelData().pairs||[]).length)hourraCompleteBoard();
+            },450);
+        }else{
+            s.locked=true;hourraRecordError();
+            setTimeout(()=>{
+                if(getCurrentType()!=='hourra_memory'||curLvl!=='difficile')return;
+                s.open=[];s.locked=false;hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));
+            },850);
+        }
+    }
+}
+function hourraChooseEvent(id) {
+    hourraSelectedEvent=id;
+    document.querySelectorAll('.hourra-event-tile').forEach(el=>el.classList.toggle('hourra-selected',el.dataset.event===id));
+}
+function hourraPlaceEvent(slot) {
+    const s=hourraBoardState,events=hourraLevelData().events||[];
+    if(!s.placements||slot<0||slot>=s.placements.length)return;
+    const previous=s.placements[slot];
+    if(!hourraSelectedEvent){if(previous){s.placements[slot]=null;hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));}return;}
+    if(!events.some(e=>e.id===hourraSelectedEvent))return;
+    s.placements=s.placements.map(id=>id===hourraSelectedEvent?null:id);
+    s.placements[slot]=hourraSelectedEvent;hourraSelectedEvent='';
+    hourraSaveProgress();hourraRenderStep(document.getElementById('main-content'),document.getElementById('pool'));
+}
+function hourraInitTimelineDrag() {
+    const bank=document.getElementById('hourra-event-bank');if(!bank||typeof Sortable==='undefined')return;
+    createSortable(bank,{group:{name:'hourra-events',pull:'clone',put:false},sort:false,animation:120,onStart:e=>hourraChooseEvent(e.item.dataset.event)});
+    document.querySelectorAll('.hourra-timeline-slot').forEach(slot=>{
+        createSortable(slot,{group:{name:'hourra-events',put:true},sort:false,animation:120,onAdd:e=>{
+            const id=e.item.dataset.event,position=Number(e.to.dataset.slot);
+            e.item.remove();hourraSelectedEvent=id;
+            setTimeout(()=>hourraPlaceEvent(position),0);
+        }});
+    });
+}
+function hourraVerifyTimeline() {
+    const expected=(hourraLevelData().events||[]).map(e=>e.id),actual=hourraBoardState.placements||[];
+    if(actual.length!==expected.length||actual.some(x=>!x)){
+        const fb=document.getElementById('hourra-feedback');if(fb)fb.textContent='Place toutes les images avant de vérifier.';return;
+    }
+    const ok=expected.every((id,i)=>id===actual[i]);
+    if(ok){hourraFeedback(true);hourraCompleteBoard();}
+    else{hourraRecordError();hourraFeedback(false);document.querySelectorAll('.hourra-timeline-slot').forEach((el,i)=>el.classList.toggle('hourra-wrong',actual[i]!==expected[i]));}
+}
+function hourraSolutions(type=getCurrentType(),level=curLvl) {
+    const d=hourraLevelData(type,level);
+    const line=(label,visual='')=>`<div class="hourra-solution-row">${visual}<span>${hourraEsc(label)}</span></div>`;
+    if(type==='loto_directions')return (d.items||[]).map(it=>{
+        const sign=d.signs?.[Number(it.sign)],token=d.tokens?.find(t=>t.id===it.token);
+        return line(level==='facile'?it.text:it.answer,`${hourraImage(token?.imageKey,token?.label,'hourra-solution-image')}${hourraImage(sign?.imageKey,sign?.label,'hourra-solution-image')}`);
+    }).join('');
+    if(type==='hourra_tense')return level==='facile'?(d.items||[]).map(it=>line(`${it.text} — ${it.answer==='future'?'FUTUR':'PRÉSENT'}`)).join(''):
+        (d.pairs||[]).map(p=>line(`${p.left} ${p.right}`)).join('');
+    if(type==='hourra_memory')return (level==='facile'?d.items:d.pairs||[]).map(p=>line(p.text,hourraImage(p.imageKey,p.text,'hourra-solution-image'))).join('');
+    if(type==='hourra_timeline')return level==='facile'?(d.events||[]).map(e=>line(e.text,hourraImage(e.imageKey,e.text,'hourra-solution-image'))).join(''):
+        (d.items||[]).map(it=>line(it.options?.[it.correct]||'',hourraImage(it.imageKey,'','hourra-solution-image'))).join('');
+    return '';
+}
+
+/* ---- Configurator: independent data and media for each Hourra level ---- */
+function hourraOpenBuilder(level) {
+    hourraEditorLevel=level;hourraEditorType=document.getElementById(level==='facile'?'type-f':'type-d').value;
+    const modal=document.getElementById('hourra-modal');if(!modal)return;
+    modal.classList.remove('hidden');hourraRenderBuilder();
+}
+function hourraCloseBuilder() {
+    document.getElementById('hourra-modal')?.classList.add('hidden');
+    if(curLvl===hourraEditorLevel && getCurrentType()===hourraEditorType)startGame();
+}
+function hourraUpdate(group,index,field,value) {
+    const d=hourraLevelData(hourraEditorType,hourraEditorLevel),row=d[group]?.[index];if(!row)return;
+    if(field==='sign'||field==='correct')value=Number(value);
+    if(field.startsWith('options.')){const j=Number(field.split('.')[1]);row.options[j]=value;}
+    else row[field]=value;
+}
+function hourraUpdateLabels(value) {hourraLevelData(hourraEditorType,hourraEditorLevel).labels=value.split('\n').map(s=>s.trim()).filter(Boolean);}
+function hourraAdd(group) {
+    const d=hourraLevelData(hourraEditorType,hourraEditorLevel),n=d[group]?.length||0;
+    if(!d[group])d[group]=[];
+    const id=`h${Date.now()}_${n}`;
+    const type=hourraEditorType,level=hourraEditorLevel;
+    let row={id,text:'',imageKey:`hourra_${type}_${level}_${id}`,audioKey:`hourra_${type}_${level}_${id}_audio`};
+    if(type==='loto_directions')Object.assign(row,{sign:0,token:'solo',answer:''});
+    if(type==='hourra_tense'&&level==='facile')row.answer='present';
+    if(group==='pairs')row={id,left:'',right:'',text:'',imageKey:`hourra_${type}_${id}`};
+    if(type==='hourra_timeline'&&level==='difficile')Object.assign(row,{options:['','',''],correct:0});
+    d[group].push(row);hourraRenderBuilder();
+}
+function hourraRemove(group,i) {hourraLevelData(hourraEditorType,hourraEditorLevel)[group]?.splice(i,1);hourraRenderBuilder();}
+function hourraMove(group,i,dir) {const a=hourraLevelData(hourraEditorType,hourraEditorLevel)[group];const j=i+dir;if(!a||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];hourraRenderBuilder();}
+function hourraInput(label,group,i,field,value,extra='') {
+    return `<label class="hourra-editor-field"><span>${hourraEsc(label)}</span><input ${extra} value="${hourraEsc(value)}" oninput="hourraUpdate('${group}',${i},'${field}',this.value)"></label>`;
+}
+function hourraSelect(label,group,i,field,choices,value) {
+    return `<label class="hourra-editor-field"><span>${hourraEsc(label)}</span><select onchange="hourraUpdate('${group}',${i},'${field}',this.value)">${choices.map(([v,t])=>`<option value="${hourraEsc(v)}" ${String(v)===String(value)?'selected':''}>${hourraEsc(t)}</option>`).join('')}</select></label>`;
+}
+function hourraAssetEditor(key,label,audio=false) {
+    const src=hourraAsset(key,audio);
+    return `<div class="hourra-editor-asset">${audio?'🎵':hourraImage(key,label,'hourra-editor-thumb')}<button type="button" onclick="${audio?'pickAud':'pickImg'}('${hourraEsc(key)}')">${src?'✓ Cambia':'＋ Carica'} ${audio?'audio':'immagine'}</button></div>`;
+}
+function hourraRowHeader(group,i,label) {return `<div class="hourra-editor-row-head"><b>${hourraEsc(label)} ${i+1}</b><div><button onclick="hourraMove('${group}',${i},-1)" title="Sposta sopra">↑</button><button onclick="hourraMove('${group}',${i},1)" title="Sposta sotto">↓</button><button onclick="hourraRemove('${group}',${i})" title="Elimina">✕</button></div></div>`;}
+function hourraRenderBuilder() {
+    const type=hourraEditorType,level=hourraEditorLevel,d=hourraLevelData(type,level);
+    const title={loto_directions:'Le loto des directions',hourra_tense:'Qu’est-ce qu’on va faire aujourd’hui ?',
+        hourra_memory:'Le memory des maux',hourra_timeline:'Qu’est-ce qui s’est passé ?'}[type]||type;
+    document.getElementById('hourra-builder-title').textContent=`${title} — ${level.toUpperCase()}`;
+    let html='<p class="hourra-editor-note">I testi del documento sono precaricati. Carica i visual editoriali e, se disponibili, gli audio registrati. In mancanza di audio per un item viene utilizzata la voce francese del browser.</p>';
+    if(type==='loto_directions'){
+        html+='<h4>Pannelli di segnalazione (7)</h4><div class="hourra-editor-media-grid">'+(d.signs||[]).map((s,i)=>`<div class="hourra-editor-media">${hourraAssetEditor(s.imageKey,s.label)}${hourraInput('Nome pannello','signs',i,'label',s.label)}</div>`).join('')+'</div>';
+        html+='<h4>Gettoni</h4><div class="hourra-editor-media-grid">'+(d.tokens||[]).map((t,i)=>`<div class="hourra-editor-media">${hourraAssetEditor(t.imageKey,t.label)}${hourraInput('Etichetta','tokens',i,'label',t.label)}</div>`).join('')+'</div>';
+        if(level==='difficile')html+=`<h4>Etichette disponibili (una per riga)</h4><textarea class="hourra-editor-labels" oninput="hourraUpdateLabels(this.value)">${hourraEsc((d.labels||[]).join('\n'))}</textarea>`;
+    }
+    if(type==='hourra_tense'&&level==='facile')html+='<h4>Pancartes</h4><div class="hourra-editor-media-grid">'+(d.signs||[]).map((s,i)=>`<div class="hourra-editor-media">${hourraAssetEditor(s.imageKey,s.label)}${hourraInput('Testo','signs',i,'label',s.label)}</div>`).join('')+'</div>';
+    if(type==='hourra_tense'&&level==='difficile')html+=`<h4>Immagine di fondo da svelare</h4>${hourraAssetEditor(d.backgroundKey,'Immagine di fondo')}`;
+    const group=(type==='hourra_tense'&&level==='difficile')||(type==='hourra_memory'&&level==='difficile')?'pairs':(type==='hourra_timeline'&&level==='facile'?'events':'items');
+    html+=`<h4>${group==='pairs'?'Coppie':group==='events'?'Eventi in ordine cronologico':'Item'} (${d[group]?.length||0})</h4><div class="hourra-editor-rows">`;
+    (d[group]||[]).forEach((it,i)=>{
+        html+=`<div class="hourra-editor-item">${hourraRowHeader(group,i,group==='pairs'?'Coppia':group==='events'?'Evento':'Item')}<div class="hourra-editor-item-grid">`;
+        if(type==='loto_directions'){
+            html+=hourraInput('Testo / audio',group,i,'text',it.text);
+            html+=hourraSelect('Pannello corretto',group,i,'sign',(d.signs||[]).map((s,j)=>[j,s.label]),it.sign);
+            html+=hourraSelect('Gettone',group,i,'token',(d.tokens||[]).map(t=>[t.id,t.label]),it.token);
+            if(level==='difficile')html+=hourraInput('Etichetta corretta',group,i,'answer',it.answer);
+            html+=hourraAssetEditor(it.audioKey,'Audio item',true);
+        }else if(type==='hourra_tense'){
+            if(level==='facile'){
+                html+=hourraInput('Frase da ascoltare',group,i,'text',it.text);
+                html+=hourraSelect('Risposta',group,i,'answer',[['present','PRÉSENT'],['future','FUTUR']],it.answer);
+                html+=hourraAssetEditor(it.audioKey,'Audio item',true);
+                html+=hourraAssetEditor(it.imageKey,'Visual item (opzionale)');
+            }else{
+                html+=hourraInput('Colonna arancione',group,i,'left',it.left);
+                html+=hourraInput('Colonna rosa',group,i,'right',it.right);
+            }
+        }else if(type==='hourra_memory'){
+            html+=hourraInput('Testo / sintomo',group,i,'text',it.text);
+            html+=hourraAssetEditor(it.imageKey,it.text);
+            if(level==='facile')html+=hourraAssetEditor(it.audioKey,'Audio item',true);
+        }else if(type==='hourra_timeline'){
+            if(level==='facile'){
+                html+=hourraInput('Evento (ordine cronologico)',group,i,'text',it.text);
+                html+=hourraAssetEditor(it.imageKey,it.text);
+            }else{
+                html+=hourraAssetEditor(it.imageKey,'Immagine della domanda');
+                for(let j=0;j<3;j++)html+=hourraInput(`Frase ${j+1}`,group,i,`options.${j}`,it.options?.[j]||'');
+                html+=hourraSelect('Risposta corretta',group,i,'correct',[[0,'Frase 1'],[1,'Frase 2'],[2,'Frase 3']],it.correct);
+            }
+        }
+        html+='</div></div>';
+    });
+    html+=`</div><button class="hourra-editor-add" type="button" onclick="hourraAdd('${group}')">+ Aggiungi ${group==='pairs'?'coppia':group==='events'?'evento':'item'}</button>`;
+    document.getElementById('hourra-builder-body').innerHTML=html;
+}
+
+function hourraDefaultConsigne(type,level) {
+ const c={loto_directions:['Écoute et place le bon jeton sous la bonne image.','Regarde et choisis les bonnes étiquettes.'],hourra_tense:['Écoute et choisis la bonne pancarte.','Choisis une carte orange et trouve la carte rose qui correspond.'],hourra_memory:['Écoute et trouve qui l’image qui correspond.','Choisis une carte blanche et une carte orange. Associe la bonne image avec les bons mots.'],hourra_timeline:['Regarde la ligne du temps et classe les événements du plus ancien au plus récent.','Regarde l’image et choisis la bonne phrase.']};
+ return (c[type]||['',''])[level==='facile'?0:1];
+}
+
+function hourraGoStep(direction){const i=curStep+direction;if(hourraIsType(getCurrentType())&&i>=0&&i<items.length)loadStep(i);}
