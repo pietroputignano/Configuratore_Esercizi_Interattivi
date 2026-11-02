@@ -2339,8 +2339,8 @@ function loadStep(idx) {
         const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${word.replace(/'/g, "\\'")}')"`;
         const determinerHtml = parsed.determiner ? `<div class="anagram-determiner">${parsed.determiner}</div>` : '';
 
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-6 w-full">
-            <div class="w-40 h-40 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer"${imgClick}>${imgContent}</div>
+        stage.insertAdjacentHTML('beforeend', `<div class="anagram-play-layout flex flex-col items-center gap-6 w-full">
+            <div class="anagram-play-image border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer"${imgClick}>${imgContent}</div>
             <div class="anagram-answer-wrap">
                 ${determinerHtml}
                 <div id="target" class="anagram-target">`
