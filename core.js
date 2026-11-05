@@ -2582,9 +2582,9 @@ function loadStep(idx) {
         const sentenceImg = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images?.[word] : dbImg[word];
         const imgContent = sentenceImg ? `<img src="${sentenceImg}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
         const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-        stage.insertAdjacentHTML('beforeend', `<div class="sentence-ordering-play flex flex-col items-center w-full"><div class="sentence-ordering-play-image border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
+        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
             <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                + shuffled.map(c => `<div class="sentence-ordering-tile bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
+                + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
             `</div>
             <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
         </div>`);
