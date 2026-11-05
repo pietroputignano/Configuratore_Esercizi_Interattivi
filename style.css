@@ -1800,3 +1800,94 @@ body:has(> .exercise-player) > .exercise-player {
   .header-wrapper .unit-badge-text, .exercise-player .header-wrapper .unit-badge-text { font-size: 10px !important; }
   .header-wrapper .lecon-ribbon, .exercise-player .header-wrapper .lecon-ribbon { font-size: 10px !important; padding: 3px 18px 3px 10px !important; }
 }
+
+/* ===========================================================
+   v35 — editorial adjustments, scoped to each activity
+   =========================================================== */
+/* Mise en ordre: smaller image and smaller chunks; no global zoom. */
+.sentence-ordering-play {gap:clamp(9px,1.7cqw,17px);}
+.sentence-ordering-play-image {width:clamp(118px,16cqw,160px);height:clamp(76px,10cqw,105px);flex:0 0 auto;}
+.sentence-ordering-play #target {padding:clamp(6px,1cqw,11px)!important;min-height:42px!important;gap:6px!important;}
+.sentence-ordering-tile {padding:6px 11px;font-size:clamp(12px,1.45cqw,16px);line-height:1.15;}
+.sentence-ordering-play #check-btn {padding:8px 23px;font-size:clamp(12px,1.2cqw,15px);}
+.sentence-ordering-solved {font-size:clamp(16px,2cqw,22px)!important;}
+@container (max-width:520px) {
+  .sentence-ordering-play-image {width:112px;height:73px;}
+  .sentence-ordering-tile {font-size:12px;padding:5px 8px;}
+  .sentence-ordering-play #target {gap:4px!important;}
+}
+
+/* Dressing: zones are stored in % by Mapper; typography and targets must
+   use the image container width, not the viewport width. */
+.dressing-board {container-type:inline-size;min-width:0;flex:0 1 auto;}
+.dressing-map-zone {min-width:0;box-sizing:border-box;white-space:nowrap;line-height:1.06;
+  font-size:clamp(8px,3.3cqw,30px);}
+.dressing-map-zone .dressing-map-label,
+.dressing-map-zone .dressing-inline-text,
+.dressing-map-zone .dressing-inline-answer {font-size:inherit!important;line-height:inherit!important;white-space:nowrap!important;}
+.dressing-map-zone .dressing-inline-target {min-width:clamp(10px,2.6cqw,25px)!important;
+  height:clamp(13px,4.5cqw,40px)!important;padding:0 2px!important;}
+.dressing-map-zone .dressing-inline-target-solved {height:auto!important;min-width:0!important;}
+.dressing-map-zone .dressing-inline-answer {width:auto!important;min-width:0!important;}
+.dressing-map-zone .dressing-map-label {text-shadow:1px 1px 3px #000a;}
+.dressing-audio-controls {display:flex;justify-content:center;align-items:center;gap:8px;margin:0 auto 8px;}
+.dressing-audio-main,.dressing-audio-restart {border:2px solid #fb923c;background:#fff4e6;color:#c2410c;
+  font-family:'Montserrat',sans-serif;font-weight:900;box-shadow:0 2px 6px #0001;cursor:pointer;}
+.dressing-audio-main {display:inline-flex;align-items:center;gap:12px;padding:8px 22px;border-radius:999px;font-size:clamp(13px,1.3cqw,17px);}
+.dressing-audio-restart {width:39px;height:39px;border-radius:50%;font-size:20px;}
+.exercise-stage[data-activity-type="dressing"] #main-content {gap:8px!important;}
+
+/* Domino: never hyphenate within a word, even if the EPUB/content has soft hyphens.
+   Articles may occupy their own line, or wrap naturally at a space. */
+.domino-label,.domino-label[lang="fr"],.domino-word,.domino-side-layout .domino-word {
+  hyphens:none!important;-webkit-hyphens:none!important;overflow-wrap:normal!important;
+  word-break:keep-all!important;}
+.domino-word,.domino-side-layout .domino-word {display:inline-block!important;white-space:nowrap!important;}
+.domino-solution-text {overflow-wrap:normal!important;word-break:keep-all!important;hyphens:none!important;
+  font-size:clamp(14px,1.45cqw,18px);}
+.domino-solutions {gap:9px;padding:8px 2px;}
+.domino-solution-tile {width:clamp(166px,17cqw,206px);height:clamp(73px,7.6cqw,91px);}
+@container (max-width:520px) {
+  .domino-solutions {flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;}
+  .domino-solution-tile {width:165px;height:75px;}
+}
+
+/* Solutions: shrink the score medal when solutions are opened and give
+   more space to the corrected exercise before considering internal scroll. */
+#end-screen.solutions-visible {justify-content:flex-start!important;gap:4px!important;
+  padding:clamp(8px,1.5cqw,18px)!important;}
+#end-screen.solutions-visible .report-top {gap:clamp(8px,1.6cqw,18px)!important;
+  margin-bottom:4px!important;flex-shrink:0;}
+#end-screen.solutions-visible .report-visual {width:105px!important;height:105px!important;flex:0 0 105px!important;}
+#end-screen.solutions-visible .score-celebration {min-width:0;min-height:0;}
+#end-screen.solutions-visible .score-medal {width:66px;height:66px;border-width:4px;}
+#end-screen.solutions-visible .score-medal::before,
+#end-screen.solutions-visible .score-medal::after {bottom:-15px;width:17px;height:25px;}
+#end-screen.solutions-visible .score-medal::before {left:12px;}
+#end-screen.solutions-visible .score-medal::after {right:12px;}
+#end-screen.solutions-visible .score-star {width:36px;height:36px;}
+#end-screen.solutions-visible .score-message {margin-top:14px;}
+#end-screen.solutions-visible .score-message strong {font-size:15px;}
+#end-screen.solutions-visible .score-message span {font-size:10px;margin-top:3px;}
+#end-screen.solutions-visible #end-score {margin-top:0!important;max-width:1100px;min-height:0;flex:1 1 auto;}
+#end-screen.solutions-visible #end-score > div {margin-top:0!important;min-height:0;}
+#end-screen.solutions-visible .solutions-viewport-list {max-height:min(62vh,650px);overflow-y:auto;
+  padding:clamp(7px,1cqw,13px)!important;}
+#end-screen.solutions-visible .report-top h1 {font-size:17px;margin-bottom:4px;}
+#end-screen.solutions-visible .report-top .mb-8 {margin-bottom:8px;}
+#end-screen.solutions-visible .report-top .gap-6 {gap:10px;}
+@container (max-width:700px) {
+  #end-screen.solutions-visible .report-top {flex-direction:row!important;align-items:center!important;}
+  #end-screen.solutions-visible .report-visual {width:68px!important;height:68px!important;flex-basis:68px!important;}
+  #end-screen.solutions-visible .score-medal {width:44px;height:44px;}
+  #end-screen.solutions-visible .score-star {width:25px;height:25px;}
+  #end-screen.solutions-visible .score-message {display:none;}
+  #end-screen.solutions-visible .report-top h1 {font-size:12px;}
+  #end-screen.solutions-visible .solutions-viewport-list {max-height:min(66vh,680px);}
+}
+
+/* Longer Domino solution labels receive a wider text half, not a tiny font. */
+.domino-solution-tile.domino-solution-long {width:clamp(210px,23cqw,290px);}
+.domino-solution-long .domino-solution-img {width:34%;}
+.domino-solution-long .domino-solution-text {width:66%;}
+@container (max-width:520px) {.domino-solution-tile.domino-solution-long {width:230px;}}
