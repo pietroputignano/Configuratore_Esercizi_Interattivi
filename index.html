@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- IL NOSTRO NUOVO FILE DEGLI STILI -->
-    <link rel="stylesheet" href="style.css?v=33-hourra3">
+    <link rel="stylesheet" href="style.css?v=34-header">
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 
@@ -164,7 +164,14 @@
                         </p>
                         <input id="in-lecon" type="text" class="w-full p-2 border rounded" placeholder="1" oninput="initGame()">
                     </div>
-                    <div><p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p><input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Tu habites où ?" oninput="initGame()"></div>
+                    <div>
+                        <p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Colore fascetta Leçon</p>
+                        <input id="in-lecon-color" type="color" class="w-full h-[38px] p-0 border rounded cursor-pointer" value="#EFA92C" oninput="initGame()" aria-label="Colore fascetta lezione">
+                    </div>
+                </div>
+                <div>
+                    <p class="font-bold uppercase mb-1 text-[10px] text-gray-500">Titre</p>
+                    <input id="in-titre" type="text" class="w-full p-2 border rounded" placeholder="Tu habites où ?" oninput="initGame()">
                 </div>
 
                 <!-- LIVELLI DISPONIBILI -->
@@ -375,6 +382,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=33-hourra3"></script>
+    <script src="core.js?v=34-header"></script>
 </body>
 </html>
