@@ -193,6 +193,72 @@ function updateDominoOptions() {
     if (getCurrentType() === 'domino') startGame();
 }
 
+// Header condiviso tra anteprima e output SCORM 2004.
+// Il colore della fascetta e' indipendente dal colore del badge Unité.
+function setLessonRibbonColor(color) {
+    const ribbon = document.getElementById('res-lecon-wrapper');
+    if (!ribbon) return;
+    const valid = /^#[0-9a-f]{6}$/i.test(String(color || '')) ? color : '#EFA92C';
+    ribbon.style.setProperty('--lesson-color', valid);
+    const rgb = [1, 3, 5].map(i => parseInt(valid.slice(i, i + 2), 16) / 255);
+    const luminance = rgb.map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+    ribbon.style.setProperty('--lesson-text-color', luminance > 0.55 ? '#1F2937' : '#FFFFFF');
+}
+
+let headerFitQueued = false;
+function scheduleHeaderTitleFit() {
+    if (headerFitQueued) return;
+    headerFitQueued = true;
+    requestAnimationFrame(() => {
+        headerFitQueued = false;
+        fitHeaderTitle();
+    });
+}
+
+// Tenta di tenere il titolo su una riga, senza troncamenti o ellissi.
+// Solo per titoli eccezionalmente lunghi usa due righe come fallback leggibile.
+function fitHeaderTitle() {
+    const title = document.getElementById('res-titre');
+    if (!title || !title.parentElement) return;
+    const width = title.parentElement.getBoundingClientRect().width;
+    if (width < 24) return;
+    const maxSize = Math.min(27, Math.max(19, 19 + (width - 280) * 0.018));
+    const minSize = width < 430 ? 11 : 13;
+    title.classList.remove('header-title-multiline');
+    const setSize = n => title.style.setProperty('--header-title-size', `${n.toFixed(2)}px`);
+    setSize(maxSize);
+    if (title.scrollWidth <= title.clientWidth + 1) return;
+    let lo = minSize, hi = maxSize;
+    for (let i = 0; i < 12; i++) {
+        const mid = (lo + hi) / 2;
+        setSize(mid);
+        if (title.scrollWidth <= title.clientWidth + 1) lo = mid;
+        else hi = mid;
+    }
+    setSize(Math.max(minSize, lo - 0.2));
+    if (title.scrollWidth > title.clientWidth + 1) {
+        title.classList.add('header-title-multiline');
+    }
+}
+
+// Osserva la colonna del titolo: funziona anche nel selettore Tablet/Mobile
+// dell'editor e negli iframe LMS, senza cambiare le attivita'.
+(function installHeaderTitleResize() {
+    window.addEventListener('resize', scheduleHeaderTitleFit, {passive:true});
+    window.addEventListener('orientationchange', scheduleHeaderTitleFit, {passive:true});
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(scheduleHeaderTitleFit).catch(() => {});
+    }
+    window.addEventListener('load', () => {
+        const title = document.getElementById('res-titre');
+        if (title && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(scheduleHeaderTitleFit).observe(title.parentElement);
+        }
+        scheduleHeaderTitleFit();
+    });
+})();
+
 function syncPlayerConfig() {
     if (!isPlayerMode()) return;
     items = [...getCurrentItems()];
@@ -208,12 +274,14 @@ function syncPlayerConfig() {
 
     const badge = document.getElementById('res-badge');
     if (badge) badge.style.setProperty('--theme-color', GAME_CONFIG.uniteColor || '#E84C7B');
+    setLessonRibbonColor(GAME_CONFIG.leconColor || '#EFA92C');
     applyDominoTheme();
     const unite = String(GAME_CONFIG.unite ?? '1');
     const titre = GAME_CONFIG.titre || 'Jeu';
     document.getElementById('res-unite') && (document.getElementById('res-unite').innerText = unite);
     document.getElementById('start-unite') && (document.getElementById('start-unite').innerText = unite);
     document.getElementById('res-titre') && (document.getElementById('res-titre').innerText = titre);
+    scheduleHeaderTitleFit();
     document.getElementById('start-titre') && (document.getElementById('start-titre').innerText = titre);
     const leconWrapper = document.getElementById('res-lecon-wrapper');
     if (leconWrapper) leconWrapper.classList.toggle('hidden', GAME_CONFIG.showLecon === false);
@@ -1080,6 +1148,7 @@ function initGame() {
     
     let color = document.getElementById('in-color').value || '#E84C7B';
     document.getElementById('res-badge').style.setProperty('--theme-color', color);
+    setLessonRibbonColor(document.getElementById('in-lecon-color')?.value || '#EFA92C');
     applyDominoTheme();
     
     let showLecon = document.getElementById('in-show-lecon').checked;
@@ -1100,6 +1169,7 @@ function initGame() {
     const inTitre = document.getElementById('in-titre');
     const titreText = inTitre.value.trim() !== '' ? inTitre.value : inTitre.placeholder;
     document.getElementById('res-titre').innerText = titreText;
+    scheduleHeaderTitleFit();
     document.getElementById('start-titre') && (document.getElementById('start-titre').innerText = titreText);
     
     toggleToolBtns('f'); toggleToolBtns('d');
@@ -2921,6 +2991,7 @@ async function exportToZIP() {
     const gameConfig = {
         unite: document.getElementById('in-unite').value || '1',
         uniteColor: document.getElementById('in-color').value || '#E84C7B',
+        leconColor: document.getElementById('in-lecon-color')?.value || '#EFA92C',
         showLecon: document.getElementById('in-show-lecon').checked,
         lecon: document.getElementById('in-lecon').value || '1',
         titre: document.getElementById('in-titre').value || 'Jeu',
@@ -3003,6 +3074,7 @@ function setPreviewMode(mode) {
     });
     if (getCurrentType() === 'domino') loadStep(curStep);
     if (getCurrentType() === 'crossword') requestAnimationFrame(updateCrosswordGridSize);
+    scheduleHeaderTitleFit();
 }
 
 // Keep Phrase-rébus in the available height when possible (editor and SCORM).
