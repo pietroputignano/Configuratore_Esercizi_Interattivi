@@ -1737,3 +1737,66 @@ body:has(> .exercise-player) > .exercise-player {
  .hourra-pair-left,.hourra-pair-right {font-size:11px;}
  .hourra-timeline-question .hourra-image-placeholder {min-height:85px;flex:0 1 75%;}
 }
+
+/* ============================================================
+   v34 - Header editoriale compatto, comune a TUTTE le tipologie
+   e identico in anteprima e nello SCORM 2004 esportato.
+   ============================================================ */
+.header-wrapper,
+.exercise-player .header-wrapper {
+  padding: 11px 20px !important;
+  gap: 10px !important;
+}
+.header-wrapper > div:first-child,
+.exercise-player .header-wrapper > div:first-child {
+  gap: 4px !important;
+}
+.header-wrapper .unit-badge,
+.exercise-player .header-wrapper .unit-badge {
+  padding: 5px 13px !important;
+  border-radius: 10px !important;
+}
+.header-wrapper .unit-badge-text,
+.exercise-player .header-wrapper .unit-badge-text {
+  font-size: 11px !important;
+  letter-spacing: .8px;
+  margin-bottom: 2px;
+}
+.header-wrapper .unit-badge-num,
+.exercise-player .header-wrapper .unit-badge-num {
+  font-size: 31px !important;
+}
+.header-wrapper .lecon-ribbon,
+.exercise-player .header-wrapper .lecon-ribbon {
+  background-color: var(--lesson-color, #EFA92C) !important;
+  color: var(--lesson-text-color, #FFFFFF) !important;
+  font-size: 12px !important;
+  padding: 4px 23px 4px 13px !important;
+  margin: 0 0 0 -2px !important;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+}
+.header-wrapper #res-titre.h-titre,
+.exercise-player .header-wrapper #res-titre.h-titre {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  font-size: var(--header-title-size, 26px) !important;
+  line-height: 1.16 !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  text-align: center;
+}
+.header-wrapper #res-titre.header-title-multiline,
+.exercise-player .header-wrapper #res-titre.header-title-multiline {
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+}
+@container (max-width: 700px) {
+  .header-wrapper, .exercise-player .header-wrapper { padding: 8px 10px !important; gap: 6px !important; }
+  .header-wrapper .unit-badge, .exercise-player .header-wrapper .unit-badge { padding: 4px 10px !important; }
+  .header-wrapper .unit-badge-num, .exercise-player .header-wrapper .unit-badge-num { font-size: 26px !important; }
+  .header-wrapper .unit-badge-text, .exercise-player .header-wrapper .unit-badge-text { font-size: 10px !important; }
+  .header-wrapper .lecon-ribbon, .exercise-player .header-wrapper .lecon-ribbon { font-size: 10px !important; padding: 3px 18px 3px 10px !important; }
+}
