@@ -26,6 +26,84 @@ let phraseBuilderLevel = 'facile';
 let autoBuilderLevel = 'facile', autoBuilderKey = '', autoDrawMode = null, autoDraftCrop = null, autoPointerState = null;
 
 let isMuted = false;
+let dressingPlayback = {audio:null, utterance:null, paused:false, mode:''};
+function getDressingReadingText(level=curLvl) {
+    if (isPlayerMode()) return String(GAME_CONFIG.dressingFullText?.[level] || '').trim();
+    return String(document.getElementById('dressing-full-' + (level==='facile'?'f':'d'))?.value || '').trim();
+}
+function fillDressingReadingFromMapper(level) {
+    const id = 'dressing-full-' + (level === 'facile' ? 'f' : 'd');
+    const input = document.getElementById(id);
+    if (!input) return;
+    const lines = mappedZones.filter(z => z.kind !== 'static' && z.label && z.label.includes('...'))
+        .map(z => z.label.replace(/\.\.\./g, z.word || '').trim()).filter(Boolean);
+    if (!lines.length) { alert('Nel Mapper non ci sono frasi da completare. Scrivi le frasi manualmente.'); return; }
+    if (input.value.trim() && !confirm('Sostituire il testo esistente con le frasi del Mapper?')) return;
+    input.value = lines.join('\n');
+    if (getCurrentType() === 'dressing') loadStep(curStep);
+}
+function stopDressingAudio() {
+    if (dressingPlayback.audio) { try {dressingPlayback.audio.pause(); dressingPlayback.audio.currentTime=0;} catch (_) {} }
+    if (dressingPlayback.mode === 'tts' && window.speechSynthesis) window.speechSynthesis.cancel();
+    dressingPlayback = {audio:null, utterance:null, paused:false, mode:''};
+}
+function updateDressingAudioUI() {
+    const icon = document.querySelector('#dressing-audio-main .dressing-audio-icon');
+    if (icon) icon.textContent = dressingPlayback.paused ? '▶' : (dressingPlayback.mode ? '⏸' : '▶');
+}
+function playDressingFullAudio(restart = false) {
+    const text = getDressingReadingText();
+    if (!text) { alert('Inserisci le frasi complete nel campo Dressing Game del configuratore.'); return; }
+    const audioKey = 'dressing_full_audio_' + (curLvl === 'facile' ? 'f' : 'd');
+    const src = isPlayerMode() ? GAME_CONFIG.audio?.[audioKey] : dbAud[audioKey];
+    if (!restart && dressingPlayback.mode === 'file' && dressingPlayback.audio) {
+        if (dressingPlayback.audio.paused) dressingPlayback.audio.play().catch(()=>{});
+        else dressingPlayback.audio.pause();
+        dressingPlayback.paused = dressingPlayback.audio.paused;
+        updateDressingAudioUI(); return;
+    }
+    if (!restart && dressingPlayback.mode === 'tts' && window.speechSynthesis) {
+        if (dressingPlayback.paused) window.speechSynthesis.resume();
+        else window.speechSynthesis.pause();
+        dressingPlayback.paused = !dressingPlayback.paused;
+        updateDressingAudioUI(); return;
+    }
+    stopDressingAudio();
+    if (src) {
+        const audio = new Audio(src);
+        dressingPlayback = {audio,utterance:null,paused:false,mode:'file'};
+        audio.onended = () => {dressingPlayback.mode='';updateDressingAudioUI();};
+        audio.play().catch(()=>{});
+    } else if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text.replace(/\n+/g,' '));
+        u.lang = 'fr-FR'; u.rate = .6;
+        const voices = window.speechSynthesis.getVoices();
+        const french = voices.filter(v => /^fr[-_]/i.test(v.lang));
+        u.voice = french.find(v => /male|thomas|henri|nicolas|paul/i.test(v.name)) || french[0] || null;
+        u.onend = u.onerror = () => {dressingPlayback.mode='';updateDressingAudioUI();};
+        dressingPlayback = {audio:null,utterance:u,paused:false,mode:'tts'};
+        window.speechSynthesis.speak(u);
+    }
+    updateDressingAudioUI();
+}
+function restartDressingFullAudio() {playDressingFullAudio(true);}
+function fitDressingZones(board) {
+    if (!board || !board.isConnected) return;
+    board.querySelectorAll('.dressing-map-zone').forEach(zone => {
+        zone.style.removeProperty('font-size');
+        let size = Math.min(30, Math.max(8, board.clientWidth / 30));
+        zone.style.fontSize = size + 'px';
+        // Fit the whole authored label and drop zone INSIDE the mapped rectangle.
+        while ((zone.scrollWidth > zone.clientWidth + 1 || zone.scrollHeight > zone.clientHeight + 1) && size > 7) {
+            size = Math.max(7, size - .5); zone.style.fontSize = size + 'px';
+        }
+    });
+}
+function scheduleDressingFit() {
+    const board = document.querySelector('#main-content .dressing-board');
+    if (board) requestAnimationFrame(() => fitDressingZones(board));
+}
+
 
 // Stato condiviso del player audio del testo completo Phrase-rebus.
 // Se esiste un audio caricato usa HTMLAudioElement; altrimenti usa lo stesso
@@ -98,16 +176,36 @@ function escapeDominoHtml(value) {
 }
 
 function dominoLabelHtml(value) {
-    // <br> is an editorial line break; &shy; or a soft hyphen marks an optional
-    // syllable break. Escape all other markup to keep authored labels safe.
-    const raw = String(value ?? '').trim();
-    const lines = raw.split(/<br\s*\/?\s*>/gi);
+    // Keep whole French words. Legacy syllable breaks (&shy; / soft hyphens)
+    // are removed; editorial <br> is accepted only after a standalone article.
+    let raw = String(value ?? '').trim().replace(/&shy;|\u00ad/gi, '');
+    // A break within a word is not a word boundary: join the syllables.
+    // A break after an article is allowed, e.g. LA<br>FENÊTRE.
+    raw = raw.replace(/-<br\s*\/?\s*>/gi, '');
+    raw = raw.replace(/<br\s*\/?\s*>/gi, (match, offset, text) => {
+        const before = text.slice(0, offset).replace(/<br\s*\/?\s*>/gi, ' ').trim();
+        if (/(?:^|\s)(?:LA|LE|LES|L[’']|UN|UNE|DES|DU|DE|D[’'])$/i.test(before)) return '\n';
+        // If there is a space earlier in the label, this may be a word boundary.
+        // Otherwise treat it as an illegal syllable break and join the pieces.
+        return /\s/.test(before) ? ' ' : '';
+    });
+    const lines = raw.split('\n');
     const renderLine = line => line.split(/(\s+)/).map(part => {
         if (/^\s+$/.test(part)) return ' ';
-        const normalized = part.replace(/&shy;/gi, '\u00ad');
-        return `<span class="domino-word">${escapeDominoHtml(normalized)}</span>`;
+        return `<span class="domino-word">${escapeDominoHtml(part)}</span>`;
     }).join('');
     return `<span class="domino-label" lang="fr">${lines.map(renderLine).join('<br>')}</span>`;
+}
+
+function fitDominoSolutionText(root = document) {
+    root.querySelectorAll('.domino-solution-text:not(.domino-end-block)').forEach(el => {
+        el.style.removeProperty('font-size');
+        let font = parseFloat(getComputedStyle(el).fontSize) || 17;
+        while ((el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) && font > 10) {
+            font = Math.max(10, font - .5);
+            el.style.fontSize = `${font}px`;
+        }
+    });
 }
 
 function fitDominoTileText(root = document) {
@@ -376,6 +474,7 @@ function toggleToolBtns(l) {
     const aBtn = document.getElementById('btn-auto-' + l); if(aBtn) aBtn.classList.toggle('hidden', type !== 'autocollantes');
     const pBtn = document.getElementById('btn-phrase-' + l); if(pBtn) pBtn.classList.toggle('hidden', type !== 'phrase_rebus');
     const hBtn = document.getElementById('btn-hourra-' + l); if(hBtn) hBtn.classList.toggle('hidden', !hourraIsType(type));
+    const dressBox = document.getElementById('dressing-reading-' + l); if(dressBox) dressBox.classList.toggle('hidden', type !== 'dressing');
     const instruction=document.getElementById('con-'+l);
     if(instruction) {
         if(!instruction.dataset.originalPlaceholder) instruction.dataset.originalPlaceholder=instruction.placeholder;
@@ -1183,7 +1282,16 @@ function showStartScreen() {
     if (endScreen) endScreen.classList.add('hidden');
 }
 
-function startGame() {
+function replayGame() {
+    // An explicit "Je rejoue" starts a fresh attempt, not a resumed LMS session.
+    if (isPlayerMode() && window.BSMART_SCORM?.resetAttempt) window.BSMART_SCORM.resetAttempt();
+    const solutions = document.getElementById('end-score');
+    if (solutions) solutions.classList.add('hidden');
+    document.getElementById('end-screen')?.classList.remove('solutions-visible');
+    startGame(true);
+}
+
+function startGame(freshAttempt = false) {
     const startScreen = document.getElementById('start-screen');
     if (startScreen) startScreen.classList.add('hidden');
     const endScreen = document.getElementById('end-screen');
@@ -1210,7 +1318,7 @@ function startGame() {
     let initialStep = 0;
     if (isPlayerMode() && window.BSMART_SCORM) {
         const saved = window.BSMART_SCORM.getState();
-        if (saved && saved.level === curLvl) {
+        if (!freshAttempt && saved && saved.level === curLvl) {
             if (Array.isArray(saved.status) && saved.status.length === status.length) status = saved.status.slice();
             if (Array.isArray(saved.errorTracker)) errorTracker = saved.errorTracker.slice();
             if (Number.isInteger(saved.step)) initialStep = Math.max(0, Math.min(saved.step, Math.max(0, items.length - 1)));
@@ -1423,6 +1531,8 @@ function calculateScore(type) {
 function showEndScreen() {
     destroyActiveSortables();
     document.getElementById('end-screen').classList.remove('hidden');
+    document.getElementById('end-screen').classList.remove('solutions-visible');
+    document.getElementById('end-score')?.classList.add('hidden');
     const type = getCurrentType();
     const scorePerc = calculateScore(type);
 
@@ -1435,7 +1545,7 @@ function showEndScreen() {
         });
     }
 
-    const solutionsMaxHeightClass = type === 'sentence_ordering' ? 'max-h-[430px]' : (type === 'phrase_rebus' && getPhraseLevelData().layout === 'multi' ? 'max-h-[65vh]' : 'max-h-48');
+    const solutionsMaxHeightClass = 'solutions-viewport-list';
     let answersHtml = `<div class="w-full mt-4"><h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Les solutions</h3><ul class="text-left bg-white p-4 rounded-xl border border-gray-200 ${solutionsMaxHeightClass} overflow-y-auto custom-scrollbar">`;
     if (hourraIsType(type)) {
         answersHtml += `<li class="list-none"><div class="hourra-solutions">${hourraSolutions(type,curLvl)}</div></li>`;
@@ -1451,8 +1561,9 @@ function showEndScreen() {
         const getSolutionImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
         let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
         items.forEach((word, i) => {
+            const solutionClass = String(word).replace(/<[^>]*>|&shy;/gi, '').replace(/\s/g,'').length > 12 ? ' domino-solution-long' : '';
             if (i === 0) {
-                dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img domino-start-block"></div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
+                dominoSolutions += `<div class="domino-solution-tile${solutionClass}"><div class="domino-solution-img domino-start-block"></div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
                 return;
             }
             const imgNeeded = items[i - 1];
@@ -1460,7 +1571,7 @@ function showEndScreen() {
             const visual = imgSrc
                 ? `<img src="${imgSrc}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">`
                 : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
-            dominoSolutions += `<div class="domino-solution-tile"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
+            dominoSolutions += `<div class="domino-solution-tile${solutionClass}"><div class="domino-solution-img">${visual}</div><div class="domino-solution-text">${dominoLabelHtml(word)}</div></div>`;
         });
         const lastWord = items[items.length - 1];
         const lastImg = getSolutionImg(lastWord);
@@ -1586,6 +1697,16 @@ function showEndScreen() {
     else if (scoreLevel === 'medium') playSound('report_medium');
     else playSound('report_low');
     document.getElementById('end-score').innerHTML = answersHtml;
+}
+
+function toggleSolutions() {
+    const panel = document.getElementById('end-score');
+    const end = document.getElementById('end-screen');
+    if (!panel || !end) return;
+    const show = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !show);
+    end.classList.toggle('solutions-visible', show);
+    if (show) requestAnimationFrame(() => fitDominoSolutionText(panel));
 }
 
 function checkCrossword(inputEl) {
@@ -1955,6 +2076,7 @@ function loadStep(idx) {
     clearTimeout(phraseMultiFinishTimer);
     phraseMultiFinishTimer = null;
     phraseStopMultiPlayback();
+    stopDressingAudio();
     if(hourraAudio) { try{hourraAudio.pause();hourraAudio.currentTime=0;}catch(_){}hourraAudio=null; }
     destroyActiveSortables();
     curStep = idx; renderNav();
@@ -2122,17 +2244,17 @@ function loadStep(idx) {
                 ? `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="dressing-inline-target rounded-md inline-flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`
                 : `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
             let labelHtml = '';
-            let wrapperClass = 'absolute flex items-center gap-3';
+            let wrapperClass = 'dressing-map-zone absolute flex items-center gap-3';
 
             if (z.label) {
                 if (isInlineCompletion) {
                     const parts = z.label.split('...');
-                    wrapperClass = 'absolute flex items-center gap-0';
+                    wrapperClass = 'dressing-map-zone dressing-map-inline absolute flex items-center gap-0';
                     labelHtml = `<span class="dressing-inline-text">${parts[0]}</span>` + 
                                 targetDiv + 
                                 `<span class="dressing-inline-text">${parts.slice(1).join('...')}</span>`;
                 } else {
-                    labelHtml = `<span class="text-xl md:text-3xl font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label.trim()}</span>` + targetDiv;
+                    labelHtml = `<span class="dressing-map-label font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label.trim()}</span>` + targetDiv;
                 }
             } else {
                 labelHtml = targetDiv;
@@ -2141,7 +2263,10 @@ function loadStep(idx) {
             zonesHtml += `<div class="${wrapperClass}" style="left:${z.left}; top:${z.top}; width:${z.width}; height:${z.height}">${labelHtml}</div>`;
         });
 
-        stage.insertAdjacentHTML('beforeend', `<div class="relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
+        const reading = getDressingReadingText();
+        const audioControls = reading ? `<div class="dressing-audio-controls"><button id="dressing-audio-main" type="button" onclick="playDressingFullAudio()" class="dressing-audio-main"><span class="dressing-audio-icon">▶</span> ÉCOUTE</button><button type="button" onclick="restartDressingFullAudio()" class="dressing-audio-restart" aria-label="Réécouter depuis le début" title="Réécouter depuis le début">↺</button></div>` : '';
+        stage.insertAdjacentHTML('beforeend', `${audioControls}<div class="dressing-board relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
+        scheduleDressingFit();
         
         const shuffled = [...items].sort(()=>Math.random()-0.5);
         pool.innerHTML = shuffled.map(it => {
@@ -2457,9 +2582,9 @@ function loadStep(idx) {
         const sentenceImg = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images?.[word] : dbImg[word];
         const imgContent = sentenceImg ? `<img src="${sentenceImg}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
         const shuffled = [...chunks].sort(()=>Math.random()-0.5);
-        stage.insertAdjacentHTML('beforeend', `<div class="flex flex-col items-center gap-8 w-full"><div class="w-48 h-32 border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
+        stage.insertAdjacentHTML('beforeend', `<div class="sentence-ordering-play flex flex-col items-center w-full"><div class="sentence-ordering-play-image border-4 border-white rounded-2xl overflow-hidden bg-white shadow-lg flex justify-center items-center cursor-pointer" onclick="pickImg('${word.replace(/'/g, "\\'")}')">${imgContent}</div>
             <div id="target" class="flex flex-wrap gap-2 min-h-[60px] w-full max-w-3xl items-center justify-center p-4 bg-white rounded-xl shadow-inner border-2 border-gray-200">` 
-                + shuffled.map(c => `<div class="px-4 py-2 bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold text-lg font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
+                + shuffled.map(c => `<div class="sentence-ordering-tile bg-orange-500 text-white rounded-xl shadow-md cursor-grab font-bold font-source uppercase" data-chunk="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('') + 
             `</div>
             <button id="check-btn" onclick="checkOrder('sentence_ordering')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
         </div>`);
@@ -2549,6 +2674,7 @@ function setupSortable(mode, targetWord) {
                             e.item.removeAttribute('draggable');
                             e.target.innerHTML = '';
                             e.target.appendChild(e.item);
+                            if (mode === 'dressing') scheduleDressingFit();
                             e.target.style.border = "none";
                             e.target.style.backgroundColor = "transparent";
                             if (mode === 'domino') {
@@ -2889,6 +3015,22 @@ function makeScormBridge(passingScore = 80) {
     } catch (_) {}
   }
 
+  function resetAttempt() {
+    localState = null;
+    if (!initialized) return;
+    try {
+      set('cmi.suspend_data', 'cmi.suspend_data', '');
+      set('cmi.location', 'cmi.core.lesson_location', '');
+      if (version === '2004') {
+        set('cmi.completion_status', 'cmi.core.lesson_status', 'incomplete');
+        set('cmi.success_status', 'cmi.core.lesson_status', 'unknown');
+        set('cmi.score.scaled', 'cmi.core.score.raw', '0');
+      } else set('cmi.completion_status', 'cmi.core.lesson_status', 'incomplete');
+      set('cmi.score.raw', 'cmi.core.score.raw', '0');
+      commit();
+    } catch (_) {}
+  }
+
   function reportResult(score, state) {
     const n = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
     const previous = initialized ? Number(get('cmi.score.raw', 'cmi.core.score.raw')) : NaN;
@@ -2923,7 +3065,7 @@ function makeScormBridge(passingScore = 80) {
     terminated = true;
   }
 
-  window.BSMART_SCORM = { init, saveState, reportResult, finish, getState: () => localState, getVersion: () => version };
+  window.BSMART_SCORM = { init, saveState, resetAttempt, reportResult, finish, getState: () => localState, getVersion: () => version };
   init();
   window.addEventListener('pagehide', finish);
   window.addEventListener('beforeunload', finish);
@@ -2998,6 +3140,7 @@ async function exportToZIP() {
         scorm: { version: '2004 4th Edition', passingScore },
         domino: getDominoSettings(),
         cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData, hourraData,
+        dressingFullText: {facile: getDressingReadingText('facile'), difficile: getDressingReadingText('difficile')},
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
         levels: {
@@ -3030,12 +3173,12 @@ async function exportToZIP() {
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 <div class="w-full exercise-player bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-200">
     <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
-        <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-            <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
+        <div class="report-top flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+            <div class="report-visual relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container"></div>
             <div class="flex flex-col items-center md:items-start w-full max-w-sm">
                 <h1 class="text-2xl font-black text-[#EFA92C] mb-3 uppercase font-mont tracking-wide">Mon score est...</h1>
                 <div class="flex items-center gap-4 w-full mb-8"><div class="w-full h-8 bg-white border-2 border-[#EFA92C] rounded-full overflow-hidden shadow-inner p-1"><div id="score-bar" class="h-full bg-[#EFA92C] rounded-full transition-all duration-1000 ease-out w-0"></div></div><span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span></div>
-                <div class="flex flex-col sm:flex-row gap-6"><button onclick="startGame()" class="font-bold text-gray-800">↺ Je rejoue</button><button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="font-bold text-gray-800">💡 Les solutions</button></div>
+                <div class="flex flex-col sm:flex-row gap-6"><button onclick="replayGame()" class="font-bold text-gray-800">↺ Je rejoue</button><button onclick="toggleSolutions()" class="font-bold text-gray-800">💡 Les solutions</button></div>
             </div>
         </div>
         <div id="end-score" class="w-full max-w-4xl flex flex-col items-center hidden mt-2"></div>
@@ -3569,3 +3712,13 @@ function hourraDefaultConsigne(type,level) {
 }
 
 function hourraGoStep(direction){const i=curStep+direction;if(hourraIsType(getCurrentType())&&i>=0&&i<items.length)loadStep(i);}
+
+// Mapper: proportional text fitting on actual resize, without rebuilding drag/drop state.
+(() => {
+    window.addEventListener('resize', scheduleDressingFit, {passive:true});
+    window.addEventListener('orientationchange', scheduleDressingFit, {passive:true});
+    if (typeof ResizeObserver !== 'undefined') {
+        const main = document.getElementById('main-content');
+        if (main) new ResizeObserver(scheduleDressingFit).observe(main);
+    }
+})();
