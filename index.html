@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- IL NOSTRO NUOVO FILE DEGLI STILI -->
-    <link rel="stylesheet" href="style.css?v=34-header">
+    <link rel="stylesheet" href="style.css?v=35-editorial">
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 
@@ -205,6 +205,12 @@
                         <p class="font-bold uppercase mb-1 text-blue-800 text-[10px]">Dati Livello FACILE (separati da ;)</p>
                         <textarea id="items-list-f" class="w-full h-16 p-2 border rounded text-xs placeholder-gray-400" placeholder="Il / habite / dans / une yourte ; Tu / habites / dans / une maison" oninput="initGame(); startGame();"></textarea>
                         <p class="text-[10px] text-gray-500 italic mt-1">Usa "/" per spezzare frasi (es: Il / habite / ici).</p>
+                    <div id="dressing-reading-f" class="hidden p-3 rounded-lg border border-orange-300 bg-orange-50 mb-3">
+                        <p class="font-black text-[11px] text-orange-900 uppercase mb-1">Dressing · Frasi complete per ÉCOUTE</p>
+                        <p class="text-[10px] text-orange-900 mb-2">Una frase per riga, già completata. Verranno lette in francese nell'ordine scritto.</p>
+                        <textarea id="dressing-full-f" class="w-full p-2 rounded border border-orange-200 bg-white text-gray-900 text-xs" rows="4" placeholder="Je vais au marché.&#10;Tu viens à la maison." oninput="if(getCurrentType()==='dressing')loadStep(curStep)"></textarea>
+                        <div class="flex flex-wrap gap-2 mt-2"><button type="button" onclick="fillDressingReadingFromMapper('facile')" class="rounded border border-orange-300 bg-white px-2 py-1 font-bold text-orange-900">Genera dal Mapper</button><button type="button" onclick="pickAud('dressing_full_audio_f')" class="rounded border border-orange-300 bg-white px-2 py-1 font-bold text-orange-900">🎵 Audio registrato (opzionale)</button></div>
+                    </div>
                     </div>
                 </div>
 
@@ -228,6 +234,12 @@
                         <input id="tts-context-d" type="text" class="w-full p-2 border rounded text-xs mb-2 text-gray-800" placeholder="es: J'habite. Tu habites..." oninput="initGame(); startGame();">
                         <p class="font-bold uppercase mb-1 text-white text-[10px]">Dati Livello DIFFICILE (separati da ;)</p>
                         <textarea id="items-list-d" class="w-full h-16 p-2 border rounded text-xs bg-slate-100 placeholder-gray-400 text-gray-800" placeholder="habite; habites; habitons; habitez" oninput="initGame(); startGame();"></textarea>
+                    <div id="dressing-reading-d" class="hidden p-3 rounded-lg border border-orange-300 bg-orange-50 mb-3">
+                        <p class="font-black text-[11px] text-orange-900 uppercase mb-1">Dressing · Frasi complete per ÉCOUTE</p>
+                        <p class="text-[10px] text-orange-900 mb-2">Una frase per riga, già completata. Verranno lette in francese nell'ordine scritto.</p>
+                        <textarea id="dressing-full-d" class="w-full p-2 rounded border border-orange-200 bg-white text-gray-900 text-xs" rows="4" placeholder="Je vais au marché.&#10;Tu viens à la maison." oninput="if(getCurrentType()==='dressing')loadStep(curStep)"></textarea>
+                        <div class="flex flex-wrap gap-2 mt-2"><button type="button" onclick="fillDressingReadingFromMapper('difficile')" class="rounded border border-orange-300 bg-white px-2 py-1 font-bold text-orange-900">Genera dal Mapper</button><button type="button" onclick="pickAud('dressing_full_audio_d')" class="rounded border border-orange-300 bg-white px-2 py-1 font-bold text-orange-900">🎵 Audio registrato (opzionale)</button></div>
+                    </div>
                     </div>
                 </div>
 
@@ -319,8 +331,8 @@
             
             <!-- SCHERMATA REPORT FINALE -->
             <div id="end-screen" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-50 hidden p-6 text-center overflow-y-auto">
-                <div class="flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
-                    <div class="relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
+                <div class="report-top flex flex-col md:flex-row items-center justify-center gap-10 mb-8 w-full max-w-3xl">
+                    <div class="report-visual relative flex items-center justify-center w-48 h-48 md:w-64 md:h-64" id="visual-container">
                         <div id="score-bubble" class="absolute -top-6 -left-12 bg-[#FDE073] text-[#0169B3] font-black text-xl md:text-3xl px-6 py-4 rounded-[40px] rounded-br-none shadow-md transform -rotate-6 z-10 font-mont leading-tight">Essaie<br>encore !</div>
                         <div class="w-40 h-40 md:w-56 md:h-56 bg-slate-100 rounded-full border-4 border-white shadow-inner flex items-center justify-center text-7xl md:text-9xl" id="score-mascot">👦🏼</div>
                     </div>
@@ -331,8 +343,8 @@
                             <span id="score-text" class="text-xl font-bold text-gray-800 w-12 text-left">0%</span>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-6">
-                            <button onclick="startGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
-                            <button onclick="document.getElementById('end-score').classList.toggle('hidden')" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
+                            <button onclick="replayGame()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#0169B3] transition group"><span class="w-12 h-12 rounded-full bg-[#4A8E9F] text-white flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition">↺</span> Je rejoue</button>
+                            <button onclick="toggleSolutions()" class="flex items-center gap-3 text-gray-800 font-bold hover:text-[#D84157] transition group"><span class="w-12 h-12 rounded-full bg-[#C62842] text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition">💡</span> Les solutions</button>
                         </div>
                     </div>
                 </div>
@@ -382,6 +394,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=34-header"></script>
+    <script src="core.js?v=35-editorial"></script>
 </body>
 </html>
