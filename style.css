@@ -1922,3 +1922,110 @@ body:has(> .exercise-player) > .exercise-player {
 .domino-solution-long .domino-solution-img {width:34%;}
 .domino-solution-long .domino-solution-text {width:66%;}
 @container (max-width:520px) {.domino-solution-tile.domino-solution-long {width:230px;}}
+
+/* ===========================================================
+   v37 — soluzioni Mise en ordre ancora piu compatte.
+   Solo la schermata finale: nessuna variazione al gioco.
+   =========================================================== */
+#end-screen.solutions-visible .sentence-ordering-solutions {
+  gap: clamp(4px, .55vw, 6px);
+}
+#end-screen.solutions-visible .sentence-ordering-solution-card {
+  grid-template-columns: clamp(70px, 6.5vw, 88px) minmax(0, 1fr);
+  gap: clamp(6px, .75vw, 9px);
+  padding: clamp(4px, .5vw, 6px);
+  border-radius: 9px;
+}
+#end-screen.solutions-visible .sentence-ordering-solution-visual {
+  width: 100%;
+  height: clamp(49px, 4.6vw, 59px);
+  border-radius: 6px;
+}
+#end-screen.solutions-visible .sentence-ordering-solution-text {
+  font-size: clamp(11px, 1.05vw, 14px);
+  line-height: 1.18;
+  overflow-wrap: break-word;
+}
+#end-screen.solutions-visible .sentence-ordering-solution-placeholder {
+  font-size: 18px;
+}
+
+/* Medaglia del punteggio: piu evidente e leggermente a sinistra
+   in TUTTE le tipologie, con o senza soluzioni aperte. */
+#end-screen .report-visual {
+  transform: translateX(-16px);
+}
+#end-screen .score-medal {
+  width: 142px;
+  height: 142px;
+}
+#end-screen .score-star {
+  width: 74px;
+  height: 74px;
+}
+/* Quando le soluzioni sono aperte la medaglia resta compatta,
+   ma e piu grande della precedente v36. */
+#end-screen.solutions-visible .report-visual {
+  width: 128px !important;
+  height: 142px !important;
+  flex: 0 0 128px !important;
+}
+#end-screen.solutions-visible .score-medal {
+  width: 82px;
+  height: 82px;
+  border-width: 5px;
+  flex-shrink: 0;
+}
+#end-screen.solutions-visible .score-medal::before,
+#end-screen.solutions-visible .score-medal::after {
+  bottom: -17px;
+  width: 19px;
+  height: 29px;
+}
+#end-screen.solutions-visible .score-medal::before { left: 15px; }
+#end-screen.solutions-visible .score-medal::after { right: 15px; }
+#end-screen.solutions-visible .score-star {
+  width: 44px;
+  height: 44px;
+}
+#end-screen.solutions-visible .score-message { margin-top: 20px; }
+
+@container (max-width: 700px) {
+  #end-screen.solutions-visible .sentence-ordering-solution-card {
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 6px;
+    padding: 4px;
+    text-align: left;
+    justify-items: stretch;
+  }
+  #end-screen.solutions-visible .sentence-ordering-solution-visual {
+    width: 62px;
+    height: 46px;
+  }
+  #end-screen.solutions-visible .sentence-ordering-solution-text {
+    font-size: clamp(10.5px, 2.8cqw, 12.5px);
+    line-height: 1.17;
+  }
+  #end-screen .report-visual { transform: translateX(-6px); }
+  #end-screen .score-medal { width: 116px; height: 116px; }
+  #end-screen .score-star { width: 60px; height: 60px; }
+  #end-screen.solutions-visible .report-visual {
+    width: 80px !important;
+    height: 80px !important;
+    flex: 0 0 80px !important;
+  }
+  #end-screen.solutions-visible .score-medal {
+    width: 54px;
+    height: 54px;
+    border-width: 4px;
+  }
+  #end-screen.solutions-visible .score-medal::before,
+  #end-screen.solutions-visible .score-medal::after {
+    bottom: -12px;
+    width: 13px;
+    height: 20px;
+  }
+  #end-screen.solutions-visible .score-medal::before { left: 9px; }
+  #end-screen.solutions-visible .score-medal::after { right: 9px; }
+  #end-screen.solutions-visible .score-star { width: 31px; height: 31px; }
+}
