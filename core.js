@@ -31,12 +31,35 @@ function getDressingReadingText(level=curLvl) {
     if (isPlayerMode()) return String(GAME_CONFIG.dressingFullText?.[level] || '').trim();
     return String(document.getElementById('dressing-full-' + (level==='facile'?'f':'d'))?.value || '').trim();
 }
+// Preserve the spacing around the Mapper placeholder across drag/drop,
+// generated audio and the solutions. When no space was typed, add one after
+// an independent French subject pronoun (TU..., NOUS...), but never after
+// an apostrophe (J'...) or inside a stem (HABIT... + ONS).
+function dressingInlineParts(label, word = '') {
+    const raw = String(label || '');
+    const marker = raw.indexOf('...');
+    if (marker < 0) return { before: raw, after: '', spaceBefore: false, spaceAfter: false };
+    const rawBefore = raw.slice(0, marker);
+    const rawAfter = raw.slice(marker + 3);
+    const before = rawBefore.replace(/\s+$/u, '');
+    const after = rawAfter.replace(/^\s+/u, '');
+    const standalonePronoun = /^(?:je|tu|il|elle|on|nous|vous|ils|elles)$/iu;
+    const spaceBefore = /\s$/u.test(rawBefore) || standalonePronoun.test(before.trim());
+    const spaceAfter = /^\s/u.test(rawAfter) ||
+        (standalonePronoun.test(String(word || '').trim()) && /^[\p{L}\p{N}]/u.test(after));
+    return { before, after, spaceBefore, spaceAfter };
+}
+function dressingCompletedText(label, word) {
+    const parts = dressingInlineParts(label, word);
+    return parts.before + (parts.spaceBefore ? ' ' : '') + String(word || '') +
+        (parts.spaceAfter ? ' ' : '') + parts.after;
+}
 function fillDressingReadingFromMapper(level) {
     const id = 'dressing-full-' + (level === 'facile' ? 'f' : 'd');
     const input = document.getElementById(id);
     if (!input) return;
     const lines = mappedZones.filter(z => z.kind !== 'static' && z.label && z.label.includes('...'))
-        .map(z => z.label.replace(/\.\.\./g, z.word || '').trim()).filter(Boolean);
+        .map(z => dressingCompletedText(z.label, z.word).trim()).filter(Boolean);
     if (!lines.length) { alert('Nel Mapper non ci sono frasi da completare. Scrivi le frasi manualmente.'); return; }
     if (input.value.trim() && !confirm('Sostituire il testo esistente con le frasi del Mapper?')) return;
     input.value = lines.join('\n');
@@ -507,7 +530,7 @@ function mapperZoneMarkup(z) {
             <label class="mapper-size-control">Font <input type="number" min="12" max="48" value="${size}" aria-label="Dimensione font etichetta" onmousedown="event.stopPropagation()" oninput="saveZones()"></label>
         </div><div class="resize-handle"></div>`;
     }
-    return `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (usa ... per buco)" value="${escapeMapperText(z.label||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
+    return `<input class="w-full text-[10px] font-bold border-none bg-white/90 px-1 rounded placeholder-gray-500 shadow-sm" placeholder="Testo (es. TU ... oppure J'...)" value="${escapeMapperText(z.label||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
         <input class="w-full text-[10px] font-bold border-none bg-orange-100 px-1 rounded text-orange-800 shadow-sm" placeholder="Parola attesa" value="${escapeMapperText(z.word||'')}" onmousedown="event.stopPropagation()" oninput="saveZones()">
         <div class="resize-handle"></div>`;
 }
@@ -1645,8 +1668,8 @@ function showEndScreen() {
         const completionZones = zoneList.filter(z => z.kind !== 'static' && z.label && z.label.includes('...'));
         if (completionZones.length > 0) {
             completionZones.forEach(z => {
-                const completed = z.label.split('...').join(z.word || '');
-                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-lg font-black font-mont">${completed}</li>`;
+                const completed = dressingCompletedText(z.label, z.word);
+                answersHtml += `<li class="text-blue-800 border-b border-gray-50 py-2 text-lg font-black font-mont">${escapeMapperText(completed)}</li>`;
             });
         } else {
             items.forEach(it => {
@@ -2240,19 +2263,21 @@ function loadStep(idx) {
             }
             const boxStyle = 'border-2 border-dashed border-orange-400 bg-orange-100/50 shadow-sm';
             const isInlineCompletion = !!(z.label && z.label.includes('...'));
+            const inlineParts = isInlineCompletion ? dressingInlineParts(z.label, z.word) : null;
+            const spacingClasses = inlineParts ?
+                `${inlineParts.spaceBefore ? ' dressing-space-before' : ''}${inlineParts.spaceAfter ? ' dressing-space-after' : ''}` : '';
             let targetDiv = isInlineCompletion
-                ? `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="dressing-inline-target rounded-md inline-flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`
+                ? `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="dressing-inline-target${spacingClasses} rounded-md inline-flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`
                 : `<div id="target-${z.word}" data-expected="${z.word.replace(/"/g, '&quot;')}" class="flex-grow h-full rounded-xl flex items-center justify-center transition-all duration-300 ${boxStyle}"></div>`;
             let labelHtml = '';
             let wrapperClass = 'dressing-map-zone absolute flex items-center gap-3';
 
             if (z.label) {
                 if (isInlineCompletion) {
-                    const parts = z.label.split('...');
                     wrapperClass = 'dressing-map-zone dressing-map-inline absolute flex items-center gap-0';
-                    labelHtml = `<span class="dressing-inline-text">${parts[0]}</span>` + 
-                                targetDiv + 
-                                `<span class="dressing-inline-text">${parts.slice(1).join('...')}</span>`;
+                    labelHtml = `<span class="dressing-inline-text">${escapeMapperText(inlineParts.before)}</span>` +
+                                targetDiv +
+                                `<span class="dressing-inline-text">${escapeMapperText(inlineParts.after)}</span>`;
                 } else {
                     labelHtml = `<span class="dressing-map-label font-black text-white drop-shadow-md whitespace-nowrap font-mont" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">${z.label.trim()}</span>` + targetDiv;
                 }
