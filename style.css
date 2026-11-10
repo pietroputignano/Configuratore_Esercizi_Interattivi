@@ -1856,8 +1856,13 @@ body:has(> .exercise-player) > .exercise-player {
 .dressing-map-zone .dressing-map-label,
 .dressing-map-zone .dressing-inline-text,
 .dressing-map-zone .dressing-inline-answer {font-size:inherit!important;line-height:inherit!important;white-space:nowrap!important;}
-.dressing-map-zone .dressing-inline-target {min-width:clamp(10px,2.6cqw,25px)!important;
+/* A slightly wider drop area, without enlarging the mapped zone itself. */
+.dressing-map-zone .dressing-inline-target {min-width:clamp(16px,3.5cqw,36px)!important;
   height:clamp(13px,4.5cqw,40px)!important;padding:0 2px!important;}
+/* The gap belongs to the target, so it survives replacement by the answer tile.
+   It is proportional to the responsive font size and works after resizing. */
+.dressing-map-zone .dressing-inline-target.dressing-space-before {margin-inline-start:.24em!important;}
+.dressing-map-zone .dressing-inline-target.dressing-space-after {margin-inline-end:.24em!important;}
 .dressing-map-zone .dressing-inline-target-solved {height:auto!important;min-width:0!important;}
 .dressing-map-zone .dressing-inline-answer {width:auto!important;min-width:0!important;}
 .dressing-map-zone .dressing-map-label {text-shadow:1px 1px 3px #000a;}
