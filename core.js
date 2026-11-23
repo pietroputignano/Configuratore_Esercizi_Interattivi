@@ -236,13 +236,9 @@ function fitDominoTileText(root = document) {
     nodes.forEach(el => {
         const tile = el.closest('.domino-tile');
         if (tile) {
+            // Domino v40: la porzione immagine resta sempre della stessa dimensione,
+            // indipendentemente dalla lunghezza del testo. Adattiamo SOLO il font.
             tile.classList.remove('domino-short-label', 'domino-medium-label', 'domino-wide-label', 'domino-long-label');
-            const compactLength = (el.textContent || '').replace(/\s+/g, '').length;
-            // L'immagine guadagna spazio quando l'etichetta e' corta; il testo ne recupera
-            // progressivamente per etichette piu' lunghe.
-            if (compactLength <= 5) tile.classList.add('domino-short-label');
-            else if (compactLength <= 9) tile.classList.add('domino-medium-label');
-            else tile.classList.add('domino-wide-label');
         }
 
         el.style.removeProperty('font-size');
@@ -255,13 +251,8 @@ function fitDominoTileText(root = document) {
             size = Math.max(minSize, size - 0.5);
             el.style.fontSize = `${size}px`;
         }
-        // Ultima salvaguardia: se ancora non entra, allarghiamo ulteriormente la parte testuale.
-        if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
-            if (tile) {
-                tile.classList.remove('domino-short-label', 'domino-medium-label', 'domino-wide-label');
-                tile.classList.add('domino-long-label');
-            }
-        }
+        // Non allarghiamo la porzione di testo: il riquadro immagine non deve
+        // mai restringersi, nemmeno quando l'etichetta e' particolarmente lunga.
     });
 }
 
@@ -2498,6 +2489,10 @@ function loadStep(idx) {
         const poolTileWidth = lateral ? sideColumnWidth - 12 : Math.min(190, Math.max(128, Math.round(stageWidth * .39)));
         const poolTileHeight = lateral ? sideTileHeight : Math.max(68, Math.min(90, Math.round(poolTileWidth * .49)));
         const poolFontSize = Math.max(11, Math.min(16, Math.round(poolTileWidth / 11)));
+        // Una tessera destinata a una casella verticale e' gia' verticale nel pool.
+        // Manteniamo proporzioni leggibili anche nelle colonne laterali.
+        const poolVerticalWidth = Math.min(poolTileWidth, Math.round(poolTileHeight * 1.12));
+        const poolVerticalHeight = Math.round(poolVerticalWidth * (mobileNow ? 122 / 88 : 140 / 108));
         const desktopCircuit = buildDominoOpenSnake(dominoTileCount, false, dominoScale, desktopRun, 1);
         const mobileCircuit = buildDominoOpenSnake(dominoTileCount, true, dominoScale, mobileRun, 1);
         const desktopPath = desktopCircuit.path;
@@ -2562,20 +2557,26 @@ function loadStep(idx) {
         pool.style.setProperty('--domino-effective-font', `${poolFontSize}px`);
         pool.style.setProperty('--pool-domino-w', `${poolTileWidth}px`);
         pool.style.setProperty('--pool-domino-h', `${poolTileHeight}px`);
+        pool.style.setProperty('--pool-domino-v-w', `${poolVerticalWidth}px`);
+        pool.style.setProperty('--pool-domino-v-h', `${poolVerticalHeight}px`);
 
-        // Nel pool restano le tessere dalla seconda parola in poi, piu' la tessera terminale.
-        const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i]}));
-        poolEntries.push({kind:'end', word:'__DOMINO_END__', imageKey:items[items.length - 1]});
+        // Nel pool ciascuna tessera conosce la propria posizione nella serpentina:
+        // la disposizione immagine/testo e' corretta PRIMA del trascinamento.
+        const activePath = mobileNow ? mobilePath : desktopPath;
+        const poolEntries = items.slice(1).map((it, i) => ({kind:'word', word:it, imageKey:items[i], targetIndex:i + 1}));
+        poolEntries.push({kind:'end', word:'__DOMINO_END__', imageKey:items[items.length - 1], targetIndex:items.length});
         poolEntries.sort(()=>Math.random()-0.5);
         pool.innerHTML = poolEntries.map((entry) => {
             const imgNeeded = entry.imageKey;
             const imgSrc = getImg(imgNeeded);
             const imgContent = imgSrc ? `<img src="${imgSrc}" class="object-contain w-full h-full pointer-events-none">` : `<span class="domino-img-placeholder">📷<br>${imgNeeded}</span>`;
             const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${imgNeeded.replace(/'/g, "\\'")}')"`;
+            const destination = activePath[entry.targetIndex] || {o:'h', flow:'right'};
+            const tileDirection = `data-domino-orientation="${destination.o}" data-domino-flow="${destination.flow}"`;
             if (entry.kind === 'end') {
-                return `<div class="domino-tile domino-pool-tile domino-finish-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="__DOMINO_END__"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text domino-end-block" aria-label="Fin"></div></div>`;
+                return `<div class="domino-tile domino-pool-tile domino-finish-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="__DOMINO_END__" ${tileDirection}><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text domino-end-block" aria-label="Fin"></div></div>`;
             }
-            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}"><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${dominoLabelHtml(entry.word)}</div></div>`;
+            return `<div class="domino-tile domino-pool-tile shadow-lg hover:shadow-xl transition cursor-grab" data-word="${entry.word.replace(/"/g, '&quot;')}" ${tileDirection}><div class="tile-img"${imgClick}>${imgContent}</div><div class="tile-text">${dominoLabelHtml(entry.word)}</div></div>`;
         }).join('');
 
         // Il pool rimane un unico contenitore Sortable: cambia solo la disposizione visiva.
