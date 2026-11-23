@@ -1650,7 +1650,10 @@ function showEndScreen() {
             const visual = imgSrc
                 ? `<img src="${imgSrc}" alt="" class="pointer-events-none solution-image-standard" loading="lazy" decoding="async">`
                 : `<span class="anagram-solution-placeholder">📷</span>`;
-            const label = `${parsed.determiner ? parsed.determiner + ' ' : ''}${parsed.lexical}`.trim();
+            // Nelle sole soluzioni: un apostrofo francese unisce le due parti
+            // (l’oreiller, l'armoire), mentre gli spazi fra parole restano
+            // invariati (la table de nuit).
+            const label = formatAnagramSolutionLabel(parsed);
             answersHtml += `<div class="anagram-solution-card"><div class="anagram-solution-image">${visual}</div><div class="anagram-solution-label">${label}</div></div>`;
         });
         answersHtml += '</div></li>';
@@ -1753,6 +1756,18 @@ function checkCrossword(inputEl) {
         playSound('global_ok');
         setTimeout(() => showEndScreen(), 1500);
     }
+}
+
+// Formatta soltanto le etichette delle soluzioni di Anagramme.
+// Non altera il dato originale, il trascinamento o i confini fra parole.
+function formatAnagramSolutionLabel(parsed) {
+    const determiner = String(parsed.determiner || '');
+    const lexical = String(parsed.lexical || '');
+    const separator = determiner && !/[\u0027\u2019]$/.test(determiner) ? ' ' : '';
+    return (determiner + separator + lexical)
+        .replace(/\s*(['’])\s*/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 // ANAGRAMME: parsing isolato. Permette dati come "La poule", "Le cheval", "L\'ours".
