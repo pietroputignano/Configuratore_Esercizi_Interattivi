@@ -1779,12 +1779,34 @@ function parseAnagramItem(rawItem) {
         lexical = match[2].trim();
     }
 
+    // Conserva i confini fra le parole, ma non crea tessere-spazio da trascinare.
+    // Es. "table de nuit" -> 11 lettere, separatori dopo la 5a e la 7a.
+    lexical = lexical.replace(/\s+/g, ' ').trim();
+    const words = lexical.split(' ').filter(Boolean);
+    const wordBreaks = [];
+    let letterCount = 0;
+    words.slice(0, -1).forEach(part => {
+        letterCount += Array.from(part).length;
+        wordBreaks.push(letterCount);
+    });
+
     return {
         raw,
         determiner,
         lexical,
-        answer: lexical.replace(/\s+/g, '')
+        answer: words.join(''),
+        wordBreaks
     };
+}
+
+// Gli spazi sono posizioni fisse fra le lettere, non elementi trascinabili.
+// Riapplicali dopo ogni spostamento, cosi' restano sempre dopo le posizioni giuste.
+function updateAnagramWordBreaks(target, parsed) {
+    if (!target) return;
+    const boundaries = new Set(parsed.wordBreaks || []);
+    Array.from(target.querySelectorAll('.letter-tile')).forEach((tile, index) => {
+        tile.classList.toggle('anagram-word-end', boundaries.has(index + 1));
+    });
 }
 
 function getAnagramImage(key) {
@@ -1862,9 +1884,12 @@ function checkOrder(mode) {
         if (mode === 'sentence_ordering') {
             renderSolvedSentence(target, targetWord);
         } else {
-            Array.from(target.children).forEach(el => {
-                el.className = "anagram-solved-letter";
-            });
+            // Il risultato e' testo vero, con gli spazi originali fra le parole.
+            const parsed = parseAnagramItem(targetWord);
+            const solvedText = document.createElement('div');
+            solvedText.className = 'anagram-solved-text';
+            solvedText.textContent = parsed.lexical;
+            target.replaceChildren(solvedText);
         }
         target.style.border = "none"; target.style.background = "transparent";
         if (mode === 'anagramme') target.classList.add('anagram-target-solved');
@@ -2600,6 +2625,7 @@ function loadStep(idx) {
             <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
         </div>`);
         pool.innerHTML = '';
+        updateAnagramWordBreaks(document.getElementById('target'), parsed);
         setupSortable('anagramme', parsed.answer);
     }
     else if(type === 'sentence_ordering') {
@@ -2732,7 +2758,18 @@ function setupSortable(mode, targetWord) {
     const target = document.getElementById('target');
     if(!target) return;
     
-    if (mode === 'anagramme' || mode === 'sentence_ordering') {
+    if (mode === 'anagramme') {
+        createSortable(target, {
+            animation: 150, ghostClass: 'opacity-50', draggable: '.letter-tile',
+            onStart: () => playSound('drag'),
+            onEnd: () => {
+                updateAnagramWordBreaks(target, parseAnagramItem(items[curStep]));
+                playSound('drop');
+            }
+        });
+        return;
+    }
+    if (mode === 'sentence_ordering') {
         createSortable(target, { animation: 150, ghostClass: 'opacity-50', onStart: () => playSound('drag'), onEnd: () => playSound('drop') });
         return;
     }
