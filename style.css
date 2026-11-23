@@ -2050,3 +2050,78 @@ body:has(> .exercise-player) > .exercise-player {
   #end-screen.solutions-visible .score-medal::after { right: 9px; }
   #end-screen.solutions-visible .score-star { width: 31px; height: 31px; }
 }
+
+
+/* DOMINO v40 - struttura finale visibile anche prima del drag.
+   Tutte le tessere hanno una porzione immagine FISSA al 45%, senza eccezioni
+   basate sulla lunghezza dell'etichetta. L'altra meta' e' per il testo. */
+#domino-board .domino-slot .domino-tile .tile-img,
+#pool.domino-pool .domino-tile .tile-img {
+  flex: 0 0 45% !important;
+  width: 45% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+}
+#domino-board .domino-slot .domino-tile .tile-text,
+#pool.domino-pool .domino-tile .tile-text {
+  flex: 0 0 55% !important;
+  width: 55% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px !important;
+}
+/* Stessa proporzione in verticale: 45% immagine e 55% testo. */
+#domino-board:not(.domino-mobile) .domino-slot.orient-d-v .domino-tile .tile-img,
+#domino-board.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-img,
+#pool.domino-pool .domino-pool-tile[data-domino-orientation="v"] .tile-img {
+  flex: 0 0 45% !important;
+  width: 100% !important;
+  height: 45% !important;
+}
+#domino-board:not(.domino-mobile) .domino-slot.orient-d-v .domino-tile .tile-text,
+#domino-board.domino-mobile .domino-slot.orient-m-v .domino-tile .tile-text,
+#pool.domino-pool .domino-pool-tile[data-domino-orientation="v"] .tile-text {
+  flex: 0 0 55% !important;
+  width: 100% !important;
+  height: 55% !important;
+}
+/* Elimina i vecchi separatori prima di assegnare il lato corretto. */
+#domino-board .domino-slot .domino-tile .tile-img,
+#pool.domino-pool .domino-pool-tile .tile-img { border: 0 !important; }
+/* Orientamento dei pezzi GIA' DISPONIBILI nel pool. */
+#pool.domino-pool .domino-pool-tile[data-domino-flow="right"] { flex-direction: row !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="left"] { flex-direction: row-reverse !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="down"] { flex-direction: column !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="up"] { flex-direction: column-reverse !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="right"] .tile-img { border-right: 2px dashed var(--hfle-blue) !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="left"] .tile-img { border-left: 2px dashed var(--hfle-blue) !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="down"] .tile-img { border-bottom: 2px dashed var(--hfle-blue) !important; }
+#pool.domino-pool .domino-pool-tile[data-domino-flow="up"] .tile-img { border-top: 2px dashed var(--hfle-blue) !important; }
+/* Dimensioni coerenti con l'orientamento: verticale = vera tessera verticale. */
+.domino-side-layout > #pool.domino-pool > .domino-tile.domino-pool-tile[data-domino-orientation="v"] {
+  width: min(100%, var(--pool-domino-v-w, 88px)) !important;
+  height: var(--pool-domino-v-h, 120px) !important;
+}
+.domino-side-layout.domino-narrow > #pool.domino-pool > .domino-tile.domino-pool-tile[data-domino-orientation="v"] {
+  width: var(--pool-domino-v-w, 88px) !important;
+  max-width: calc(50% - 5px);
+  height: var(--pool-domino-v-h, 120px) !important;
+}
+/* Stessi separatori e stesso ordine una volta collocate sul percorso. */
+#domino-board:not(.domino-mobile) .domino-slot.flow-d-right .tile-img,
+#domino-board.domino-mobile .domino-slot.flow-m-right .tile-img { border-right: 2px dashed var(--hfle-blue) !important; }
+#domino-board:not(.domino-mobile) .domino-slot.flow-d-left .tile-img,
+#domino-board.domino-mobile .domino-slot.flow-m-left .tile-img { border-left: 2px dashed var(--hfle-blue) !important; }
+#domino-board:not(.domino-mobile) .domino-slot.flow-d-down .tile-img,
+#domino-board.domino-mobile .domino-slot.flow-m-down .tile-img { border-bottom: 2px dashed var(--hfle-blue) !important; }
+#domino-board:not(.domino-mobile) .domino-slot.flow-d-up .tile-img,
+#domino-board.domino-mobile .domino-slot.flow-m-up .tile-img { border-top: 2px dashed var(--hfle-blue) !important; }
+/* Il blocco START e' l'unica eccezione cromatica; la sua dimensione non cambia. */
+#domino-board .domino-start-block { background: #22c55e !important; }
+/* Anche il report delle soluzioni conserva la medesima proporzione. */
+.domino-solution-tile .domino-solution-img,
+.domino-solution-tile.domino-solution-long .domino-solution-img { flex:0 0 45%; width:45%; }
+.domino-solution-tile .domino-solution-text,
+.domino-solution-tile.domino-solution-long .domino-solution-text { flex:0 0 55%; width:55%; }
