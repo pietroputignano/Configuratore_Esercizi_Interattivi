@@ -319,6 +319,22 @@ body { font-family: 'Source Sans Pro', sans-serif; background-color: #e2e8f0; }
     padding-left: 8px;
     padding-right: 8px;
 }
+
+/* ANAGRAMME v39: confini di parola fissi durante il riordino. */
+.anagram-target .letter-tile.anagram-word-end {
+    margin-inline-end: clamp(12px, 2.2vw, 20px);
+}
+.anagram-solved-text {
+    color: #1e3a8a;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(26px, 3vw, 34px);
+    font-weight: 900;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: normal;
+}
+
 .anagram-solved-letter {
     width: auto;
     min-width: 0;
