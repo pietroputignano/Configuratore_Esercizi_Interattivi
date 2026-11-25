@@ -2125,3 +2125,36 @@ body:has(> .exercise-player) > .exercise-player {
 .domino-solution-tile.domino-solution-long .domino-solution-img { flex:0 0 45%; width:45%; }
 .domino-solution-tile .domino-solution-text,
 .domino-solution-tile.domino-solution-long .domino-solution-text { flex:0 0 55%; width:55%; }
+
+
+/* v42 - corrected crossword only; display options are shared with the game. */
+.cw-solution-complete { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:8px; }
+.cw-solution-complete .cw-solution-scroll { min-width:0; padding:0; overflow-x:auto; }
+.cw-solution-grid { --cw-solution-size:32px; --cw-solution-gap:3px;
+    display:grid; grid-template-columns:repeat(var(--cw-cols),var(--cw-solution-size));
+    grid-auto-rows:var(--cw-solution-size); gap:var(--cw-solution-gap);
+    width:max-content; box-sizing:content-box; margin:0 auto;
+    padding:var(--cw-solution-top,8px) var(--cw-solution-right,8px) 8px var(--cw-solution-left,8px); }
+.cw-solution-grid.cw-solution-with-pronouns { --cw-solution-left:50px; --cw-solution-right:14px; --cw-solution-top:22px; }
+#end-score .cw-solution-grid .cw-play-wrapper, #end-score .cw-solution-empty {
+    width:var(--cw-solution-size)!important; height:var(--cw-solution-size)!important; }
+#end-score .cw-solution-grid .cw-solution-cell { font-size:clamp(11px,calc(var(--cw-solution-size)*.48),22px); line-height:1; }
+#end-score .cw-solution-grid .cw-number { font-size:clamp(7px,calc(var(--cw-solution-size)*.24),11px); top:0; left:2px; }
+#end-score .cw-solution-grid .cw-pronoun-label { font-size:clamp(8px,calc(var(--cw-solution-size)*.33),14px); }
+#end-score .cw-solution-grid .cw-pronoun-h { right:calc(100% + 4px); }
+#end-score .cw-solution-grid .cw-pronoun-v { bottom:calc(100% + 4px); }
+.cw-solution-definitions { min-width:0; padding:5px; text-align:left; }
+.cw-solution-definitions h3 { color:#1e3a8a; font-size:13px; font-weight:900; margin:0 0 4px; }
+.cw-solution-definitions .cw-clue { margin-bottom:4px; }
+@container (min-width:840px) {
+    .cw-solution-complete.cw-solution-with-clues { grid-template-columns:minmax(0,1fr) minmax(160px,28%); }
+}
+
+/* v43: explicit submission of a completed Dressing / Mapper board. */
+.dressing-verify-btn[hidden], .exercise-stage #pool.dressing-pool-complete {display:none!important;}
+.dressing-verify-btn {flex:0 0 auto; align-self:center; border:0; border-radius:999px;
+  padding:9px 28px; background:#3b82f6; color:white; font-family:'Montserrat',sans-serif;
+  font-weight:700; font-size:clamp(13px,1.5cqw,17px); line-height:1.3;
+  box-shadow:0 3px 6px #0002; cursor:pointer;}
+.dressing-verify-btn:hover {background:#2563eb;}
+.dressing-verify-btn:focus-visible {outline:3px solid #93c5fd;outline-offset:2px;}
