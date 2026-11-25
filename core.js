@@ -17,6 +17,12 @@ let items = [], dbImg = {}, dbAud = {}, curStep = 0, curLvl = 'facile', status =
 let errorTracker = [];
 let mappedZones = []; let cwData = []; let cwClues = []; let rebusData = {}; 
 let cwVerbLabel = ""; let cwShowClues = true;
+let cwDisplayOptions = {}; let cwBuilderLevel = 'facile';
+function getCWDisplayOptions(level = curLvl) {
+    const saved = cwDisplayOptions[level] || {};
+    return { numbers: saved.numbers !== false, pronouns: saved.pronouns !== false,
+        clues: typeof saved.clues === 'boolean' ? saved.clues : cwShowClues };
+}
 let cwActiveEntryKey = ""; // parola/direzione attiva nel cruciverba
 const CW_BUILDER_SIZE = 16; // area di creazione piu' ampia; il player mostra solo quanto serve
 
@@ -125,6 +131,29 @@ function fitDressingZones(board) {
 function scheduleDressingFit() {
     const board = document.querySelector('#main-content .dressing-board');
     if (board) requestAnimationFrame(() => fitDressingZones(board));
+}
+
+// Dressing is a single board: the learner explicitly submits it after all
+// interactive zones are solved. Fixed labels and unused distractors do not count.
+function isDressingBoardComplete() {
+    const targets = Array.from(document.querySelectorAll('#main-content .dressing-board [data-expected]'));
+    return targets.length > 0 && targets.every(target => target.dataset.dressingSolved === 'true');
+}
+function updateDressingVerifyButton() {
+    const button = document.getElementById('dressing-verify-btn');
+    if (!button) return;
+    const complete = isDressingBoardComplete();
+    button.hidden = !complete;
+    button.disabled = !complete;
+    document.getElementById('pool')?.classList.toggle('dressing-pool-complete', complete);
+    scheduleDressingFit();
+}
+function verifyDressing() {
+    const button = document.getElementById('dressing-verify-btn');
+    if (getCurrentType() !== 'dressing' || !button || button.disabled || !isDressingBoardComplete()) return;
+    button.disabled = true;
+    stopDressingAudio();
+    showEndScreen();
 }
 
 
@@ -380,6 +409,7 @@ function syncPlayerConfig() {
     rebusData = GAME_CONFIG.rebusData || {};
     cwVerbLabel = GAME_CONFIG.cwVerbLabel || '';
     cwShowClues = GAME_CONFIG.cwShowClues !== false;
+    cwDisplayOptions = GAME_CONFIG.cwDisplayOptions || {};
     autocollantesData = GAME_CONFIG.autocollantesData || { facile: {}, difficile: {} };
     phraseRebusData = GAME_CONFIG.phraseRebusData || { facile: { mode: 'word', items: [] }, difficile: { mode: 'word', items: [] } };
     hourraData = GAME_CONFIG.hourraData || makeDefaultHourraData();
@@ -1177,7 +1207,15 @@ function setupAutocollantesBoard(boardConfigs) {
     });
 }
 
-function openCWBuilder() { document.getElementById('cw-modal').classList.remove('hidden'); }
+function openCWBuilder(level = curLvl) {
+    cwBuilderLevel = level === 'difficile' ? 'difficile' : 'facile';
+    const options = getCWDisplayOptions(cwBuilderLevel);
+    document.getElementById('cw-builder-level-label').textContent = cwBuilderLevel === 'facile' ? 'Facile' : 'Difficile';
+    document.getElementById('cw-in-show-numbers').checked = options.numbers;
+    document.getElementById('cw-in-show-pronouns').checked = options.pronouns;
+    document.getElementById('cw-in-show-clues').checked = options.clues;
+    document.getElementById('cw-modal').classList.remove('hidden');
+}
 function buildCWGrid() {
     const gridEl = document.getElementById('cw-builder-grid');
     if(!gridEl) return;
@@ -1215,7 +1253,7 @@ function findCWWords() {
     }
     if(words.length === 0) return;
     let starts = {}; words.forEach(w => { let key = `${w.x}-${w.y}`; if(!starts[key]) starts[key] = counter++; w.num = starts[key]; });
-    document.querySelectorAll('.cw-number').forEach(e => e.remove());
+    document.querySelectorAll('#cw-builder-grid .cw-number').forEach(e => e.remove());
     Object.keys(starts).forEach(key => { let [x,y] = key.split('-'); let cellWrap = document.querySelector(`.cw-cell[data-x="${x}"][data-y="${y}"]`).parentElement; let span = document.createElement('span'); span.className = 'cw-number'; span.innerText = starts[key]; cellWrap.appendChild(span); });
     let cluesHtml = `<h4 class="font-bold text-blue-900 border-b pb-2 mb-3">Definizioni e pronomi</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
     words.sort((a,b) => a.num - b.num).forEach(w => {
@@ -1236,18 +1274,24 @@ function findCWWords() {
 function closeCWBuilder() {
     cwData = []; cwClues = [];
     cwVerbLabel = document.getElementById('cw-in-verb') ? document.getElementById('cw-in-verb').value : "";
-    cwShowClues = document.getElementById('cw-in-show-clues') ? document.getElementById('cw-in-show-clues').checked : true;
+    cwDisplayOptions[cwBuilderLevel] = {
+        numbers: document.getElementById('cw-in-show-numbers').checked,
+        pronouns: document.getElementById('cw-in-show-pronouns').checked,
+        clues: document.getElementById('cw-in-show-clues').checked
+    };
     document.querySelectorAll('.cw-cell').forEach(inp => { if(inp.value.trim() !== '') { let numSpan = inp.parentElement.querySelector('.cw-number'); cwData.push({ x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y), char: inp.value.toUpperCase(), num: numSpan ? parseInt(numSpan.innerText) : null }); } });
     document.querySelectorAll('.cw-clue-input').forEach(inp => {
-        const pronounInp = document.querySelector(`.cw-pronoun-input[data-word="${CSS.escape(inp.dataset.word)}"][data-dir="${inp.dataset.dir}"]`);
+        const pronounInp = inp.parentElement.querySelector('.cw-pronoun-input');
         cwClues.push({
             num: parseInt(inp.dataset.num), dir: inp.dataset.dir, word: inp.dataset.word,
             x: parseInt(inp.dataset.x), y: parseInt(inp.dataset.y),
-            clue: inp.value || inp.dataset.word,
+            clue: inp.value.trim(),
             pronoun: pronounInp ? pronounInp.value.trim() : ''
         });
     });
-    document.getElementById('cw-modal').classList.add('hidden'); startGame();
+    document.getElementById('cw-modal').classList.add('hidden');
+    if (cwBuilderLevel !== curLvl && getEnabledLevels()[cwBuilderLevel]) switchLvl(cwBuilderLevel);
+    else startGame();
 }
 
 /* --- GAME LOGIC --- */
@@ -1495,25 +1539,74 @@ function getCWPronounLabelsAt(x, y) {
     });
 }
 
-function getCWPronounHtml(x, y) {
+function getCWPronounHtml(x, y, options = getCWDisplayOptions()) {
+    if (!options.pronouns) return '';
     return getCWPronounLabelsAt(x, y).map(c =>
-        `<span class="cw-pronoun-label ${c.dir === 'h' ? 'cw-pronoun-h' : 'cw-pronoun-v'}">${c.pronoun}</span>`
+        `<span class="cw-pronoun-label ${c.dir === 'h' ? 'cw-pronoun-h' : 'cw-pronoun-v'}">${escapeMapperText(c.pronoun)}</span>`
     ).join('');
 }
-
+function getCWNumberHtml(cell, options = getCWDisplayOptions()) {
+    return options.numbers && cell.num ? `<span class="cw-number">${escapeMapperText(cell.num)}</span>` : '';
+}
+function getCWVisibleClues(options = getCWDisplayOptions()) {
+    return options.clues ? cwClues.filter(c => String(c.clue || '').trim()) : [];
+}
+function getCWClueHtml(c, options = getCWDisplayOptions()) {
+    const num = options.numbers && c.num ? `${escapeMapperText(c.num)}. ` : '';
+    const pronoun = options.pronouns && c.pronoun ? `${escapeMapperText(c.pronoun)} — ` : '';
+    return `<div class="cw-clue"><b>${num}${pronoun}${c.dir === 'h' ? 'Horizontal' : 'Vertical'} :</b> ${escapeMapperText(c.clue)}</div>`;
+}
 function buildCrosswordSolutionHtml() {
+    if (!cwData.length) return '';
+    const options = getCWDisplayOptions();
     const cellMap = new Map(cwData.map(c => [`${c.x}-${c.y}`, c]));
-    const dims = getCWGridDimensions();
-    let html = `<div class="cw-solution-complete"><div class="cw-solution-title">Grille corrigée</div><div class="cw-solution-scroll custom-scrollbar"><div class="grid gap-1 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm" style="grid-template-columns: repeat(${dims.cols}, 40px); width:max-content; margin:0 auto;">`;
-    for (let y = 0; y < dims.rows; y++) {
-        for (let x = 0; x < dims.cols; x++) {
+    // Crop unused outer builder cells, preserving the relative positions and intersections.
+    const minX = Math.min(...cwData.map(c => c.x)), maxX = Math.max(...cwData.map(c => c.x));
+    const minY = Math.min(...cwData.map(c => c.y)), maxY = Math.max(...cwData.map(c => c.y));
+    const cols = maxX - minX + 1, rows = maxY - minY + 1;
+    const clues = getCWVisibleClues(options);
+    let html = `<div class="cw-solution-complete${clues.length ? ' cw-solution-with-clues' : ''}"><div class="cw-solution-scroll"><div class="cw-solution-grid${options.pronouns ? ' cw-solution-with-pronouns' : ''}" style="--cw-cols:${cols};--cw-rows:${rows}">`;
+    for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
             const cell = cellMap.get(`${x}-${y}`);
             if (cell) {
-                html += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><div class="cw-play-cell cw-solution-cell font-mont">${cell.char}</div></div>`;
-            } else html += '<div class="w-10 h-10"></div>';
+                html += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y,options)}${getCWNumberHtml(cell,options)}<div class="cw-play-cell cw-solution-cell font-mont">${escapeMapperText(cell.char)}</div></div>`;
+            } else html += '<div class="cw-solution-empty" aria-hidden="true"></div>';
         }
     }
-    return html + '</div></div></div>';
+    html += '</div></div>';
+    if (clues.length) html += `<aside class="cw-solution-definitions" aria-label="Définitions"><h3>Définitions</h3>${clues.map(c => getCWClueHtml(c,options)).join('')}</aside>`;
+    return html + '</div>';
+}
+function fitCrosswordSolution() {
+    const end = document.getElementById('end-screen');
+    if (!end?.classList.contains('solutions-visible') || end.classList.contains('hidden')) return;
+    const grid = end.querySelector('.cw-solution-grid');
+    if (!grid) return;
+    const wrapper = grid.parentElement;
+    const list = end.querySelector('.solutions-viewport-list');
+    const top = end.querySelector('.report-top');
+    const cols = Number(grid.style.getPropertyValue('--cw-cols')) || 1;
+    const rows = Number(grid.style.getPropertyValue('--cw-rows')) || 1;
+    const labels = grid.classList.contains('cw-solution-with-pronouns');
+    const gap = wrapper.clientWidth < 500 ? 2 : 3;
+    const left = labels ? 50 : 8, right = labels ? 14 : 8, topPad = labels ? 22 : 8;
+    const availableW = wrapper.clientWidth - left - right;
+    const heading = list?.parentElement.querySelector('h3');
+    const endStyle = getComputedStyle(end);
+    const listStyle = list ? getComputedStyle(list) : null;
+    const listPadding = listStyle ? parseFloat(listStyle.paddingTop) + parseFloat(listStyle.paddingBottom) : 0;
+    const endRoom = end.clientHeight - (top?.offsetHeight || 0) - (heading?.offsetHeight || 0)
+        - parseFloat(endStyle.paddingTop) - parseFloat(endStyle.paddingBottom) - 30;
+    const listLimit = listStyle ? parseFloat(listStyle.maxHeight) : NaN;
+    const availableH = Math.min(endRoom, Number.isFinite(listLimit) ? listLimit : endRoom) - listPadding - 2;
+    const size = Math.max(17, Math.min(48, Math.floor((availableW-gap*(cols-1))/cols),
+        Math.floor((availableH-topPad-8-gap*(rows-1))/rows)));
+    grid.style.setProperty('--cw-solution-size',size+'px');
+    grid.style.setProperty('--cw-solution-gap',gap+'px');
+    grid.style.setProperty('--cw-solution-left',left+'px');
+    grid.style.setProperty('--cw-solution-right',right+'px');
+    grid.style.setProperty('--cw-solution-top',topPad+'px');
 }
 
 function calculateScore(type) {
@@ -1565,12 +1658,6 @@ function showEndScreen() {
         answersHtml += `<li class="list-none"><div class="hourra-solutions">${hourraSolutions(type,curLvl)}</div></li>`;
     } else if (type === 'crossword') {
         answersHtml += `<li class="list-none">${buildCrosswordSolutionHtml()}</li>`;
-        if (cwClues.length) {
-            answersHtml += `<li class="list-none mt-3"><div class="cw-solution-conjugation">` + cwClues.map(c => {
-                const full = `${c.pronoun ? c.pronoun + ' ' : ''}${c.word}`.trim();
-                return `<div><b>${c.num}.</b> ${full}</div>`;
-            }).join('') + `</div></li>`;
-        }
     } else if (type === 'domino') {
         const getSolutionImg = (key) => (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.images[key] : dbImg[key];
         let dominoSolutions = '<div class="domino-solutions custom-scrollbar">';
@@ -1723,7 +1810,7 @@ function toggleSolutions() {
     const show = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !show);
     end.classList.toggle('solutions-visible', show);
-    if (show) requestAnimationFrame(() => fitDominoSolutionText(panel));
+    if (show) requestAnimationFrame(() => { fitDominoSolutionText(panel); fitCrosswordSolution(); });
 }
 
 function checkCrossword(inputEl) {
@@ -1747,7 +1834,7 @@ function checkCrossword(inputEl) {
         }
     }
 
-    let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('.cw-play-cell');
+    let allCorrect = true; let filledCount = 0; let inputs = document.querySelectorAll('#main-content input.cw-play-cell');
     inputs.forEach(inp => {
         if(inp.value.toUpperCase() !== inp.dataset.ans) { allCorrect = false; }
         if(inp.value.trim() !== '') filledCount++;
@@ -2164,7 +2251,7 @@ function loadStep(idx) {
     stage.classList.remove('domino-stage');
     const exerciseArea=stage.closest('.exercise-stage');
     if(exerciseArea){exerciseArea.dataset.activityType=type;exerciseArea.style.removeProperty('overflow-y');}
-    pool.classList.remove('domino-pool');
+    pool.classList.remove('domino-pool', 'dressing-pool-complete');
     pool.style.removeProperty('--domino-scale');
     stage.classList.remove('hourra-stage');
     if(hourraIsType(type)) { hourraRenderStep(stage,pool); return; }
@@ -2172,20 +2259,22 @@ function loadStep(idx) {
         cwActiveEntryKey = '';
         if(cwData.length === 0) { stage.innerHTML = "<p class='text-gray-400'>Usa il Costruttore Cruciverba (🧩).</p>"; return; }
         let labelHtml = cwVerbLabel ? `<div class="cw-verb-label">${escapeMapperText(cwVerbLabel)}</div>` : '';
+        const options = getCWDisplayOptions();
         const dims = getCWGridDimensions();
         let gridHtml = `<div class="grid gap-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 cw-play-grid" style="--cw-cols:${dims.cols}; --cw-rows:${dims.rows}; grid-template-columns:repeat(${dims.cols}, var(--cw-cell-size, 40px));">`;
         for(let y=0; y<dims.rows; y++) {
             for(let x=0; x<dims.cols; x++) {
                 let cell = cwData.find(c => c.x === x && c.y === y);
                 if(cell) {
-                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y)}<span class="cw-number">${cell.num || ''}</span><input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" onfocus="activateCrosswordCell(this)" onclick="handleCrosswordCellClick(this)" oninput="checkCrossword(this)"></div>`;
+                    gridHtml += `<div class="cw-play-wrapper">${getCWPronounHtml(x,y,options)}${getCWNumberHtml(cell,options)}<input id="cw-${x}-${y}" type="text" maxlength="1" class="cw-play-cell font-mont" data-x="${x}" data-y="${y}" data-ans="${cell.char}" onfocus="activateCrosswordCell(this)" onclick="handleCrosswordCellClick(this)" oninput="checkCrossword(this)"></div>`;
                 } else gridHtml += `<div class="w-10 h-10"></div>`;
             }
         }
         gridHtml += '</div>';
-        const hasClues=cwShowClues && cwClues.length>0;
+        const visibleClues=getCWVisibleClues(options);
+        const hasClues=visibleClues.length>0;
         let cluesHtml=hasClues?`<aside id="cw-clues-panel" class="cw-clues-panel" aria-label="Définitions"><h3>Définitions</h3><div class="cw-clues-list">`+
-            cwClues.map(c=>`<div class="cw-clue"><b>${escapeMapperText(c.num)}. ${escapeMapperText(c.pronoun ? c.pronoun+' — ':'')}${c.dir==='h'?'Horizontal':'Vertical'} :</b> ${escapeMapperText(c.clue)}</div>`).join('')+`</div><div class="cw-clues-nav"><button type="button" onclick="changeCrosswordCluePage(-1)" aria-label="Définitions précédentes">‹</button><span class="cw-clues-counter"></span><button type="button" onclick="changeCrosswordCluePage(1)" aria-label="Définitions suivantes">›</button></div></aside>`:'';
+            visibleClues.map(c=>getCWClueHtml(c,options)).join('')+`</div><div class="cw-clues-nav"><button type="button" onclick="changeCrosswordCluePage(-1)" aria-label="Définitions précédentes">‹</button><span class="cw-clues-counter"></span><button type="button" onclick="changeCrosswordCluePage(1)" aria-label="Définitions suivantes">›</button></div></aside>`:'';
         stage.innerHTML=`<div class="cw-play-layout${hasClues?' cw-with-clues':''}"><div class="cw-play-board">${labelHtml}${hasClues?'<button type="button" class="cw-clues-toggle" onclick="toggleCrosswordClues()" aria-expanded="false">Définitions ▾</button>':''}${gridHtml}</div>${cluesHtml}</div>`;
         cwCluesPage=0;
         requestAnimationFrame(updateCrosswordGridSize);
@@ -2321,7 +2410,7 @@ function loadStep(idx) {
 
         const reading = getDressingReadingText();
         const audioControls = reading ? `<div class="dressing-audio-controls"><button id="dressing-audio-main" type="button" onclick="playDressingFullAudio()" class="dressing-audio-main"><span class="dressing-audio-icon">▶</span> ÉCOUTE</button><button type="button" onclick="restartDressingFullAudio()" class="dressing-audio-restart" aria-label="Réécouter depuis le début" title="Réécouter depuis le début">↺</button></div>` : '';
-        stage.insertAdjacentHTML('beforeend', `${audioControls}<div class="dressing-board relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div>`);
+        stage.insertAdjacentHTML('beforeend', `${audioControls}<div class="dressing-board relative w-full max-w-[900px] aspect-[9/5] bg-slate-50 border-4 border-gray-300 shadow-2xl rounded-2xl flex items-center justify-center overflow-hidden">${bg}${zonesHtml}</div><button id="dressing-verify-btn" type="button" onclick="verifyDressing()" class="dressing-verify-btn" hidden disabled>VÉRIFIER</button>`);
         scheduleDressingFit();
         
         const shuffled = [...items].sort(()=>Math.random()-0.5);
@@ -2709,11 +2798,14 @@ function setupSortable(mode, targetWord) {
         const zoneList = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.mappedZones : mappedZones;
         const targetWords = mode === 'domino' ? itemArray.slice(1).concat('__DOMINO_END__') : (mode === 'autocollantes' ? itemArray : zoneList.filter(z => z.kind !== 'static').map(z => z.word));
 
-        targetWords.forEach(w => {
-            const tgt = document.getElementById('target-' + w);
+        const targets = mode === 'dressing'
+            ? Array.from(document.querySelectorAll('#main-content .dressing-board [data-expected]'))
+            : targetWords.map(w => document.getElementById('target-' + w));
+        targets.forEach(tgt => {
             if (tgt) {
                 createSortable(tgt, {
-                    group: 'game', animation: 150, onStart: () => playSound('drag'),
+                    group: mode === 'dressing' ? {name:'game', pull:false, put: () => tgt.dataset.dressingSolved !== 'true' && tgt.dataset.dressingReturning !== 'true'} : 'game',
+                    sort: mode !== 'dressing', animation: 150, onStart: () => playSound('drag'),
                     onAdd: (e) => {
                         const dropped = e.item.getAttribute('data-word');
                         const expectedWord = e.target.getAttribute('data-expected');
@@ -2751,17 +2843,26 @@ function setupSortable(mode, targetWord) {
                             }
                             playSound('global_ok');
 
-                            const hasRemaining = Array.from(pool.children).some(child => !child.classList.contains('sortable-ghost'));
-                            if (!hasRemaining) {
-                                setTimeout(() => showEndScreen(), 1500);
+                            if (mode === 'dressing') {
+                                e.target.dataset.dressingSolved = 'true';
+                                updateDressingVerifyButton();
+                            } else {
+                                const hasRemaining = Array.from(pool.children).some(child => !child.classList.contains('sortable-ghost'));
+                                if (!hasRemaining) {
+                                    setTimeout(() => showEndScreen(), 1500);
+                                }
                             }
                         } else {
                             errorTracker[0]++; 
                             playSound('global_ko');
                             e.item.classList.add('shake-error');
+                            if (mode === 'dressing') e.target.dataset.dressingReturning = 'true';
                             setTimeout(() => {
+                                // A delayed wrong drop must not leak into a newly loaded board.
+                                if (mode === 'dressing' && !e.target.isConnected) return;
                                 e.item.classList.remove('shake-error');
                                 pool.appendChild(e.item);
+                                if (mode === 'dressing') delete e.target.dataset.dressingReturning;
                             }, 500);
                         }
                     }
@@ -3168,7 +3269,7 @@ async function exportToZIP() {
 
     let exportedCore, exportedStyle;
     try {
-        const [coreResp, styleResp] = await Promise.all([fetch('core.js'), fetch('style.css')]);
+        const [coreResp, styleResp] = await Promise.all([fetch('core.js', {cache:'no-cache'}), fetch('style.css', {cache:'no-cache'})]);
         if (!coreResp.ok || !styleResp.ok) throw new Error('Impossibile leggere core.js o style.css');
         exportedCore = await coreResp.text();
         exportedStyle = await styleResp.text();
@@ -3217,7 +3318,7 @@ async function exportToZIP() {
         titre: document.getElementById('in-titre').value || 'Jeu',
         scorm: { version: '2004 4th Edition', passingScore },
         domino: getDominoSettings(),
-        cwVerbLabel, cwShowClues, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData, hourraData,
+        cwVerbLabel, cwShowClues, cwDisplayOptions: {facile:getCWDisplayOptions('facile'), difficile:getCWDisplayOptions('difficile')}, mappedZones, cwData, cwClues, rebusData, autocollantesData, phraseRebusData, hourraData,
         dressingFullText: {facile: getDressingReadingText('facile'), difficile: getDressingReadingText('difficile')},
         images: expImg, audio: expAud,
         enabledLevels: { facile: document.getElementById('enable-f').checked, difficile: document.getElementById('enable-d').checked },
@@ -3314,7 +3415,7 @@ function setPreviewMode(mode) {
   function schedule() {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => { queued = false; updateCrosswordGridSize(); });
+    requestAnimationFrame(() => { queued = false; updateCrosswordGridSize(); fitCrosswordSolution(); });
   }
   window.addEventListener('resize', schedule, {passive:true});
   window.addEventListener('orientationchange', schedule, {passive:true});
