@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- IL NOSTRO NUOVO FILE DEGLI STILI -->
-    <link rel="stylesheet" href="style.css?v=40-domino-orientamento">
+    <link rel="stylesheet" href="style.css?v=43-mapper-verifier">
 </head>
 <body class="p-2 md:p-4 flex justify-center items-center min-h-screen">
 
@@ -47,16 +47,19 @@
     <div id="cw-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 modal-bg z-[100]">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh]">
             <div class="p-4 border-b flex justify-between items-center bg-orange-50">
-                <h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba</h3>
+                <h3 class="font-bold text-orange-900">🧩 Costruttore Cruciverba — <span id="cw-builder-level-label">Facile</span></h3>
                 <div class="flex gap-2">
                     <button onclick="findCWWords()" class="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm">🔍 Genera Definizioni</button>
                     <button onclick="closeCWBuilder()" class="bg-orange-600 text-white px-6 py-2 rounded-full font-bold text-sm">Salva Griglia</button>
                 </div>
             </div>
             <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-4 items-center">
-                <label class="flex items-center gap-2 text-xs font-bold text-blue-900">
-                    <input type="checkbox" id="cw-in-show-clues" checked> Mostra definizioni sotto la griglia <span class="font-normal text-gray-500">(i pronomi restano visibili)</span>
-                </label>
+                <div class="flex flex-wrap gap-3 items-center" role="group" aria-label="Visualizzazione nel gioco e nelle soluzioni">
+                    <span class="text-xs font-bold text-gray-700">Gioco e soluzioni:</span>
+                    <label class="flex items-center gap-2 text-xs font-bold text-blue-900"><input type="checkbox" id="cw-in-show-numbers" checked> Mostra numeri</label>
+                    <label class="flex items-center gap-2 text-xs font-bold text-blue-900"><input type="checkbox" id="cw-in-show-pronouns" checked> Mostra pronomi / etichette</label>
+                    <label class="flex items-center gap-2 text-xs font-bold text-blue-900"><input type="checkbox" id="cw-in-show-clues" checked> Mostra definizioni</label>
+                </div>
                 <input id="cw-in-verb" type="text" class="border border-gray-300 p-2 rounded text-xs w-64 shadow-inner" placeholder="Etichetta / Verbo (es: HABITER)">
             </div>
             <div class="flex-grow overflow-auto p-6 bg-slate-200 flex flex-col items-center">
@@ -192,7 +195,7 @@
                     <div class="flex gap-2">
                         <button onclick="pickAud('aud-f')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-50">🎵 Audio Consigne</button>
                         <button id="btn-map-f" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
-                        <button id="btn-cw-f" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
+                        <button id="btn-cw-f" onclick="openCWBuilder('facile')" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden">🧩 Cruciverba</button>
                         <button id="btn-rebus-f" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                         <button id="btn-auto-f" onclick="openAutocollantesBuilder('facile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden">✂️ Autocollantes</button>
                         <button id="btn-phrase-f" onclick="openPhraseRebusBuilder('facile')" class="flex-1 bg-violet-100 border border-violet-300 p-2 rounded shadow-sm font-bold hidden">🎭 Phrase-rébus</button>
@@ -222,7 +225,7 @@
                     <div class="flex gap-2">
                         <button onclick="pickAud('aud-d')" class="flex-1 bg-white border border-gray-300 p-2 rounded shadow-sm hover:bg-gray-100 text-gray-800">🎵 Audio Consigne</button>
                         <button id="btn-map-d" onclick="openMapper()" class="flex-1 bg-orange-100 border border-orange-300 p-2 rounded shadow-sm font-bold hidden">🗺️ Mapper</button>
-                        <button id="btn-cw-d" onclick="openCWBuilder()" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
+                        <button id="btn-cw-d" onclick="openCWBuilder('difficile')" class="flex-1 bg-blue-100 border border-blue-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🧩 Cruciverba</button>
                         <button id="btn-rebus-d" onclick="openRebusBuilder()" class="flex-1 bg-green-100 border border-green-300 p-2 rounded shadow-sm font-bold hidden">📝 Crea Frasi</button>
                         <button id="btn-auto-d" onclick="openAutocollantesBuilder('difficile')" class="flex-1 bg-pink-100 border border-pink-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">✂️ Autocollantes</button>
                         <button id="btn-phrase-d" onclick="openPhraseRebusBuilder('difficile')" class="flex-1 bg-violet-100 border border-violet-300 p-2 rounded shadow-sm font-bold hidden text-gray-800">🎭 Phrase-rébus</button>
@@ -394,6 +397,6 @@
     <input type="file" id="autoSheetInp" class="hidden" accept="image/*" onchange="handleAutoFile(event, 'sheet')">
 
     <!-- COLLEGAMENTO AL FILE ESTERNO -->
-    <script src="core.js?v=40-domino-orientamento"></script>
+    <script src="core.js?v=43-mapper-verifier"></script>
 </body>
 </html>
