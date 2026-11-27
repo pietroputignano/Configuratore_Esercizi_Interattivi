@@ -690,6 +690,7 @@ function openPhraseRebusBuilder(level) {
     renderPhraseRebusBuilder();
 }
 function closePhraseRebusBuilder() {
+    phraseStopMultiPlayback();
     document.getElementById('phrase-modal').classList.add('hidden');
     if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
 }
@@ -718,7 +719,7 @@ function phraseEnsureMulti(item){
     if(item.answers.length>count) item.answers=item.answers.slice(0,count);
     return count;
 }
-function updatePhraseMultiAnswer(id,i,value){ const it=phraseLevelData().items.find(x=>x.id===id); if(!it)return; phraseEnsureMulti(it); it.answers[i]=value; if(curLvl===phraseBuilderLevel&&getCurrentType()==='phrase_rebus') startGame(); }
+function updatePhraseMultiAnswer(id,i,value){ const it=phraseLevelData().items.find(x=>x.id===id); if(!it)return; phraseEnsureMulti(it); it.answers[i]=value; refreshPhraseRowAudioTexts(); if(curLvl===phraseBuilderLevel&&getCurrentType()==='phrase_rebus') startGame(); }
 function addPhrasePoolChoice(){ const d=phraseLevelData(); d.pool=d.pool||[]; const id=phraseNewId(); d.pool.push({id,label:'',imageKey:phraseImageKey(id,'pool')}); renderPhraseRebusBuilder(); }
 function removePhrasePoolChoice(id){ const d=phraseLevelData(); d.pool=(d.pool||[]).filter(x=>x.id!==id); renderPhraseRebusBuilder(); }
 function updatePhrasePoolChoice(id,value){ const c=(phraseLevelData().pool||[]).find(x=>x.id===id); if(c)c.label=value; if(curLvl===phraseBuilderLevel&&getCurrentType()==='phrase_rebus') startGame(); }
@@ -754,16 +755,64 @@ function phraseAssetPreview(key, kind='image') {
     if (kind === 'audio') return '<span class="text-emerald-700 font-bold text-[10px]">✓ Audio caricato</span>';
     return `<img src="${src}" class="w-16 h-12 object-contain rounded border bg-white">`;
 }
-function phraseBuildCompleteText(data = phraseLevelData()) {
-    const blocks = (data.items || []).map(it => {
+function phraseMultiRows(data, level = curLvl) {
+    return (data.items || []).flatMap((it, blockIndex) => {
         phraseEnsureMulti(it);
+        const lines = String(it.sentence || '').replace(/\r\n?/g, '\n').split('\n');
+        const numbered = lines.some(line => /^\s*\d+\s*[.)]/.test(line));
+        const groups = [];
+        lines.forEach(line => {
+            const match = line.match(/^\s*(\d+)\s*[.)]/);
+            if (!line.trim()) { if (numbered && groups.length) groups[groups.length-1].lines.push(line); return; }
+            if (!numbered || match || !groups.length) groups.push({number:match?.[1] || '',lines:[line]});
+            else groups[groups.length-1].lines.push(line);
+        });
         let answerIndex = 0;
-        return String(it.sentence || '').replace(/\.\.\./g, () => {
-            const value = String(it.answers?.[answerIndex++] || '').trim();
-            return value || '...';
+        const used = new Set();
+        return groups.map((g, i) => {
+            const sentence = g.lines.join('\n').trim();
+            let rowId = g.number ? `n${g.number}` : `r${i+1}`;
+            if (used.has(rowId)) rowId += `_r${i+1}`;
+            used.add(rowId);
+            const key = `phrase_${level}_${it.id || 'block'+blockIndex}_row_${rowId}_audio`;
+            const answers = [];
+            const complete = sentence.replace(/\.\.\./g, () => {
+                const value = String(it.answers?.[answerIndex++] || '').trim();
+                answers.push(value);
+                return value || '...';
+            });
+            const text = complete.replace(/^\s*\d+\s*[.)]\s*/, '').replace(/\s*(['’])\s*/g, '$1').trim();
+            return {key, sentence, answers, text, label:g.number || String(i+1), blockIndex};
         });
     });
-    return blocks.join('\n').replace(/[ \t]+\n/g, '\n').trim();
+}
+function phraseBuildCompleteText(data = phraseLevelData()) {
+    return (data.items || []).map(it => {
+        phraseEnsureMulti(it);
+        let i = 0;
+        return String(it.sentence || '').replace(/\.\.\./g, () => String(it.answers?.[i++] || '').trim() || '...');
+    }).join('\n').trim();
+}
+function phraseRowText(data, row) {
+    return String(data.rowAudioText?.[row.key] || '').trim() || row.text;
+}
+function phraseShowFullAudio(data, level) {
+    return data.showFullAudio ?? !!phraseAsset(data.multiAudioKey || phraseMultiAudioKey(level), true);
+}
+function setPhraseFullAudioVisible(checked) {
+    phraseLevelData().showFullAudio = checked;
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
+}
+function setPhraseRowAudioText(key, value) {
+    const data = phraseLevelData();
+    data.rowAudioText = data.rowAudioText || {};
+    data.rowAudioText[key] = value;
+}
+function removePhraseRowAudio(key) {
+    phraseStopMultiPlayback();
+    delete dbAud[key];
+    renderPhraseRebusBuilder();
+    if (curLvl === phraseBuilderLevel && getCurrentType() === 'phrase_rebus') startGame();
 }
 
 function phraseGetPlaybackData() {
@@ -774,130 +823,100 @@ function phraseGetPlaybackData() {
 }
 
 function updatePhraseMultiAudioUI() {
-    const btn = document.getElementById('phrase-multi-audio-main');
-    if (!btn) return;
-    const icon = btn.querySelector('.phrase-audio-icon');
-    const playing = phraseMultiPlayback.mode && !phraseMultiPlayback.paused && (
-        (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio && !phraseMultiPlayback.audio.paused) ||
-        (phraseMultiPlayback.mode === 'tts' && window.speechSynthesis && window.speechSynthesis.speaking)
-    );
-    if (icon) icon.textContent = playing ? '⏸' : '▶';
-    btn.setAttribute('aria-label', playing ? 'Mettre en pause la lecture' : (phraseMultiPlayback.paused ? 'Reprendre la lecture' : 'Écouter'));
-    btn.title = playing ? 'Pause' : (phraseMultiPlayback.paused ? 'Reprendre' : 'Écouter');
+    document.querySelectorAll('#phrase-multi-audio-main, [data-phrase-row-audio]').forEach(btn => {
+        const key = btn.dataset.phraseRowAudio || 'full';
+        const active = phraseMultiPlayback.key === key && !!phraseMultiPlayback.mode;
+        const playing = active && !phraseMultiPlayback.paused;
+        const icon = btn.querySelector('.phrase-audio-icon');
+        if (icon) icon.textContent = playing ? '❚❚' : '▶';
+        btn.setAttribute('aria-pressed', String(playing));
+        const label = btn.dataset.audioLabel || 'le texte complet';
+        btn.setAttribute('aria-label', `${playing ? 'Mettre en pause' : active ? 'Reprendre' : 'Écouter'} ${label}`);
+        btn.title = btn.getAttribute('aria-label');
+    });
 }
-
 function phraseStopMultiPlayback(reset = true) {
+    const old = phraseMultiPlayback;
+    phraseMultiPlayback = { mode:'', audio:null, utterance:null, paused:false, text:'', key:'' };
     try {
-        if (phraseMultiPlayback.audio) {
-            phraseMultiPlayback.audio.pause();
-            if (reset) phraseMultiPlayback.audio.currentTime = 0;
-        }
-    } catch (_) {}
-    try {
+        if (old.audio) { old.audio.pause(); if (reset) old.audio.currentTime = 0; }
         if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch (_) {}
-    phraseMultiPlayback = { mode: '', audio: null, utterance: null, paused: false, text: '' };
     updatePhraseMultiAudioUI();
 }
-
 function phraseMultiAudioSource(data) {
-    const key = data.multiAudioKey || phraseMultiAudioKey(isPlayerMode() ? curLvl : phraseBuilderLevel);
+    const modal = document.getElementById('phrase-modal');
+    const level = !isPlayerMode() && modal && !modal.classList.contains('hidden') ? phraseBuilderLevel : curLvl;
+    const key = data.multiAudioKey || phraseMultiAudioKey(level);
     return phraseAsset(key, true);
 }
-
-function playPhraseMultiAudio() {
-    const data = phraseGetPlaybackData();
-    const src = phraseMultiAudioSource(data);
-    const text = phraseBuildCompleteText(data);
-
-    if (src) {
-        // Audio manuale: riprende se in pausa, altrimenti parte dall'inizio.
-        if (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio) {
-            if (phraseMultiPlayback.audio.paused && phraseMultiPlayback.audio.currentTime > 0 && phraseMultiPlayback.audio.currentTime < phraseMultiPlayback.audio.duration) {
-                phraseMultiPlayback.audio.play().catch(()=>{});
-                phraseMultiPlayback.paused = false;
-                updatePhraseMultiAudioUI();
-                return;
-            }
-            phraseMultiPlayback.audio.pause();
-            phraseMultiPlayback.audio.currentTime = 0;
-        } else {
-            phraseStopMultiPlayback();
-        }
-        const a = new Audio(src);
-        a.onplay = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
-        a.onpause = () => { if (a.currentTime > 0 && !a.ended) phraseMultiPlayback.paused = true; updatePhraseMultiAudioUI(); };
-        a.onended = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
-        phraseMultiPlayback = { mode: 'file', audio: a, utterance: null, paused: false, text: '' };
-        a.play().catch(()=>{});
-        updatePhraseMultiAudioUI();
-        return;
-    }
-
-    if (!text) { alert('Inserisci prima il testo completo.'); return; }
-    if (text.includes('...')) { alert('Compila tutti i valori corretti dei drop prima di ascoltare il testo completo.'); return; }
-    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
-        alert('La sintesi vocale non è disponibile in questo browser. Puoi caricare un file audio manualmente.');
-        return;
-    }
-
-    // Se lo stesso TTS è in pausa, il tasto Play funge anche da Riprendi.
-    if (phraseMultiPlayback.mode === 'tts' && phraseMultiPlayback.paused && phraseMultiPlayback.text === text) {
-        window.speechSynthesis.resume();
-        phraseMultiPlayback.paused = false;
-        updatePhraseMultiAudioUI();
-        return;
-    }
-
+function playPhraseAudioSelection(key, src, text) {
+    if (phraseMultiPlayback.key === key && phraseMultiPlayback.mode) { pausePhraseMultiAudio(); return; }
     phraseStopMultiPlayback();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'fr-FR';
-    u.rate = 0.6; // stesso valore usato per le consegne
-    u.onstart = () => updatePhraseMultiAudioUI();
-    u.onend = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
-    u.onerror = () => { phraseMultiPlayback.paused = false; updatePhraseMultiAudioUI(); };
-    phraseMultiPlayback = { mode: 'tts', audio: null, utterance: u, paused: false, text };
-    window.speechSynthesis.speak(u);
+    if (!src && (!text || text.includes('...'))) { alert('Compila i valori corretti dei drop o carica un audio.'); return; }
+    // Cancel a previous spoken consigne before starting a new sentence.
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    const playback = {key, mode:src?'file':'tts', audio:null, utterance:null, paused:false, text};
+    const finish = () => {
+        if (phraseMultiPlayback !== playback) return;
+        phraseMultiPlayback = {mode:'',audio:null,utterance:null,paused:false,text:'',key:''};
+        updatePhraseMultiAudioUI();
+    };
+    if (src) {
+        const a = new Audio(src);
+        playback.audio = a;
+        a.onended = a.onerror = finish;
+        phraseMultiPlayback = playback;
+        a.play().catch(finish);
+    } else {
+        if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') { alert('Sintesi vocale non disponibile. Carica un audio.'); return; }
+        const u = new SpeechSynthesisUtterance(text.replace(/\n+/g, ' '));
+        u.lang = 'fr-FR'; u.rate = 0.6;
+        const voices = window.speechSynthesis.getVoices().filter(v => /^fr[-_]/i.test(v.lang));
+        u.voice = voices.find(v => /thomas|henri|nicolas|paul|male/i.test(v.name) && !/female/i.test(v.name)) || voices[0] || null;
+        u.onend = u.onerror = finish;
+        playback.utterance = u;
+        phraseMultiPlayback = playback;
+        window.speechSynthesis.speak(u);
+    }
     updatePhraseMultiAudioUI();
 }
-
+function playPhraseMultiAudio() {
+    const data = phraseGetPlaybackData();
+    playPhraseAudioSelection('full', phraseMultiAudioSource(data), phraseBuildCompleteText(data));
+}
+function playPhraseRowAudio(key, builder = false) {
+    const level = builder ? phraseBuilderLevel : curLvl;
+    const data = builder ? phraseLevelData(level) : getPhraseLevelData(level);
+    const row = phraseMultiRows(data, level).find(r => r.key === key);
+    if (row) playPhraseAudioSelection(key, phraseAsset(key, true), phraseRowText(data, row));
+}
 function pausePhraseMultiAudio() {
-    if (phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio) {
-        if (!phraseMultiPlayback.audio.paused) {
-            phraseMultiPlayback.audio.pause();
-            phraseMultiPlayback.paused = true;
-        } else {
-            phraseMultiPlayback.audio.play().catch(()=>{});
-            phraseMultiPlayback.paused = false;
-        }
-        updatePhraseMultiAudioUI();
-        return;
+    const p = phraseMultiPlayback;
+    if (!p.mode) return;
+    p.paused = !p.paused;
+    if (p.mode === 'file' && p.audio) {
+        if (p.paused) p.audio.pause();
+        else p.audio.play().catch(()=>{ if (phraseMultiPlayback === p) phraseStopMultiPlayback(); });
+    } else if (p.mode === 'tts' && window.speechSynthesis) {
+        if (p.paused) window.speechSynthesis.pause(); else window.speechSynthesis.resume();
     }
-    if (phraseMultiPlayback.mode === 'tts' && window.speechSynthesis) {
-        if (phraseMultiPlayback.paused) {
-            window.speechSynthesis.resume();
-            phraseMultiPlayback.paused = false;
-        } else if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.pause();
-            phraseMultiPlayback.paused = true;
-        }
-        updatePhraseMultiAudioUI();
-    }
+    updatePhraseMultiAudioUI();
 }
-
-function togglePhraseMultiAudio() {
-    const fileIsPlaying = phraseMultiPlayback.mode === 'file' && phraseMultiPlayback.audio && !phraseMultiPlayback.audio.paused;
-    const ttsIsPlaying = phraseMultiPlayback.mode === 'tts' && window.speechSynthesis && window.speechSynthesis.speaking && !phraseMultiPlayback.paused;
-    if (fileIsPlaying || ttsIsPlaying || phraseMultiPlayback.paused) pausePhraseMultiAudio();
-    else playPhraseMultiAudio();
-}
-
-function restartPhraseMultiAudio() {
-    phraseStopMultiPlayback();
-    playPhraseMultiAudio();
-}
-
+function togglePhraseMultiAudio() { playPhraseMultiAudio(); }
+function restartPhraseMultiAudio() { phraseStopMultiPlayback(); playPhraseMultiAudio(); }
 function previewPhraseMultiAudio() { playPhraseMultiAudio(); }
+function refreshPhraseRowAudioTexts() {
+    const rows = phraseMultiRows(phraseLevelData(), phraseBuilderLevel);
+    document.querySelectorAll('[data-phrase-row-preview]').forEach(el => {
+        const row = rows.find(r => r.key === el.dataset.phraseRowPreview);
+        if (row) el.textContent = row.text;
+    });
+}
+function renderPhraseRowAudioFields(data) {
+    const rows = phraseMultiRows(data, phraseBuilderLevel);
+    return `<div class="bg-white border border-yellow-200 rounded-xl p-4"><h4 class="font-black text-yellow-900">Audio per item</h4><p class="text-xs text-gray-500 mb-3">Una riga = un item; se il testo è numerato (1., 2., …), le righe successive appartengono allo stesso numero fino al prossimo item. Il sintetizzatore legge il testo con le risposte corrette. Puoi personalizzare il testo letto o caricare una registrazione per ogni item. Dopo aver modificato l'ordine degli item, verifica gli audio associati.</p>${rows.map(row=>`<div class="border rounded p-2 mb-2"><b class="text-xs">Blocco ${row.blockIndex+1} · Item ${phraseSafe(row.label)}</b><p class="text-xs text-gray-500 whitespace-pre-line" data-phrase-row-preview="${phraseSafe(row.key)}">${phraseSafe(row.text)}</p><label class="text-xs block mt-1">Testo audio personalizzato (opzionale)<textarea class="w-full border rounded p-1 text-xs" data-row-key="${phraseSafe(row.key)}" oninput="setPhraseRowAudioText(this.dataset.rowKey,this.value)" placeholder="Automatico dal testo e dalle risposte">${phraseSafe(data.rowAudioText?.[row.key]||'')}</textarea></label><div class="flex flex-wrap items-center gap-2 mt-1"><button type="button" data-phrase-row-audio="${phraseSafe(row.key)}" onclick="playPhraseRowAudio(this.dataset.phraseRowAudio,true)" class="bg-yellow-500 text-white rounded p-2 text-xs font-bold"><span class="phrase-audio-icon">▶</span> Ascolta</button><button type="button" data-row-key="${phraseSafe(row.key)}" onclick="pickAud(this.dataset.rowKey)" class="border rounded p-2 text-xs font-bold">Carica audio</button>${dbAud[row.key]?`<button type="button" data-row-key="${phraseSafe(row.key)}" onclick="removePhraseRowAudio(this.dataset.rowKey)" class="text-red-600 text-xs font-bold">Rimuovi audio</button>`:''}${phraseAssetPreview(row.key,'audio')}</div></div>`).join('') || '<p class="text-xs text-gray-500">Inserisci prima il testo.</p>'}</div>`;
+}
 
 function renderPhraseRebusBuilder() {
     const wrap = document.getElementById('phrase-items-container'); if(!wrap) return;
@@ -906,7 +925,7 @@ function renderPhraseRebusBuilder() {
     if (addBtn) addBtn.textContent = data.mode === 'image' ? '+ Aggiungi blocco testo' : '+ Aggiungi item';
     document.getElementById('phrase-mode-help').textContent = data.mode === 'word'
         ? 'Modalità 1: ogni frase è uno step. Lo studente trascina tessere di testo per completare la frase associata al visual.'
-        : 'Modalità 2: un unico testo, un unico audio e più zone di drop. Lo studente trascina nel testo le immagini caricate nel pool.';
+        : 'Modalità 2: un unico testo, audio per item e più zone di drop. Lo studente trascina nel testo le immagini caricate nel pool.';
     if (!data.items.length) {
         wrap.innerHTML = '<div class="p-8 text-center text-gray-400 font-bold">Nessun item. Premi “+ Aggiungi item”.</div>';
         return;
@@ -915,7 +934,7 @@ function renderPhraseRebusBuilder() {
         data.multiAudioKey = data.multiAudioKey || phraseMultiAudioKey();
         const cards=data.items.map((it,idx)=>{ const n=phraseEnsureMulti(it); return `<div class="bg-white border border-violet-200 rounded-xl p-4 shadow-sm"><div class="flex justify-between mb-3"><h4 class="font-black text-violet-900">Blocco di testo ${idx+1}</h4><button type="button" onclick="removePhraseRebusItem('${it.id}')" class="text-red-600 font-bold text-xs">Elimina</button></div><label class="text-[10px] font-bold text-gray-600 block">TESTO COMPLETO — Invio = nuova riga; usa ... in ogni punto in cui va inserita un'immagine<textarea oninput="updatePhraseItem('${it.id}','sentence',this.value)" onchange="renderPhraseRebusBuilder()" class="mt-1 w-full border rounded p-3 text-sm leading-relaxed min-h-[190px] font-mono" placeholder="Ma professeure de ... est ...\nMon professeur de ... est ...\nEt toi tu es comment Lupin ?\nOh moi, je suis ..., ..., ... et ...">${phraseSafe(it.sentence||'')}</textarea></label><p class="text-[10px] text-gray-500 mt-1">Puoi incollare tutto il testo in questo campo. Gli a-capo vengono mantenuti nell'esercizio.</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${Array.from({length:n},(_,i)=>`<label class="text-[10px] font-bold text-gray-600">VALORE CORRETTO DROP ${i+1}<input value="${phraseSafe(it.answers?.[i]||'')}" oninput="updatePhraseMultiAnswer('${it.id}',${i},this.value)" class="mt-1 w-full border rounded p-2 text-xs" placeholder="es. français"></label>`).join('')}</div>${n===0?'<div class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Inserisci almeno un <b>...</b> nel testo per creare le zone di drop.</div>':''}</div>`; }).join('');
         const pool=(data.pool||[]).map((c,i)=>`<div class="border rounded-lg p-2 bg-slate-50"><div class="flex justify-between items-center mb-2"><b class="text-[10px] text-gray-600">VISUAL ${i+1}</b>${phraseAssetPreview(c.imageKey)}</div><input value="${phraseSafe(c.label||'')}" oninput="updatePhrasePoolChoice('${c.id}',this.value)" placeholder="Valore interno, es. français" class="w-full border rounded p-2 text-xs mb-2"><button type="button" onclick="pickImg('${c.imageKey}')" class="w-full bg-white border border-blue-200 rounded p-2 text-xs font-bold">📷 Carica / sostituisci immagine</button><button type="button" onclick="removePhrasePoolChoice('${c.id}')" class="mt-2 text-red-600 text-xs font-bold">Elimina visual</button></div>`).join('');
-        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità 2 — Trascina le immagini nel testo.</b> È un unico step: scrivi o incolla l'intero testo nel campo sotto. <b>Invio crea una nuova riga</b> e ogni <code>...</code> crea una zona di drop. Lo studente vede nel pool solo i visual caricati; il valore interno serve esclusivamente per associare ogni immagine al drop corretto.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2 gap-3"><div><h4 class="font-black text-yellow-900">Audio unico del testo</h4><p class="text-[10px] text-gray-500 mt-1">Senza file audio usa automaticamente la stessa voce sintetica delle consegne (fr-FR). Se carichi un audio manuale, quello ha priorità.</p></div>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><div class="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onclick="playPhraseMultiAudio()" class="bg-yellow-500 hover:bg-yellow-600 text-white rounded p-2 text-xs font-black">▶ Ascolta</button><button type="button" onclick="pausePhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">⏸ Pausa / Riprendi</button><button type="button" onclick="restartPhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">↺ Ricomincia</button><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica audio</button></div><div class="mt-2 text-[10px] font-bold text-gray-500">${dbAud[data.multiAudioKey]?'✓ Audio manuale caricato. Verrà usato al posto della sintesi vocale.':'Voce automatica: SpeechSynthesis del browser, come per le consegne.'}</div></div>${cards}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
+        wrap.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900"><b>Modalità 2 — Trascina le immagini nel testo.</b> È un unico step: scrivi o incolla l'intero testo nel campo sotto. <b>Invio crea una nuova riga</b> e ogni <code>...</code> crea una zona di drop. Lo studente vede nel pool solo i visual caricati; il valore interno serve esclusivamente per associare ogni immagine al drop corretto.</div><div class="bg-white border border-yellow-200 rounded-xl p-4"><div class="flex items-center justify-between mb-2 gap-3"><div><h4 class="font-black text-yellow-900">Audio generale (opzionale)</h4><p class="text-[10px] text-gray-500 mt-1">Senza file audio usa automaticamente la stessa voce sintetica delle consegne (fr-FR). Se carichi un audio manuale, quello ha priorità.</p></div>${phraseAssetPreview(data.multiAudioKey,'audio')}</div><div class="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onclick="playPhraseMultiAudio()" class="bg-yellow-500 hover:bg-yellow-600 text-white rounded p-2 text-xs font-black">▶ Ascolta</button><button type="button" onclick="pausePhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">⏸ Pausa / Riprendi</button><button type="button" onclick="restartPhraseMultiAudio()" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">↺ Ricomincia</button><button type="button" onclick="pickAud('${data.multiAudioKey}')" class="bg-white border border-yellow-300 rounded p-2 text-xs font-bold">🎵 Carica audio</button></div><div class="mt-2 text-[10px] font-bold text-gray-500">${dbAud[data.multiAudioKey]?'✓ Audio manuale caricato. Verrà usato al posto della sintesi vocale.':'Voce automatica: SpeechSynthesis del browser, come per le consegne.'}</div><label class="flex items-center gap-2 mt-2 text-xs"><input type="checkbox" ${phraseShowFullAudio(data,phraseBuilderLevel)?'checked':''} onchange="setPhraseFullAudioVisible(this.checked)"> Mostra anche ÉCOUTE generale nel gioco</label></div>${cards}${renderPhraseRowAudioFields(data)}<div class="bg-white border border-blue-200 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-black text-blue-900">Pool comune di immagini</h4><button type="button" onclick="addPhrasePoolChoice()" class="bg-blue-600 text-white px-3 py-2 rounded-full text-xs font-bold">+ Aggiungi visual</button></div><p class="text-xs text-gray-500 mb-3">Per ogni immagine indica il valore interno corrispondente (es. <b>français</b> per la bandierina francese). Questo testo non sarà visibile allo studente.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3">${pool||'<p class="text-xs text-gray-400">Aggiungi le immagini da trascinare.</p>'}</div></div>`;
         return;
     }
     wrap.innerHTML = data.items.map((it,idx) => {
@@ -1636,6 +1655,7 @@ function calculateScore(type) {
 }
 
 function showEndScreen() {
+    if (getCurrentType() === 'phrase_rebus') phraseStopMultiPlayback();
     destroyActiveSortables();
     document.getElementById('end-screen').classList.remove('hidden');
     document.getElementById('end-screen').classList.remove('solutions-visible');
@@ -1888,18 +1908,23 @@ function parseAnagramItem(rawItem) {
         determiner,
         lexical,
         answer: words.join(''),
+        words,
         wordBreaks
     };
 }
 
-// Gli spazi sono posizioni fisse fra le lettere, non elementi trascinabili.
-// Riapplicali dopo ogni spostamento, cosi' restano sempre dopo le posizioni giuste.
-function updateAnagramWordBreaks(target, parsed) {
-    if (!target) return;
-    const boundaries = new Set(parsed.wordBreaks || []);
-    Array.from(target.querySelectorAll('.letter-tile')).forEach((tile, index) => {
-        tile.classList.toggle('anagram-word-end', boundaries.has(index + 1));
-    });
+// Mescola ogni parola separatamente; se possibile non partire dalla soluzione.
+function shuffleAnagramWord(word) {
+    const letters = Array.from(word);
+    for (let i = letters.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [letters[i], letters[j]] = [letters[j], letters[i]];
+    }
+    if (letters.join('') === word && new Set(letters).size > 1) {
+        const j = letters.findIndex(l => l !== letters[0]);
+        [letters[0], letters[j]] = [letters[j], letters[0]];
+    }
+    return letters;
 }
 
 function getAnagramImage(key) {
@@ -1965,7 +1990,7 @@ function checkOrder(mode) {
 
     if (mode === 'anagramme') {
         const parsed = parseAnagramItem(targetWord);
-        const current = Array.from(target.children).map(el=>el.getAttribute('data-letter')).join('');
+        const current = Array.from(target.querySelectorAll('.letter-tile')).map(el=>el.getAttribute('data-letter')).join('');
         isCorrect = (current.toLowerCase() === parsed.answer.toLowerCase());
     } else if (mode === 'sentence_ordering') {
         const expectedStr = targetWord.split('/').map(c=>c.trim()).join('');
@@ -2073,23 +2098,22 @@ function phraseCheckMultiComplete(data){
 }
 function renderPhraseMulti(data,stage,pool){
     data.multiAudioKey=data.multiAudioKey||phraseMultiAudioKey(curLvl);
-    const rows=(data.items||[]).map(it=>{
-        phraseEnsureMulti(it);
+    const rows=phraseMultiRows(data,curLvl).map(row=>{
         let k=0;
-        const parts=phraseSafe(it.sentence||'').split('...');
+        const parts=phraseSafe(row.sentence).split('...');
         let html='';
         parts.forEach((part,i)=>{
             html+=part;
             if(i<parts.length-1){
-                const answer=String(it.answers?.[k++]||'').trim();
+                const answer=String(row.answers[k++]||'').trim();
                 html+=`<span class="phrase-rebus-target phrase-multi-target" data-answer="${phraseSafe(answer)}" aria-label="Zone de réponse"></span>`;
             }
         });
-        return `<div class="phrase-multi-row">${html}</div>`;
+        return `<div class="phrase-multi-row phrase-multi-audio-row"><button type="button" class="phrase-row-audio-btn" data-phrase-row-audio="${phraseSafe(row.key)}" data-audio-label="l’item ${phraseSafe(row.label)}" aria-label="Écouter l’item ${phraseSafe(row.label)}" aria-pressed="false" onclick="playPhraseRowAudio(this.dataset.phraseRowAudio)"><span class="phrase-audio-icon" aria-hidden="true">▶</span></button><div class="phrase-multi-row-text">${html}</div></div>`;
     }).join('');
     const audioControls=`<div class="phrase-multi-audio-controls"><button id="phrase-multi-audio-main" type="button" onclick="togglePhraseMultiAudio()" class="phrase-rebus-audio-btn phrase-multi-audio-main" aria-label="Écouter" title="Écouter"><span class="phrase-audio-icon">▶</span><span>ÉCOUTE</span></button><button type="button" onclick="restartPhraseMultiAudio()" class="phrase-rebus-audio-restart" title="Recommencer depuis le début" aria-label="Recommencer depuis le début">↺</button></div>`;
     stage.innerHTML=`<div class="phrase-rebus-stage phrase-multi-stage"><div class="phrase-multi-sheet">${rows}</div></div>`;
-    stage.insertAdjacentHTML('beforebegin',audioControls);
+    if (phraseShowFullAudio(data,curLvl)) stage.insertAdjacentHTML('beforebegin',audioControls);
     updatePhraseMultiAudioUI();
     const choices=(data.pool||[]).filter(c=>String(c.label||'').trim()&&phraseAsset(c.imageKey)).map(c=>({value:String(c.label||'').trim(),src:phraseAsset(c.imageKey)})).sort(()=>Math.random()-.5);
     pool.innerHTML=choices.map(c=>`<button type="button" class="phrase-rebus-choice phrase-rebus-choice-image phrase-multi-visual-choice" data-value="${phraseSafe(c.value)}" data-src="${phraseSafe(c.src)}"><img src="${phraseSafe(c.src)}" alt="${phraseSafe(c.value)}" class="phrase-rebus-choice-img"></button>`).join('');
@@ -2713,7 +2737,7 @@ function loadStep(idx) {
         }
 
         const parsed = parseAnagramItem(word);
-        const shuffled = Array.from(parsed.answer).sort(()=>Math.random()-0.5);
+        const shuffled = parsed.words.map(shuffleAnagramWord);
         const imgSrc = getAnagramImage(word);
         const imgContent = imgSrc ? `<img src="${imgSrc}" class="h-full w-full object-contain pointer-events-none">` : '📷 Foto';
         const imgClick = isPlayerMode() ? '' : ` onclick="pickImg('${word.replace(/'/g, "\\'")}')"`;
@@ -2724,13 +2748,12 @@ function loadStep(idx) {
             <div class="anagram-answer-wrap">
                 ${determinerHtml}
                 <div id="target" class="anagram-target">`
-                    + shuffled.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${l.replace(/"/g, '&quot;')}">${l.toLowerCase()}</div>`).join('') +
+                    + shuffled.map((letters, i) => `<div class="anagram-word-group" role="group" aria-label="Mot ${i+1}">${letters.map(l => `<div class="letter-tile text-xl shadow-md cursor-grab" data-letter="${phraseSafe(l)}">${phraseSafe(l.toLowerCase())}</div>`).join('')}</div>`).join('') +
                 `</div>
             </div>
             <button id="check-btn" onclick="checkOrder('anagramme')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md transition transform hover:scale-105 font-mont uppercase">Vérifier</button>
         </div>`);
         pool.innerHTML = '';
-        updateAnagramWordBreaks(document.getElementById('target'), parsed);
         setupSortable('anagramme', parsed.answer);
     }
     else if(type === 'sentence_ordering') {
@@ -2876,13 +2899,12 @@ function setupSortable(mode, targetWord) {
     if(!target) return;
     
     if (mode === 'anagramme') {
-        createSortable(target, {
-            animation: 150, ghostClass: 'opacity-50', draggable: '.letter-tile',
-            onStart: () => playSound('drag'),
-            onEnd: () => {
-                updateAnagramWordBreaks(target, parseAnagramItem(items[curStep]));
-                playSound('drop');
-            }
+        target.querySelectorAll('.anagram-word-group').forEach((word, i) => {
+            createSortable(word, {
+                group: {name: `anagram-word-${i}`, pull: false, put: false},
+                animation: 150, ghostClass: 'opacity-50', draggable: '.letter-tile',
+                onStart: () => playSound('drag'), onEnd: () => playSound('drop')
+            });
         });
         return;
     }
@@ -3003,9 +3025,10 @@ function switchLvl(l) {
 function pickImg(k) { activeKey = k; document.getElementById('imgInp').click(); }
 function pickAud(k) { activeKey = k; document.getElementById('audInp').click(); }
 function handleImg(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{ dbImg[activeKey]=ev.target.result; if(activeKey==='mapper_bg'){ const p = document.getElementById('mapper-preview'); if(p) { p.src=ev.target.result; p.classList.remove('hidden'); } const h = document.getElementById('mapper-hint'); if(h) h.classList.add('hidden'); } if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) renderPhraseRebusBuilder(); if(String(activeKey).startsWith('hourra_') && !document.getElementById('hourra-modal')?.classList.contains('hidden')) hourraRenderBuilder(); loadStep(curStep); }; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
-function handleAud(e) { if(!e.target.files[0]) return; const r = new FileReader(); r.onload=(ev)=>{dbAud[activeKey]=ev.target.result; if(String(activeKey).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) { const d=phraseLevelData(); if(activeKey === (d.multiAudioKey || phraseMultiAudioKey())) { d.multiAudioSource='uploaded'; d.multiTtsSource=''; } renderPhraseRebusBuilder(); } if(String(activeKey).startsWith('hourra_') && !document.getElementById('hourra-modal')?.classList.contains('hidden')) hourraRenderBuilder(); loadStep(curStep);}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
+function handleAud(e) { if(!e.target.files[0]) return; const key=activeKey; const r = new FileReader(); r.onload=(ev)=>{dbAud[key]=ev.target.result; if(String(key).startsWith('phrase_') && !document.getElementById('phrase-modal')?.classList.contains('hidden')) { const d=phraseLevelData(); if(key === (d.multiAudioKey || phraseMultiAudioKey())) { d.multiAudioSource='uploaded'; d.multiTtsSource=''; } renderPhraseRebusBuilder(); } if(String(key).startsWith('hourra_') && !document.getElementById('hourra-modal')?.classList.contains('hidden')) hourraRenderBuilder(); loadStep(curStep);}; r.readAsDataURL(e.target.files[0]); e.target.value = ''; }
 
 function playConsigne() { 
+    if (getCurrentType() === 'phrase_rebus') phraseStopMultiPlayback();
     const key = curLvl === 'facile' ? 'aud-f' : 'aud-d'; 
     const audioSrc = (typeof GAME_CONFIG !== 'undefined') ? GAME_CONFIG.audio[key] : dbAud[key];
     if(audioSrc) new Audio(audioSrc).play(); 
