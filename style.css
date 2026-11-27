@@ -2158,3 +2158,16 @@ body:has(> .exercise-player) > .exercise-player {
   box-shadow:0 3px 6px #0002; cursor:pointer;}
 .dressing-verify-btn:hover {background:#2563eb;}
 .dressing-verify-btn:focus-visible {outline:3px solid #93c5fd;outline-offset:2px;}
+
+/* v44: independent word groups and compact audio per Phrase-rebus item. */
+.anagram-target:not(.anagram-target-solved) { column-gap:clamp(14px,2.4cqw,24px); row-gap:9px; }
+.anagram-word-group { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:clamp(4px,1cqw,8px); max-width:100%; }
+.anagram-word-group .letter-tile { flex:0 0 auto; }
+.phrase-multi-audio-row { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; column-gap:clamp(5px,1cqw,10px); }
+.phrase-multi-row-text { min-width:0; white-space:pre-line; }
+.phrase-row-audio-btn { display:inline-flex; align-items:center; justify-content:center; width:clamp(29px,3.5cqw,36px); height:clamp(29px,3.5cqw,36px); margin-top:2px; padding:0; border:1.5px solid #f59e0b; border-radius:50%; background:#fff7e9; color:#b84a08; font-size:14px; font-weight:900; line-height:1; cursor:pointer; }
+.phrase-row-audio-btn[aria-pressed="true"] { background:#f59e0b; color:#fff; }
+.phrase-row-audio-btn:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+@container (max-width:500px) { .anagram-word-group .letter-tile { width:clamp(27px,8cqw,34px); height:clamp(30px,9cqw,38px); font-size:clamp(14px,4cqw,18px); } }
+/* Separate audio rows without adding unnecessary vertical whitespace. */
+.exercise-stage[data-activity-type="phrase_rebus"] .phrase-multi-sheet:has(.phrase-multi-audio-row) { gap:clamp(2px,.5cqw,5px)!important; }
